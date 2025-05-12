@@ -1,20 +1,18 @@
 // File: zekenewsom-trade_journal/packages/react-app/src/types/index.ts
-// New file for shared TypeScript types
+// Modified to include types for BasicAnalytics
 
 export interface TradeLeg {
-    leg_id?: number; // Optional: only present for existing legs from the DB
-    trade_id?: number; // Optional: set when associating with a trade
+    leg_id?: number;
+    trade_id?: number;
     leg_type: 'Entry' | 'Exit';
-    datetime: string; // ISO 8601 format
+    datetime: string;
     price: number;
     size: number;
-    // Client-side temporary ID for managing new legs in the UI before saving
     temp_id?: string;
-}
-
+    }
     
-export interface Trade {
-    trade_id?: number; // Optional: only present for existing trades
+    export interface Trade {
+    trade_id?: number;
     instrument_ticker: string;
     asset_class: 'Stock' | 'Cryptocurrency';
     trade_direction: 'Long' | 'Short';
@@ -28,31 +26,28 @@ export interface Trade {
     reasoning?: string | null;
     lessons_learned?: string | null;
     r_multiple_initial_risk?: number | null;
-    r_multiple_actual?: number | null;
+    // Calculated fields (might be added in memory or persisted later)
+    calculated_pnl_gross?: number;
+    calculated_pnl_net?: number;
+    is_closed?: boolean;
     outcome?: 'Win' | 'Loss' | 'Break Even' | null;
     created_at?: string;
     updated_at?: string;
-    legs: TradeLeg[]; // Array of legs associated with the trade
-}
-
-    
-// For the data structure sent from the form or used to display in table
-// This can evolve. For the table, we might flatten some leg data.
-export interface TradeTableDisplay extends Omit<Trade, 'legs'> {
-    // Example of flattened/aggregated data for display - will be refined
-    first_entry_datetime?: string;
-    total_entry_size?: number;
-    average_entry_price?: number;
-    // ... other display-specific fields
+    legs: TradeLeg[];
     }
     
-    // For form data, it's similar to Trade but prices/sizes might be strings initially
-    export interface TradeFormData extends Omit<Trade, 'legs' | 'trade_id' | 'created_at' | 'updated_at' | 'r_multiple_actual' | 'outcome' > {
-    trade_id?: number; // Keep for editing
+    export interface TradeTableDisplay extends Omit<Trade, 'legs'> {
+    first_entry_datetime?: string;
+    total_entry_size?: number; // Will be more relevant with complex trades
+    average_entry_price?: number; // Will be more relevant with complex trades
+    }
+    
+    export interface TradeFormData extends Omit<Trade, 'legs' | 'trade_id' | 'created_at' | 'updated_at' | 'r_multiple_actual' | 'outcome' | 'calculated_pnl_gross' | 'calculated_pnl_net' | 'is_closed' > {
+    trade_id?: number;
     instrumentTicker: string;
     assetClass: 'Stock' | 'Cryptocurrency' | '';
     direction: 'Long' | 'Short' | '';
-    feesCommissionsTotal: string; // string for form input
+    feesCommissionsTotal: string;
     initialStopLossPrice: string;
     initialTakeProfitPrice: string;
     marketConditions: string;
@@ -60,14 +55,36 @@ export interface TradeTableDisplay extends Omit<Trade, 'legs'> {
     reasoning: string;
     lessonsLearned: string;
     rMultipleInitialRisk: string;
-    legs: Array<Omit<TradeLeg, 'price' | 'size'> & { price: string; size: string; }>; // Legs with string prices/sizes for form
+    legs: Array<Omit<TradeLeg, 'price' | 'size'> & { price: string; size: string; }>;
     }
     
-export interface SaveTradePayload extends Omit<Trade, 'legs'> {
-    legs: TradeLeg[]; // Ensure legs are properly typed with numbers for DB
-}
-
-export interface UpdateTradePayload extends Trade {
-    trade_id: number; // trade_id is mandatory for updates
+    export interface SaveTradePayload extends Omit<Trade, 'legs' | 'trade_id' | 'created_at' | 'updated_at' | 'r_multiple_actual' | 'outcome' | 'calculated_pnl_gross' | 'calculated_pnl_net' | 'is_closed'> {
     legs: TradeLeg[];
-}
+    }
+    
+    export interface UpdateTradePayload extends SaveTradePayload { // Similar to Save, but must include trade_id
+    trade_id: number;
+    }
+    
+    // --- Added for Stage 4 ---
+    export interface BasicAnalyticsData {
+    totalGrossPnl: number;
+    totalNetPnl: number;
+    totalFees: number;
+    winRate: number | null; // Can be null if no closed trades
+    numberOfWinningTrades: number;
+    numberOfLosingTrades: number;
+    numberOfBreakEvenTrades: number;
+    totalClosedTrades: number;
+    avgWinPnl: number | null; // Can be null if no winning trades
+    avgLossPnl: number | null; // Can be null if no losing trades
+    longestWinStreak: number;
+    longestLossStreak: number;
+    currentWinStreak: number;
+    currentLossStreak: number;
+    // Potentially add:
+    // largestWinPnl: number | null;
+    // largestLossPnl: number | null;
+    // averageTradeDurationMs: number | null;
+    }
+    // --- End Stage 4 ---

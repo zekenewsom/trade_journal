@@ -1,23 +1,24 @@
 // File: zekenewsom-trade_journal/packages/react-app/src/App.tsx
-// Modified to include routing/navigation to TradesListPage and NewTradePage (acting as Add/Edit)
+// Modified to integrate DashboardMetrics into the dashboard view
 
 import { useState, useEffect } from 'react';
 import './App.css';
 import NewTradePage from './views/NewTradePage';
 import TradesListPage from './views/TradesListPage';
-import type { Trade, TradeLeg } from './types/index.ts'; // Import shared types
+import DashboardMetrics from './components/dashboard/DashboardMetrics'; // Import DashboardMetrics
+import type { Trade, TradeLeg, BasicAnalyticsData } from './types/index.ts';
 
-// Define ElectronAPI interface (ensure it's comprehensive for all stages)
 export interface ElectronAPI {
   getAppVersion: () => Promise<string>;
   testDbConnection: () => Promise<string>;
-  // Stage 2
-  saveTrade: (tradeData: Omit<Trade, 'trade_id' | 'created_at' | 'updated_at' | 'legs'> & { legs: TradeLeg[] }) => Promise<{ success: boolean; message: string; tradeId?: number }>;
-  // Stage 3
-  getTrades: () => Promise<Trade[]>; // Should return an array of Trade objects, potentially simplified for table
-  getTradeById: (id: number) => Promise<Trade | null>; // Returns a full Trade object with legs
-  updateTrade: (tradeData: Trade & { trade_id: number }) => Promise<{ success: boolean; message: string }>;
+  saveTrade: (tradeData: Omit<Trade, 'trade_id' | 'created_at' | 'updated_at' | 'legs' | 'calculated_pnl_gross' | 'calculated_pnl_net' | 'is_closed' | 'outcome'> & { legs: TradeLeg[] }) => Promise<{ success: boolean; message: string; tradeId?: number }>;
+  getTrades: () => Promise<Trade[]>;
+  getTradeById: (id: number) => Promise<Trade | null>;
+  updateTrade: (tradeData: Omit<Trade, 'created_at' | 'updated_at' | 'calculated_pnl_gross' | 'calculated_pnl_net' | 'is_closed' | 'outcome'> & { trade_id: number }) => Promise<{ success: boolean; message: string }>;
   deleteTrade: (id: number) => Promise<{ success: boolean; message: string }>;
+  // --- Added for Stage 4 ---
+  getBasicAnalytics: () => Promise<BasicAnalyticsData>;
+  // --- End Stage 4 ---
 }
 
 declare global {
@@ -35,6 +36,7 @@ function App() {
   const [editingTradeId, setEditingTradeId] = useState<number | null>(null);
 
   useEffect(() => {
+    // ... (fetchInitialData remains the same)
     const fetchInitialData = async () => {
       if (window.electronAPI) {
         try {
@@ -72,7 +74,10 @@ function App() {
             <h1>Trade Journal - Dashboard</h1>
             <p>Electron App Version: {appVersion}</p>
             <p>Database Status: {dbStatus}</p>
-            <hr />
+            <hr style={{margin: "20px 0"}}/>
+            {/* Integrate DashboardMetrics here */}
+            <DashboardMetrics />
+            <hr style={{margin: "20px 0"}}/>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
               <button onClick={() => navigateTo('tradeForm')} style={{ padding: '10px' }}>
                 Add New Trade
@@ -88,14 +93,10 @@ function App() {
 
   return (
     <div className="app-container" style={{padding: '20px'}}>
-      <nav style={{ marginBottom: '20px', borderBottom: '1px solid #444', paddingBottom: '10px' }}>
+      <nav style={{ marginBottom: '20px', borderBottom: '1px solid #444', paddingBottom: '10px', display: 'flex', gap: '10px' }}>
         <button onClick={() => navigateTo('dashboard')} disabled={currentView === 'dashboard'}>Dashboard</button>
         <button onClick={() => navigateTo('tradesList')} disabled={currentView === 'tradesList'}>Trades List</button>
-        {currentView !== 'dashboard' && currentView !== 'tradesList' && (
-           <button onClick={() => navigateTo(editingTradeId ? 'tradesList' : 'dashboard')}>
-            {editingTradeId ? 'Cancel Edit' : 'Cancel New Trade'}
-           </button>
-        )}
+        {/* Conditional cancel/back button can be refined */}
       </nav>
       {renderView()}
     </div>
