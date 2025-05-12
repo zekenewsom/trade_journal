@@ -1,21 +1,21 @@
 // File: zekenewsom-trade_journal/packages/electron-app/preload.js
-// Modified for Stage 4
+// Modified for Stage 5: Updated ElectronAPI definitions
 
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   testDbConnection: () => ipcRenderer.invoke('test-db'),
-  // Stage 2
-  saveTrade: (tradeData) => ipcRenderer.invoke('save-trade', tradeData),
-  // Stage 3
-  getTrades: () => ipcRenderer.invoke('get-trades'),
-  getTradeById: (id) => ipcRenderer.invoke('get-trade-by-id', id),
-  updateTrade: (tradeData) => ipcRenderer.invoke('update-trade', tradeData),
-  deleteTrade: (id) => ipcRenderer.invoke('delete-trade', id),
-  // --- Added for Stage 4 ---
-  getBasicAnalytics: () => ipcRenderer.invoke('get-basic-analytics'),
-  // --- End Stage 4 ---
-});
+  
+  // Stage 5: Transaction-centric workflow
+  logTransaction: (data) => ipcRenderer.invoke('log-transaction', data),
+  getTrades: () => ipcRenderer.invoke('get-trades'), // Returns TradeListView[]
+  getTradeWithTransactions: (tradeId) => ipcRenderer.invoke('get-trade-with-transactions', tradeId), // Returns full Trade with transactions
+  updateTradeDetails: (data) => ipcRenderer.invoke('update-trade-details', data),
+  updateSingleTransaction: (data) => ipcRenderer.invoke('update-single-transaction', data),
+  deleteSingleTransaction: (transactionId) => ipcRenderer.invoke('delete-single-transaction', transactionId),
+  deleteFullTrade: (tradeId) => ipcRenderer.invoke('delete-full-trade', tradeId),
 
-console.log('Preload script loaded. Stage 4 APIs exposed.');
+  // Stage 4: Analytics
+  getBasicAnalytics: () => ipcRenderer.invoke('get-basic-analytics'),
+});

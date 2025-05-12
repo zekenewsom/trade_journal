@@ -1,48 +1,36 @@
 // File: zekenewsom-trade_journal/packages/electron-app/main.js
-// Modified for Stage 4 IPC Handler
+// Modified for Stage 5 IPC Handlers
 
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
-const {
-  initializeDatabase,
-  getDb,
-  insertTrade,
-  fetchTrades,
-  fetchTradeById,
-  updateTradeInDb,
-  deleteTradeFromDb,
-  // --- Added for Stage 4 ---
-  calculateBasicAnalytics
-  // --- End Stage 4 ---
-} = require('./src/database/db');
+const dbModule = require('./src/database/db');
 
 const userDataPath = app.getPath('userData');
 const dbPath = path.join(userDataPath, 'trade_journal.db');
 
-// ... (createWindow and other app lifecycle events remain the same)
 function createWindow() {
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1400, // Increased width a bit
+    height: 900, // Increased height a bit
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
+      contextIsolation: true, nodeIntegration: false,
     },
   });
-
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
-    console.log("Production build loadFile not configured yet. Ensure React app is built and path is correct.");
+    // This needs to be configured for production builds
+    // mainWindow.loadFile(path.join(__dirname, '../react-app/dist/index.html'));
+    console.warn("Production loadFile not configured. Using dev server URL as fallback.");
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   }
 }
 
 app.whenReady().then(() => {
-  initializeDatabase(dbPath);
+  dbModule.initializeDatabase(dbPath);
   createWindow();
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -51,58 +39,94 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
-    const db = getDb();
-    if (db && db.open) {
-      db.close(err => err && console.error('Error closing DB:', err.message));
-    }
+    dbModule.closeDatabase(); // Use the exported closeDatabase
     app.quit();
   }
 });
 
 // --- IPC Handlers ---
-// ... (get-app-version, test-db, save-trade, get-trades, get-trade-by-id, update-trade, delete-trade handlers remain the same)
 ipcMain.handle('get-app-version', () => app.getVersion());
+
 ipcMain.handle('test-db', () => {
   try {
-    const db = getDb();
+    const db = dbModule.getDb();
     const row = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='trades'").get();
-    return `DB ${row ? 'ok' : 'not ok (trades table missing?)'}. Path: ${dbPath}`;
-  } catch (e) { return `Error: ${e && e.message ? e.message : e}`; }
-});
-ipcMain.handle('save-trade', async (event, tradeData) => {
-  try {
-    const newTradeId = insertTrade(tradeData);
-    return { success: true, message: 'Trade saved successfully!', tradeId: newTradeId };
-  } catch (error) { return { success: false, message: error && error.message ? error.message : error }; }
-});
-ipcMain.handle('get-trades', async () => {
-  try { return fetchTrades(); } catch (error) { console.error('Main: Error fetching trades:', error); return []; }
-});
-ipcMain.handle('get-trade-by-id', async (event, id) => {
-  try { return fetchTradeById(id); } catch (error) { console.error(`Main: Error fetching trade ID ${id}:`, error); return null; }
-});
-ipcMain.handle('update-trade', async (event, tradeData) => {
-  try { updateTradeInDb(tradeData); return { success: true, message: 'Trade updated successfully!' }; }
-  catch (error) { console.error('Main: Error updating trade:', error); return { success: false, message: error && error.message ? error.message : error }; }
-});
-ipcMain.handle('delete-trade', async (event, id) => {
-  try { deleteTradeFromDb(id); return { success: true, message: 'Trade deleted successfully!' }; }
-  catch (error) { console.error(`Main: Error deleting trade ID ${id}:`, error); return { success: false, message: error && error.message ? error.message : error }; }
+    return `DB connection ${row ? 'successful, trades table exists' : 'successful, but trades table NOT found?'}. Path: ${dbPath}`;
+  } catch (e) { return { error: `Error testing database: ${(e).message}`}; }
 });
 
-// --- Added for Stage 4 ---
-ipcMain.handle('get-basic-analytics', async () => {
-  console.log('Main: get-basic-analytics received');
+// Stage 5: Transaction Centric
+ipcMain.handle('log-transaction', async (event, transactionData) => {
+  console.log('Main: log-transaction received', transactionData);
   try {
-    const analyticsData = calculateBasicAnalytics();
+    const result = dbModule.addTransactionAndManageTrade(transactionData);
+    return { success: true, message: 'Transaction logged successfully!', ...result };
+  } catch (error) {
+    console.error('Main: Error logging transaction:', error);
+    return { success: false, message: (error).message || 'Unknown error logging transaction.' };
+  }
+});
+
+ipcMain.handle('get-trades', async () => {
+  try { return dbModule.fetchTradesForListView(); }
+  catch (error) { console.error('Main: Error fetching trades list:', error); return []; }
+});
+
+ipcMain.handle('get-trade-with-transactions', async (event, tradeId) => {
+  try { return dbModule.fetchTradeWithTransactions(tradeId); }
+  catch (error) { console.error(`Main: Error fetching trade ${tradeId} with transactions:`, error); return null; }
+});
+
+ipcMain.handle('update-trade-details', async (event, data) => {
+  try {
+    dbModule.updateTradeMetadata(data); // Changed function name for clarity
+    return { success: true, message: 'Trade details updated!' };
+  } catch (error) {
+    console.error('Main: Error updating trade details:', error);
+    return { success: false, message: (error).message };
+  }
+});
+
+ipcMain.handle('update-single-transaction', async (event, data) => {
+  try {
+    dbModule.updateSingleTransaction(data);
+    return { success: true, message: 'Transaction updated successfully!' };
+  } catch (error) {
+    console.error('Main: Error updating single transaction:', error);
+    return { success: false, message: (error).message };
+  }
+});
+
+ipcMain.handle('delete-single-transaction', async (event, transactionId) => {
+  try {
+    dbModule.deleteSingleTransaction(transactionId);
+    return { success: true, message: 'Transaction deleted successfully!' };
+  } catch (error) {
+    console.error('Main: Error deleting single transaction:', error);
+    return { success: false, message: (error).message };
+  }
+});
+
+ipcMain.handle('delete-full-trade', async (event, tradeId) => {
+  try {
+    dbModule.deleteFullTradeAndTransactions(tradeId);
+    return { success: true, message: 'Trade and all its transactions deleted!' };
+  } catch (error) {
+    console.error(`Main: Error deleting full trade ID ${tradeId}:`, error);
+    return { success: false, message: (error).message };
+  }
+});
+
+// Stage 4: Analytics
+ipcMain.handle('get-basic-analytics', async () => {
+  try {
+    const analyticsData = dbModule.calculateBasicAnalytics();
     return analyticsData;
   } catch (error) {
     console.error('Main: Error calculating basic analytics:', error);
-    // Consider returning a specific error structure or re-throwing
-    return { error: error && error.message ? error.message : error }; // Or simply throw error
+    return { error: (error).message || 'Unknown error in analytics' };
   }
 });
-// --- End Stage 4 ---
 
 if (!process.env.NODE_ENV && (process.argv.includes('--dev') || process.defaultApp)) {
   process.env.NODE_ENV = 'development';

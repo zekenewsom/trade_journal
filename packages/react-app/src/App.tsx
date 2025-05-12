@@ -1,47 +1,45 @@
 // File: zekenewsom-trade_journal/packages/react-app/src/App.tsx
-// Modified to integrate DashboardMetrics into the dashboard view
+// Modified for Stage 5: Updated navigation, API interface
 
 import { useState, useEffect } from 'react';
 import './App.css';
-import NewTradePage from './views/NewTradePage';
+import LogTransactionPage from './views/LogTransactionPage';
+import EditTradeDetailsPage from './views/EditTradeDetailsPage';
 import TradesListPage from './views/TradesListPage';
-import DashboardMetrics from './components/dashboard/DashboardMetrics'; // Import DashboardMetrics
-import type { Trade, TradeLeg, BasicAnalyticsData } from './types/index.ts';
+import DashboardMetrics from './components/dashboard/DashboardMetrics';
+import type { ElectronAPIDefinition } from './types/index.ts';
 
-export interface ElectronAPI {
-  getAppVersion: () => Promise<string>;
-  testDbConnection: () => Promise<string>;
-  saveTrade: (tradeData: Omit<Trade, 'trade_id' | 'created_at' | 'updated_at' | 'legs' | 'calculated_pnl_gross' | 'calculated_pnl_net' | 'is_closed' | 'outcome'> & { legs: TradeLeg[] }) => Promise<{ success: boolean; message: string; tradeId?: number }>;
-  getTrades: () => Promise<Trade[]>;
-  getTradeById: (id: number) => Promise<Trade | null>;
-  updateTrade: (tradeData: Omit<Trade, 'created_at' | 'updated_at' | 'calculated_pnl_gross' | 'calculated_pnl_net' | 'is_closed' | 'outcome'> & { trade_id: number }) => Promise<{ success: boolean; message: string }>;
-  deleteTrade: (id: number) => Promise<{ success: boolean; message: string }>;
-  // --- Added for Stage 4 ---
-  getBasicAnalytics: () => Promise<BasicAnalyticsData>;
-  // --- End Stage 4 ---
-}
-
+// Expose ElectronAPI to the window object for TypeScript
 declare global {
   interface Window {
-    electronAPI: ElectronAPI;
+    electronAPI: ElectronAPIDefinition;
   }
 }
 
-type View = 'dashboard' | 'tradesList' | 'tradeForm';
+type View = 'dashboard' | 'tradesList' | 'logTransactionForm' | 'editTradeDetailsForm';
 
 function App() {
   const [appVersion, setAppVersion] = useState('Loading...');
   const [dbStatus, setDbStatus] = useState('Testing DB...');
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [editingTradeId, setEditingTradeId] = useState<number | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // Used to force re-fetch in child components
+
+  const forceRefresh = () => setRefreshTrigger(prev => prev + 1);
 
   useEffect(() => {
-    // ... (fetchInitialData remains the same)
     const fetchInitialData = async () => {
       if (window.electronAPI) {
         try {
           setAppVersion(await window.electronAPI.getAppVersion());
-          setDbStatus(await window.electronAPI.testDbConnection());
+          const dbTestResult = await window.electronAPI.testDbConnection();
+          if (typeof dbTestResult === 'string') { // Simple string success
+            setDbStatus(dbTestResult);
+          } else if (dbTestResult && 'error' in dbTestResult) { // Error object
+             setDbStatus(`Error: ${dbTestResult.error}`);
+          } else { // Unknown response
+             setDbStatus('DB status unknown');
+          }
         } catch (error) {
           console.error("Error fetching initial data:", error);
           setAppVersion('Error');
@@ -59,14 +57,31 @@ function App() {
   const navigateTo = (view: View, tradeId: number | null = null) => {
     setEditingTradeId(tradeId);
     setCurrentView(view);
+    // When navigating to views that display lists or summaries, trigger a refresh
+    if (view === 'dashboard' || view === 'tradesList') {
+      forceRefresh();
+    }
+  };
+
+  const handleActionComplete = () => {
+    // After logging a transaction or editing a trade, go to trades list
+    // This will inherently refresh the list and dashboard if it's re-rendered
+    navigateTo('tradesList');
   };
 
   const renderView = () => {
     switch (currentView) {
       case 'tradesList':
-        return <TradesListPage onEditTrade={(id) => navigateTo('tradeForm', id)} />;
-      case 'tradeForm':
-        return <NewTradePage tradeId={editingTradeId} onFormSubmitOrCancel={() => navigateTo('tradesList')} />;
+        return <TradesListPage key={refreshTrigger} onEditTrade={(id) => navigateTo('editTradeDetailsForm', id)} />;
+      case 'logTransactionForm':
+        return <LogTransactionPage onTransactionLogged={handleActionComplete} onCancel={() => navigateTo('dashboard')} />;
+      case 'editTradeDetailsForm':
+        if (editingTradeId === null) {
+            console.error("Attempted to navigate to editTradeDetailsForm without a tradeId.");
+            navigateTo('tradesList'); // Fallback
+            return <p>Error: No trade selected for editing. Redirecting...</p>;
+        }
+        return <EditTradeDetailsPage tradeId={editingTradeId} onEditComplete={handleActionComplete} onCancel={() => navigateTo('tradesList')} />;
       case 'dashboard':
       default:
         return (
@@ -75,12 +90,11 @@ function App() {
             <p>Electron App Version: {appVersion}</p>
             <p>Database Status: {dbStatus}</p>
             <hr style={{margin: "20px 0"}}/>
-            {/* Integrate DashboardMetrics here */}
-            <DashboardMetrics />
+            <DashboardMetrics key={refreshTrigger} /> {/* Key helps re-trigger fetch in DashboardMetrics */}
             <hr style={{margin: "20px 0"}}/>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
-              <button onClick={() => navigateTo('tradeForm')} style={{ padding: '10px' }}>
-                Add New Trade
+              <button onClick={() => navigateTo('logTransactionForm')} style={{ padding: '10px' }}>
+                Log New Transaction
               </button>
               <button onClick={() => navigateTo('tradesList')} style={{ padding: '10px' }}>
                 View All Trades
@@ -96,7 +110,6 @@ function App() {
       <nav style={{ marginBottom: '20px', borderBottom: '1px solid #444', paddingBottom: '10px', display: 'flex', gap: '10px' }}>
         <button onClick={() => navigateTo('dashboard')} disabled={currentView === 'dashboard'}>Dashboard</button>
         <button onClick={() => navigateTo('tradesList')} disabled={currentView === 'tradesList'}>Trades List</button>
-        {/* Conditional cancel/back button can be refined */}
       </nav>
       {renderView()}
     </div>
