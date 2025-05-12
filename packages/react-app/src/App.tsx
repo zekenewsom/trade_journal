@@ -1,16 +1,23 @@
 // File: zekenewsom-trade_journal/packages/react-app/src/App.tsx
-// Modified to include a simple way to toggle the NewTradePage view
+// Modified to include routing/navigation to TradesListPage and NewTradePage (acting as Add/Edit)
 
 import { useState, useEffect } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
 import './App.css';
 import NewTradePage from './views/NewTradePage';
+import TradesListPage from './views/TradesListPage';
+import type { Trade, TradeLeg } from './types/index.ts'; // Import shared types
 
-interface ElectronAPI {
+// Define ElectronAPI interface (ensure it's comprehensive for all stages)
+export interface ElectronAPI {
   getAppVersion: () => Promise<string>;
   testDbConnection: () => Promise<string>;
-  saveTrade: (tradeData: any) => Promise<{ success: boolean; message: string; tradeId?: number }>;
+  // Stage 2
+  saveTrade: (tradeData: Omit<Trade, 'trade_id' | 'created_at' | 'updated_at' | 'legs'> & { legs: TradeLeg[] }) => Promise<{ success: boolean; message: string; tradeId?: number }>;
+  // Stage 3
+  getTrades: () => Promise<Trade[]>; // Should return an array of Trade objects, potentially simplified for table
+  getTradeById: (id: number) => Promise<Trade | null>; // Returns a full Trade object with legs
+  updateTrade: (tradeData: Trade & { trade_id: number }) => Promise<{ success: boolean; message: string }>;
+  deleteTrade: (id: number) => Promise<{ success: boolean; message: string }>;
 }
 
 declare global {
@@ -19,88 +26,79 @@ declare global {
   }
 }
 
+type View = 'dashboard' | 'tradesList' | 'tradeForm';
+
 function App() {
-  const [count, setCount] = useState(0);
   const [appVersion, setAppVersion] = useState('Loading...');
   const [dbStatus, setDbStatus] = useState('Testing DB...');
-  const [showNewTradePage, setShowNewTradePage] = useState(false);
+  const [currentView, setCurrentView] = useState<View>('dashboard');
+  const [editingTradeId, setEditingTradeId] = useState<number | null>(null);
 
   useEffect(() => {
-    const fetchAppVersion = async () => {
-      if (window.electronAPI && typeof window.electronAPI.getAppVersion === 'function') {
+    const fetchInitialData = async () => {
+      if (window.electronAPI) {
         try {
-          const version = await window.electronAPI.getAppVersion();
-          setAppVersion(version);
+          setAppVersion(await window.electronAPI.getAppVersion());
+          setDbStatus(await window.electronAPI.testDbConnection());
         } catch (error) {
-          console.error('Error fetching app version:', error);
-          setAppVersion('Error fetching version');
-        }
-      } else {
-        setAppVersion('electronAPI.getAppVersion not found. Run in Electron.');
-        console.warn('window.electronAPI.getAppVersion is not available. Ensure the app is running in Electron and preload.js is configured correctly.');
-      }
-    };
-
-    const testDb = async () => {
-      if (window.electronAPI && typeof window.electronAPI.testDbConnection === 'function') {
-        try {
-          const status = await window.electronAPI.testDbConnection();
-          setDbStatus(status);
-        } catch (error) {
-          console.error('Error testing DB connection:', error);
+          console.error("Error fetching initial data:", error);
+          setAppVersion('Error');
           setDbStatus(`Error: ${(error as Error).message}`);
         }
       } else {
-        setDbStatus('electronAPI.testDbConnection not found. Run in Electron.');
-        console.warn('window.electronAPI.testDbConnection is not available.');
+        console.warn("electronAPI not found during initial load.");
+        setAppVersion('N/A (Not in Electron)');
+        setDbStatus('N/A (Not in Electron)');
       }
     };
-
-    fetchAppVersion();
-    testDb();
+    fetchInitialData();
   }, []);
 
-  const handleToggleNewTradePage = () => {
-    setShowNewTradePage(!showNewTradePage);
+  const navigateTo = (view: View, tradeId: number | null = null) => {
+    setEditingTradeId(tradeId);
+    setCurrentView(view);
+  };
+
+  const renderView = () => {
+    switch (currentView) {
+      case 'tradesList':
+        return <TradesListPage onEditTrade={(id) => navigateTo('tradeForm', id)} />;
+      case 'tradeForm':
+        return <NewTradePage tradeId={editingTradeId} onFormSubmitOrCancel={() => navigateTo('tradesList')} />;
+      case 'dashboard':
+      default:
+        return (
+          <div>
+            <h1>Trade Journal - Dashboard</h1>
+            <p>Electron App Version: {appVersion}</p>
+            <p>Database Status: {dbStatus}</p>
+            <hr />
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
+              <button onClick={() => navigateTo('tradeForm')} style={{ padding: '10px' }}>
+                Add New Trade
+              </button>
+              <button onClick={() => navigateTo('tradesList')} style={{ padding: '10px' }}>
+                View All Trades
+              </button>
+            </div>
+          </div>
+        );
+    }
   };
 
   return (
-    <>
-      {!showNewTradePage ? (
-        <div>
-          <div>
-            <a href="https://vitejs.dev" target="_blank" rel="noopener noreferrer">
-              <img src={viteLogo} className="logo" alt="Vite logo" />
-            </a>
-            <a href="https://react.dev" target="_blank" rel="noopener noreferrer">
-              <img src={reactLogo} className="logo react" alt="React logo" />
-            </a>
-          </div>
-          <h1>Trade Journal - Stage 2</h1>
-          <p>Vite + React + Electron</p>
-          <div className="card">
-            <button onClick={() => setCount((c) => c + 1)}>
-              count is {count}
-            </button>
-            <p>
-              Edit <code>src/App.tsx</code> and save to test HMR
-            </p>
-          </div>
-          <p className="read-the-docs">
-            Click on the Vite and React logos to learn more
-          </p>
-          <hr />
-          <p>Electron App Version: {appVersion}</p>
-          <p>Database Status: {dbStatus}</p>
-          <hr />
-          <button onClick={handleToggleNewTradePage} style={{ marginTop: '20px', padding: '10px' }}>
-            Add New Trade
-          </button>
-        </div>
-      ) : (
-        <NewTradePage onBack={() => setShowNewTradePage(false)} />
-      )}
-    </>
+    <div className="app-container" style={{padding: '20px'}}>
+      <nav style={{ marginBottom: '20px', borderBottom: '1px solid #444', paddingBottom: '10px' }}>
+        <button onClick={() => navigateTo('dashboard')} disabled={currentView === 'dashboard'}>Dashboard</button>
+        <button onClick={() => navigateTo('tradesList')} disabled={currentView === 'tradesList'}>Trades List</button>
+        {currentView !== 'dashboard' && currentView !== 'tradesList' && (
+           <button onClick={() => navigateTo(editingTradeId ? 'tradesList' : 'dashboard')}>
+            {editingTradeId ? 'Cancel Edit' : 'Cancel New Trade'}
+           </button>
+        )}
+      </nav>
+      {renderView()}
+    </div>
   );
 }
 
