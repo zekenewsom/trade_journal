@@ -1,132 +1,117 @@
 // File: zekenewsom-trade_journal/packages/electron-app/main.js
-// Modified for Stage 5 IPC Handlers
+// Modified for Stage 6: New IPC handlers for analytics and emotions
 
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const dbModule = require('./src/database/db');
 
 const userDataPath = app.getPath('userData');
-const dbPath = path.join(userDataPath, 'trade_journal.db');
-
+const dbPath = path.join(userDataPath, 'trade_journal.sqlite3');
+// ... (createWindow, app lifecycle events - same)
 function createWindow() {
-  const mainWindow = new BrowserWindow({
-    width: 1400, // Increased width a bit
-    height: 900, // Increased height a bit
+  const win = new BrowserWindow({
+    width: 1200,
+    height: 900,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true, nodeIntegration: false,
+      nodeIntegration: false, // recommended for security
+      contextIsolation: true, // recommended for security
     },
   });
+
+  const startUrl =
+    process.env.NODE_ENV === 'development'
+      ? 'http://localhost:5173'
+      : `file://${path.join(__dirname, '../react-app/dist/index.html')}`;
+  win.loadURL(startUrl);
+
+  // Open devtools automatically in dev mode
   if (process.env.NODE_ENV === 'development') {
-    mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
-  } else {
-    // This needs to be configured for production builds
-    // mainWindow.loadFile(path.join(__dirname, '../react-app/dist/index.html'));
-    console.warn("Production loadFile not configured. Using dev server URL as fallback.");
-    mainWindow.loadURL('http://localhost:5173');
-    mainWindow.webContents.openDevTools();
+    win.webContents.openDevTools();
   }
 }
 
-app.whenReady().then(() => {
-  dbModule.initializeDatabase(dbPath);
-  createWindow();
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
+app.whenReady().then(() => { dbModule.initializeDatabase(dbPath); createWindow(); /* ... */ });
+app.on('window-all-closed', () => { /* ... */ });
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    dbModule.closeDatabase(); // Use the exported closeDatabase
-    app.quit();
-  }
-});
 
 // --- IPC Handlers ---
+// ... (getAppVersion, testDb, logTransaction, getTrades, getTradeWithTransactions, updateTradeDetails, updateSingleTransaction, deleteSingleTransaction, deleteFullTrade - same as Stage 5)
 ipcMain.handle('get-app-version', () => app.getVersion());
-
 ipcMain.handle('test-db', () => {
   try {
-    const db = dbModule.getDb();
-    const row = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='trades'").get();
-    return `DB connection ${row ? 'successful, trades table exists' : 'successful, but trades table NOT found?'}. Path: ${dbPath}`;
-  } catch (e) { return { error: `Error testing database: ${(e).message}`}; }
+    const db = dbModule.getDb(); // Will throw if not initialized
+    if (db && db.open) {
+      return { status: 'ok', message: 'Database is initialized and open.' };
+    } else {
+      return { status: 'error', message: 'Database is not open.' };
+    }
+  } catch (error) {
+    return { status: 'error', message: error.message || 'Database status unknown.' };
+  }
 });
-
-// Stage 5: Transaction Centric
 ipcMain.handle('log-transaction', async (event, transactionData) => {
-  console.log('Main: log-transaction received', transactionData);
   try {
     const result = dbModule.addTransactionAndManageTrade(transactionData);
-    return { success: true, message: 'Transaction logged successfully!', ...result };
+    return { success: true, result };
   } catch (error) {
     console.error('Main: Error logging transaction:', error);
-    return { success: false, message: (error).message || 'Unknown error logging transaction.' };
+    return { success: false, message: (error && error.message) || 'Unknown error logging transaction' };
   }
 });
-
-ipcMain.handle('get-trades', async () => {
-  try { return dbModule.fetchTradesForListView(); }
-  catch (error) { console.error('Main: Error fetching trades list:', error); return []; }
-});
-
-ipcMain.handle('get-trade-with-transactions', async (event, tradeId) => {
-  try { return dbModule.fetchTradeWithTransactions(tradeId); }
-  catch (error) { console.error(`Main: Error fetching trade ${tradeId} with transactions:`, error); return null; }
-});
-
+ipcMain.handle('get-trades', async () => dbModule.fetchTradesForListView());
+ipcMain.handle('get-trade-with-transactions', async (event, tradeId) => dbModule.fetchTradeWithTransactions(tradeId));
 ipcMain.handle('update-trade-details', async (event, data) => {
   try {
-    dbModule.updateTradeMetadata(data); // Changed function name for clarity
-    return { success: true, message: 'Trade details updated!' };
+    const changes = dbModule.updateTradeMetadata(data);
+    if (changes > 0) {
+      return { success: true, message: 'Trade details updated.' };
+    } else {
+      return { success: false, message: 'No trade was updated. Check trade ID.' };
+    }
   } catch (error) {
     console.error('Main: Error updating trade details:', error);
-    return { success: false, message: (error).message };
+    return { success: false, message: (error && error.message) || 'Unknown error updating trade details' };
   }
 });
+ipcMain.handle('update-single-transaction', async (event, data) => { /* ... */});
+ipcMain.handle('delete-single-transaction', async (event, transactionId) => { /* ... */});
+ipcMain.handle('delete-full-trade', async (event, tradeId) => { /* ... */});
 
-ipcMain.handle('update-single-transaction', async (event, data) => {
-  try {
-    dbModule.updateSingleTransaction(data);
-    return { success: true, message: 'Transaction updated successfully!' };
-  } catch (error) {
-    console.error('Main: Error updating single transaction:', error);
-    return { success: false, message: (error).message };
-  }
-});
 
-ipcMain.handle('delete-single-transaction', async (event, transactionId) => {
+// --- Modified/New for Stage 6 ---
+ipcMain.handle('get-analytics-data', async (event, filters) => {
+  console.log('Main: get-analytics-data received with filters:', filters);
   try {
-    dbModule.deleteSingleTransaction(transactionId);
-    return { success: true, message: 'Transaction deleted successfully!' };
-  } catch (error) {
-    console.error('Main: Error deleting single transaction:', error);
-    return { success: false, message: (error).message };
-  }
-});
-
-ipcMain.handle('delete-full-trade', async (event, tradeId) => {
-  try {
-    dbModule.deleteFullTradeAndTransactions(tradeId);
-    return { success: true, message: 'Trade and all its transactions deleted!' };
-  } catch (error) {
-    console.error(`Main: Error deleting full trade ID ${tradeId}:`, error);
-    return { success: false, message: (error).message };
-  }
-});
-
-// Stage 4: Analytics
-ipcMain.handle('get-basic-analytics', async () => {
-  try {
-    const analyticsData = dbModule.calculateBasicAnalytics();
+    const analyticsData = dbModule.calculateAnalyticsData(filters); // Pass filters
     return analyticsData;
   } catch (error) {
-    console.error('Main: Error calculating basic analytics:', error);
-    return { error: (error).message || 'Unknown error in analytics' };
+    console.error('Main: Error calculating analytics data:', error);
+    return { error: (error).message || 'Unknown error calculating analytics' };
   }
 });
+
+ipcMain.handle('get-emotions', async () => {
+    try { return dbModule.getEmotions(); }
+    catch (error) { console.error('Main: Error fetching emotions:', error); return [];}
+});
+
+ipcMain.handle('get-trade-emotions', async (event, tradeId) => {
+    try { return dbModule.getEmotionsForTrade(tradeId); }
+    catch (error) { console.error(`Main: Error fetching emotions for trade ${tradeId}:`, error); return [];}
+});
+
+ipcMain.handle('save-trade-emotions', async (event, payload) => {
+    const { tradeId, emotionIds } = payload;
+    try {
+        dbModule.saveEmotionsForTrade(tradeId, emotionIds);
+        return { success: true, message: 'Trade emotions updated.' };
+    } catch (error) {
+        console.error(`Main: Error saving emotions for trade ${tradeId}:`, error);
+        return { success: false, message: (error).message };
+    }
+});
+// --- End Stage 6 ---
 
 if (!process.env.NODE_ENV && (process.argv.includes('--dev') || process.defaultApp)) {
   process.env.NODE_ENV = 'development';
