@@ -1,0 +1,14 @@
+{
+    "name": "trade_journal_monorepo",
+    "private": true,
+    "scripts": {
+      "dev": "pnpm --filter electron-app start:dev & pnpm --filter react-app dev",
+      "start-electron": "pnpm --filter electron-app start",
+      "start-react": "pnpm --filter react-app dev",
+      "build-react": "pnpm --filter react-app build"
+    },
+    "devDependencies": {
+      "concurrently": "^8.2.2", 
+      "nodemon": "^3.1.0"
+    }
+  }

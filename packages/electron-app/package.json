@@ -1,0 +1,17 @@
+{
+  "name": "electron-app",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "start:dev": "nodemon --watch main.js --watch src --exec \"electron .\""
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.5",
+    "electron": "^30.0.0"
+  },
+  "devDependencies": {
+    "electron-rebuild": "^3.2.9",
+    "nodemon": "^3.1.0"
+  }
+}

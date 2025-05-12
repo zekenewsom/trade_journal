@@ -1,0 +1,43 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+coverage/
+lib/
+
+# Vite
+dist/
+dist-ssr/
+*.local
+
+# Electron
+.electron/
+*-unpacked/
+release/
+build/
+app-builds/
+
+# SQLite
+*.sqlite
+*.sqlite3
+*.db
+*.db3
+*.sdb
+*.s3db
+# Add your database file name if it's specific and versioned,
+# but typically you want the actual DB file from userData to be ignored
+# if it's committed by mistake from a dev environment.
+# For this project, the DB will be in app.getPath('userData'),
+# so it won't be in the project repo directly.
+# However, if you create temp dbs in the project for testing, ignore them.
+# e.g. /packages/electron-app/my_dev_database.db
+
+# IDE / OS
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
