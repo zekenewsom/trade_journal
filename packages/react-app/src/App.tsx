@@ -1,14 +1,16 @@
-// File: trade_journal/packages/react-app/src/App.tsx
+// File: zekenewsom-trade_journal/packages/react-app/src/App.tsx
+// Modified to include a simple way to toggle the NewTradePage view
+
 import { useState, useEffect } from 'react';
 import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg'; // From public folder
+import viteLogo from '/vite.svg';
 import './App.css';
+import NewTradePage from './views/NewTradePage';
 
-// Define the structure of the electronAPI exposed by preload.js
-// This helps TypeScript with type checking.
 interface ElectronAPI {
   getAppVersion: () => Promise<string>;
   testDbConnection: () => Promise<string>;
+  saveTrade: (tradeData: any) => Promise<{ success: boolean; message: string; tradeId?: number }>;
 }
 
 declare global {
@@ -21,6 +23,7 @@ function App() {
   const [count, setCount] = useState(0);
   const [appVersion, setAppVersion] = useState('Loading...');
   const [dbStatus, setDbStatus] = useState('Testing DB...');
+  const [showNewTradePage, setShowNewTradePage] = useState(false);
 
   useEffect(() => {
     const fetchAppVersion = async () => {
@@ -45,11 +48,11 @@ function App() {
           setDbStatus(status);
         } catch (error) {
           console.error('Error testing DB connection:', error);
-          setDbStatus(`Error: ${error}`);
+          setDbStatus(`Error: ${(error as Error).message}`);
         }
       } else {
         setDbStatus('electronAPI.testDbConnection not found. Run in Electron.');
-         console.warn('window.electronAPI.testDbConnection is not available.');
+        console.warn('window.electronAPI.testDbConnection is not available.');
       }
     };
 
@@ -57,32 +60,46 @@ function App() {
     testDb();
   }, []);
 
+  const handleToggleNewTradePage = () => {
+    setShowNewTradePage(!showNewTradePage);
+  };
+
   return (
     <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank" rel="noopener noreferrer">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noopener noreferrer">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Trade Journal - Stage 1</h1>
-      <p>Vite + React + Electron</p>
-      <div className="card">
-        <button onClick={() => setCount((c) => c + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-      <hr />
-      <p>Electron App Version: {appVersion}</p>
-      <p>Database Status: {dbStatus}</p>
+      {!showNewTradePage ? (
+        <div>
+          <div>
+            <a href="https://vitejs.dev" target="_blank" rel="noopener noreferrer">
+              <img src={viteLogo} className="logo" alt="Vite logo" />
+            </a>
+            <a href="https://react.dev" target="_blank" rel="noopener noreferrer">
+              <img src={reactLogo} className="logo react" alt="React logo" />
+            </a>
+          </div>
+          <h1>Trade Journal - Stage 2</h1>
+          <p>Vite + React + Electron</p>
+          <div className="card">
+            <button onClick={() => setCount((c) => c + 1)}>
+              count is {count}
+            </button>
+            <p>
+              Edit <code>src/App.tsx</code> and save to test HMR
+            </p>
+          </div>
+          <p className="read-the-docs">
+            Click on the Vite and React logos to learn more
+          </p>
+          <hr />
+          <p>Electron App Version: {appVersion}</p>
+          <p>Database Status: {dbStatus}</p>
+          <hr />
+          <button onClick={handleToggleNewTradePage} style={{ marginTop: '20px', padding: '10px' }}>
+            Add New Trade
+          </button>
+        </div>
+      ) : (
+        <NewTradePage onBack={() => setShowNewTradePage(false)} />
+      )}
     </>
   );
 }
