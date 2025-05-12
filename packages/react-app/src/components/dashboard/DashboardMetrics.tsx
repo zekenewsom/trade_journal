@@ -16,6 +16,9 @@ const DashboardMetrics: React.FC = () => {
         // Using the new unified analytics endpoint
         if (window.electronAPI && window.electronAPI.getAnalyticsData) {
           const data = await window.electronAPI.getAnalyticsData(); // No filters for dashboard summary for now
+          if (data == null) {
+            throw new Error('No analytics data returned from backend.');
+          }
           if ('error' in data) { throw new Error(data.error); }
           setAnalytics(data);
         } else { throw new Error("getAnalyticsData API not available."); }

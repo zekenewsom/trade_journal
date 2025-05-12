@@ -2,8 +2,8 @@
 // Modified for Stage 6: Add Emotion Tagging UI
 
 import React, { useState, useEffect, useCallback } from 'react';
-import type { Trade, EditTradeDetailsFormData, UpdateTradeDetailsPayload, EmotionRecord } from '../types';
-// import EditTransactionForm from '../components/transactions/EditTransactionForm'; // Removed as unused
+import type { Trade, EditTradeDetailsFormData, UpdateTradeDetailsPayload, EmotionRecord, TransactionRecord } from '../types';
+import EditTransactionForm from '../components/transactions/EditTransactionForm';
 
 interface EditTradeDetailsPageProps {
   tradeId: number;
@@ -17,8 +17,30 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
   const [availableEmotions, setAvailableEmotions] = useState<EmotionRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // const [editingTransaction, setEditingTransaction] = useState<TransactionRecord | null>(null);
-  // Modal logic placeholder: see below for usage guidance.
+  const [editingTransaction, setEditingTransaction] = useState<TransactionRecord | null>(null);
+  // Mark-to-market state
+  const [markToMarket, setMarkToMarket] = useState<{
+    mark_price?: number,
+    unrealized_pnl?: number,
+    current_open_quantity?: number,
+    average_open_price?: number
+  } | null>(null);
+  const [markPriceInput, setMarkPriceInput] = useState<string>('');
+
+  // Add style definitions
+  const tableHeaderStyle: React.CSSProperties = {
+    padding: '8px',
+    textAlign: 'left',
+    borderBottom: '1px solid #444',
+    backgroundColor: '#2a2f36',
+    color: '#fff'
+  };
+
+  const tableCellStyle: React.CSSProperties = {
+    padding: '8px',
+    borderBottom: '1px solid #333',
+    color: '#fff'
+  };
 
   const fetchTradeData = useCallback(async () => {
     setIsLoading(true); setError(null);
@@ -64,15 +86,28 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
     fetchTradeData();
   }, [fetchTradeData]);
 
+  // Set initial mark-to-market values when trade loads
+  useEffect(() => {
+    if (trade) {
+      setMarkToMarket({
+        mark_price: trade.current_market_price ?? undefined,
+        unrealized_pnl: trade.unrealized_pnl ?? undefined,
+        current_open_quantity: trade.current_open_quantity ?? undefined,
+        average_open_price: trade.average_open_price ?? undefined
+      });
+      setMarkPriceInput(trade.current_market_price ? String(trade.current_market_price) : '');
+    }
+  }, [trade]);
+
   const handleDetailChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setTradeDetailsForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setTradeDetailsForm((prev: any) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleEmotionChange = (emotionId: number) => {
-    setTradeDetailsForm(prev => {
+    setTradeDetailsForm((prev: any) => {
         const currentEmotionIds = prev.emotion_ids || [];
         const newEmotionIds = currentEmotionIds.includes(emotionId)
-            ? currentEmotionIds.filter(id => id !== emotionId)
+            ? currentEmotionIds.filter((id: number) => id !== emotionId)
             : [...currentEmotionIds, emotionId];
         return { ...prev, emotion_ids: newEmotionIds };
     });
@@ -105,14 +140,65 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
              alert('Trade details and emotions updated!');
              fetchTradeData(); // Refresh
         } else {
-            alert(`Error: ${!detailsResult.success ? detailsResult.message : ''} ${!emotionsResult.success ? emotionsResult.message : ''}`);
-        }
+           const detailsMsg = detailsResult.success ? '' : detailsResult.message || 'Failed to update trade details.';
+           const emotionsMsg = emotionsResult.success ? '' : emotionsResult.message || 'Failed to update emotions.';
+           const errorMsg = [detailsMsg, emotionsMsg].filter(Boolean).join(' ');
+           alert(`Error: ${errorMsg || 'Unknown error.'}`);
+        }  
     } catch (err) { alert(`Failed to update: ${(err as Error).message}`);}
   };
 
-  // ... (handleEditTransactionClick, handleDeleteTransaction, handleSaveEditedTransaction remain the same)
+  const handleEditTransactionClick = (transaction: TransactionRecord) => {
+    setEditingTransaction(transaction);
+  };
 
+  const handleDeleteTransaction = async (transactionId: number) => {
+    if (!window.electronAPI?.deleteSingleTransaction) {
+      alert('Delete transaction API not available');
+      return;
+    }
+    try {
+      const result = await window.electronAPI.deleteSingleTransaction(transactionId);
+      if (result.success) {
+        fetchTradeData(); // Refresh trade data
+      } else {
+        alert(result.message || 'Failed to delete transaction');
+      }
+    } catch (err) {
+      alert('Error deleting transaction: ' + (err as Error).message);
+    }
+  };
 
+  const handleSaveEditedTransaction = async (data: any) => {
+    if (!window.electronAPI?.updateSingleTransaction) {
+      alert('Update transaction API not available');
+      return;
+    }
+    try {
+      const result = await window.electronAPI.updateSingleTransaction({
+        transaction_id: data.transaction_id,
+        quantity: data.quantity,
+        price: data.price,
+        datetime: data.datetime,
+        fees: data.fees || 0,
+        notes: data.notes || null
+      });
+      
+      if (!result) {
+        throw new Error('No response received from update transaction API');
+      }
+      
+      if (result.success) {
+        setEditingTransaction(null);
+        fetchTradeData(); // Refresh trade data
+      } else {
+        alert(result.message || 'Failed to update transaction');
+      }
+    } catch (err) {
+      console.error('Error updating transaction:', err);
+      alert('Error updating transaction: ' + (err as Error).message);
+    }
+  };
 
   // Styles (same as before)
   const pageStyle: React.CSSProperties = { padding: '20px', maxWidth: '900px', margin: 'auto', color: '#eee' };
@@ -131,7 +217,47 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
   return (
     <div style={pageStyle}>
       <h2>Edit Trade (ID: {trade.trade_id}) - {trade.instrument_ticker}</h2>
-      {/* ... (Trade Overview fieldset same as before) ... */}
+
+      {/* Mark-to-Market Section */}
+      <fieldset style={{...fieldsetStyle, borderColor: '#f39c12'}}>
+        <legend style={{...legendStyle, color: '#f39c12'}}>Mark-to-Market (Unrealized P&L)</legend>
+        <div style={{marginBottom: '10px'}}>
+          <strong>Current Mark Price:</strong> {markToMarket?.mark_price ?? trade.current_market_price ?? 'N/A'}<br/>
+          <strong>Unrealized P&amp;L:</strong> {markToMarket?.unrealized_pnl ?? trade.unrealized_pnl ?? 'N/A'}<br/>
+          <strong>Open Quantity:</strong> {markToMarket?.current_open_quantity ?? trade.current_open_quantity ?? 'N/A'}<br/>
+          <strong>Average Open Price:</strong> {markToMarket?.average_open_price ?? trade.average_open_price ?? 'N/A'}<br/>
+        </div>
+        <label style={labelStyle}>Set New Mark Price:
+          <input
+            type="number"
+            step="any"
+            value={markPriceInput}
+            onChange={e => setMarkPriceInput(e.target.value)}
+            style={inputStyle}
+          />
+        </label>
+        <button
+          style={{...buttonStyle, marginLeft: '10px'}}
+          onClick={async () => {
+            if (!trade?.trade_id || !markPriceInput) return;
+            try {
+              const result = await window.electronAPI.updateMarkPrice({ tradeId: trade.trade_id, marketPrice: parseFloat(markPriceInput) });
+              if (result.success) {
+                setMarkToMarket({
+                  mark_price: parseFloat(markPriceInput),
+                  unrealized_pnl: result.unrealized_pnl,
+                  current_open_quantity: result.current_open_quantity,
+                  average_open_price: result.average_open_price
+                });
+              } else {
+                alert(result.message || 'Failed to update mark price.');
+              }
+            } catch (err) {
+              alert('Error updating mark price: ' + (err as Error).message);
+            }
+          }}
+        >Update Mark Price</button>
+      </fieldset>
 
       <fieldset style={fieldsetStyle}>
         <legend style={legendStyle}>Edit Trade Metadata & Emotions</legend>
@@ -161,13 +287,89 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
         <button onClick={handleSaveTradeDetailsAndEmotions} style={{...buttonStyle, marginTop: '10px'}}>Save Metadata & Emotions</button>
       </fieldset>
 
-      {/* ... (Transactions fieldset and EditTransactionModal same as before) ... */}
-       <fieldset style={fieldsetStyle}>
+      <fieldset style={fieldsetStyle}>
         <legend style={legendStyle}>Transactions</legend>
-        {/* ... transaction list ... */}
+        {trade?.transactions && trade.transactions.length > 0 ? (
+          <>
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '10px' }}>
+              <thead>
+                <tr>
+                  <th style={{...tableHeaderStyle, width: '20%'}}>Date/Time</th>
+                  <th style={{...tableHeaderStyle, width: '10%'}}>Action</th>
+                  <th style={{...tableHeaderStyle, width: '15%'}}>Quantity</th>
+                  <th style={{...tableHeaderStyle, width: '15%'}}>Price</th>
+                  <th style={{...tableHeaderStyle, width: '10%'}}>Fees</th>
+                  <th style={{...tableHeaderStyle, width: '20%'}}>Notes</th>
+                  <th style={{...tableHeaderStyle, width: '10%'}}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trade.transactions.map((transaction) => (
+                  <tr key={transaction.transaction_id}>
+                    <td style={tableCellStyle}>{new Date(transaction.datetime).toLocaleString()}</td>
+                    <td style={tableCellStyle}>{transaction.action}</td>
+                    <td style={tableCellStyle}>{transaction.quantity}</td>
+                    <td style={tableCellStyle}>{transaction.price}</td>
+                    <td style={tableCellStyle}>{transaction.fees || 0}</td>
+                    <td style={tableCellStyle}>{transaction.notes || ''}</td>
+                    <td style={tableCellStyle}>
+                      <button
+                        onClick={() => handleEditTransactionClick(transaction)}
+                        style={{ marginRight: '5px', padding: '3px 6px', fontSize: '0.9em' }}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTransaction(transaction.transaction_id!)}
+                        style={{ padding: '3px 6px', backgroundColor: '#c00', color: 'white', fontSize: '0.9em' }}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={2} style={{...tableCellStyle, fontWeight: 'bold', backgroundColor: '#2a2f36'}}>Summary:</td>
+                  <td style={{...tableCellStyle, fontWeight: 'bold', backgroundColor: '#2a2f36'}}>
+                    {(() => {
+                      const totalQuantity = trade.transactions.reduce((sum, tx) => {
+                        return sum + (tx.action === 'Buy' ? tx.quantity : -tx.quantity);
+                      }, 0);
+                      return totalQuantity.toFixed(4);
+                    })()}
+                  </td>
+                  <td style={{...tableCellStyle, fontWeight: 'bold', backgroundColor: '#2a2f36'}}>
+                    {(() => {
+                      const buyTransactions = trade.transactions.filter(tx => tx.action === 'Buy');
+                      const weightedSum = buyTransactions.reduce((sum, tx) => {
+                        return sum + (tx.price * tx.quantity);
+                      }, 0);
+                      const totalBuyQuantity = buyTransactions.reduce((sum, tx) => sum + tx.quantity, 0);
+                      return totalBuyQuantity > 0 ? (weightedSum / totalBuyQuantity).toFixed(4) : '0.0000';
+                    })()}
+                  </td>
+                  <td style={{...tableCellStyle, fontWeight: 'bold', backgroundColor: '#2a2f36'}}>
+                    {trade.transactions.reduce((sum, tx) => sum + (tx.fees || 0), 0).toFixed(4)}
+                  </td>
+                  <td colSpan={2} style={{...tableCellStyle, backgroundColor: '#2a2f36'}}></td>
+                </tr>
+              </tfoot>
+            </table>
+          </>
+        ) : (
+          <p style={{ color: '#999', marginTop: '10px' }}>No transactions recorded for this trade.</p>
+        )}
       </fieldset>
-      
 
+      {editingTransaction && (
+        <EditTransactionForm
+          transaction={editingTransaction}
+          onSave={handleSaveEditedTransaction}
+          onCancel={() => setEditingTransaction(null)}
+        />
+      )}
 
       <button onClick={onCancel} style={{...buttonStyle, backgroundColor: '#6c757d', marginTop: '20px'}}>Back to List</button>
     </div>
