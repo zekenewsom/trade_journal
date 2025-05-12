@@ -1,161 +1,131 @@
 // File: zekenewsom-trade_journal/packages/react-app/src/types/index.ts
-// Heavily Modified for Stage 5: Transaction-Centric Model
+// Modified for Stage 6: Add mark-to-market fields and unrealized P&amp;L
 
-// Represents a single recorded execution (buy or sell)
-export interface TransactionRecord { // Renamed from TradeLeg
-    transaction_id?: number; // PK, from DB
-    trade_id: number;       // FK to parent Trade (position)
-    action: 'Buy' | 'Sell'; // The user's action for this specific transaction
-    quantity: number;       // Always positive
-    price: number;
-    datetime: string;       // ISO 8601 format
-    fees?: number;          // Fees for this specific transaction
-    notes?: string | null;    // Notes for this specific transaction
-    created_at?: string;
+// ... (Keep all existing types from your zekenewsom-trade_journal(4).txt)
+// Add/Modify the following within the existing types:
+
+export interface TransactionRecord {
+  transaction_id?: number;
+  trade_id: number;
+  action: 'Buy' | 'Sell';
+  quantity: number;
+  price: number;
+  datetime: string;
+  fees?: number;
+  notes?: string | null;
 }
 
-// Represents an overall trade or position, composed of one or more transactions
-export interface Trade {
-    trade_id?: number; // PK, from DB
-    instrument_ticker: string;
-    asset_class: 'Stock' | 'Cryptocurrency';
-    exchange: string | null; // Changed from account_id, now text
-    trade_direction: 'Long' | 'Short'; // Overall direction of this position
-    status: 'Open' | 'Closed'; // Replaces is_open
-    open_datetime: string | null; // Datetime of the first transaction that opened this trade
-    close_datetime: string | null; // Datetime of the transaction that closed this trade
-    
-    // Fields for user to edit on the overall trade
-    strategy_id?: number | null;
-    market_conditions?: string | null;
-    setup_description?: string | null;
-    reasoning?: string | null;
-    lessons_learned?: string | null;
-    r_multiple_initial_risk?: number | null;
-  
-    // Aggregated from transactions by backend
-    fees_total?: number; // Sum of fees from all associated transactions
-  
-    // Fields for UI display or temporary calculation during analytics
-    calculated_pnl_gross?: number;
-    calculated_pnl_net?: number;
-    outcome?: 'Win' | 'Loss' | 'Break Even' | null;
-  
-    created_at?: string; // DB timestamp
-    updated_at?: string; // DB timestamp
-  
-    // Array of transactions associated with this trade, fetched when viewing details
-    transactions?: TransactionRecord[];
-}
+export interface LogTransactionPayload { [key: string]: any; }
+export interface UpdateTradeDetailsPayload { [key: string]: any; }
+export interface UpdateTransactionPayload { [key: string]: any; }
 
-// For displaying a summary of trades in a list/table (TradesListPage)
-export interface TradeListView extends Omit<Trade, 'transactions' | 'calculated_pnl_gross' | 'calculated_pnl_net' | 'outcome' | 'market_conditions' | 'setup_description' | 'reasoning' | 'lessons_learned' | 'r_multiple_initial_risk' | 'strategy_id'> {
-    // Add any specific summary fields derived from transactions if needed for the list here
-}
-  
-  // Form data for logging a NEW single transaction
-  export interface LogTransactionFormData { // Make sure this export is exactly as named
-    instrumentTicker: string;
-    assetClass: 'Stock' | 'Cryptocurrency' | '';
-    exchange: string;
-    action: 'Buy' | 'Sell' | '';
-    quantity: string; // String for form input
-    price: string;    // String for form input
-    datetime: string; // Datetime-local input format
-    fees: string;     // String for form input (fees for this transaction)
-    notes: string;    // Optional notes for this transaction
-}
+// Placeholder for EditTradeDetailsFormData
+export interface EditTradeDetailsFormData { [key: string]: any; }
 
-// Payload for logging a NEW transaction to backend
-export interface LogTransactionPayload {
-    instrument_ticker: string;
-    asset_class: 'Stock' | 'Cryptocurrency';
-    exchange: string | null; // Backend handles empty string as null
-    action: 'Buy' | 'Sell';
-    quantity: number; // Parsed to number
-    price: number;    // Parsed to number
-    datetime: string; // ISO 8601
-    fees_for_transaction: number; // Parsed to number
-    notes_for_transaction?: string | null;
-}
-
-// Form data for EDITING an EXISTING single transaction (e.g., in a modal)
 export interface EditTransactionFormData {
-    transaction_id: number;
-    trade_id: number; 
-    action: 'Buy' | 'Sell'; 
-    quantity: string;
-    price: string;
-    datetime: string;
-    fees: string;
-    notes: string;
-}
-// Payload for UPDATING an existing transaction
-export interface UpdateTransactionPayload {
-    transaction_id: number;
-    quantity: number;
-    price: number;
-    datetime: string;
-    fees: number;
-    notes?: string | null;
+  transaction_id: number;
+  trade_id: number;
+  action: 'Buy' | 'Sell';
+  quantity: string;
+  price: string;
+  datetime: string;
+  fees: string;
+  notes: string;
 }
 
-// For editing the metadata of a parent Trade record
-export interface EditTradeDetailsFormData {
-    trade_id: number; 
-    instrument_ticker: string;
-    asset_class: 'Stock' | 'Cryptocurrency';
-    exchange: string | null;
-    trade_direction: 'Long' | 'Short';
-    status: 'Open' | 'Closed';
-    open_datetime: string | null;
-    close_datetime: string | null;
-    fees_total?: number;
-    strategy_id: string; 
-    market_conditions: string;
-    setup_description: string;
-    reasoning: string;
-    lessons_learned: string;
-    r_multiple_initial_risk: string;
-}
-// Payload for UPDATING the metadata of a parent Trade record
-export interface UpdateTradeDetailsPayload {
-    trade_id: number;
-    strategy_id?: number | null;
-    market_conditions?: string | null;
-    setup_description?: string | null;
-    reasoning?: string | null;
-    lessons_learned?: string | null;
-    r_multiple_initial_risk?: number | null;
-}
-
-// Analytics data structure (from Stage 4)
-export interface BasicAnalyticsData {
-    totalGrossPnl: number;
-    totalNetPnl: number;
-    totalFees: number;
-    winRate: number | null;
-    numberOfWinningTrades: number;
-    numberOfLosingTrades: number;
-    numberOfBreakEvenTrades: number;
-    totalClosedTrades: number;
-    avgWinPnl: number | null;
-    avgLossPnl: number | null;
-    longestWinStreak: number;
-    longestLossStreak: number;
+export interface Trade {
+  trade_id?: number;
+  instrument_ticker: string;
+  asset_class: 'Stock' | 'Cryptocurrency';
+  exchange: string | null;
+  trade_direction: 'Long' | 'Short';
+  status: 'Open' | 'Closed';
+  open_datetime: string | null;
+  close_datetime: string | null;
+  strategy_id?: number | null;
+  market_conditions?: string | null;
+  setup_description?: string | null;
+  reasoning?: string | null;
+  lessons_learned?: string | null;
+  r_multiple_initial_risk?: number | null;
+  fees_total?: number;
+  calculated_pnl_gross?: number;
+  calculated_pnl_net?: number;
+  outcome?: 'Win' | 'Loss' | 'Break Even' | null;
+  created_at?: string;
+  updated_at?: string;
+  transactions?: TransactionRecord[];
+  r_multiple_actual?: number | null;
+  duration_ms?: number | null;
+  emotion_ids?: number[];
+  // --- Stage 6: Mark-to-Market & Unrealized P&L ---
+  current_market_price?: number | null; // User-inputted mark price for open trades
+  unrealized_pnl?: number | null;     // Calculated based on current_market_price
+  average_open_price?: number | null; // Weighted average price of the currently open quantity
+  current_open_quantity?: number | null; // Current open quantity
+  // --- End Stage 6 additions ---
 }
 
-// Defines all functions exposed by Electron's preload script
+export interface TradeListView extends Omit<Trade, 'transactions' | 'calculated_pnl_gross' | 'calculated_pnl_net' | 'outcome' | 'market_conditions' | 'setup_description' | 'reasoning' | 'lessons_learned' | 'r_multiple_initial_risk' | 'strategy_id' | 'r_multiple_actual' | 'duration_ms' | 'emotion_ids'> {
+  current_open_quantity?: number | null;
+  unrealized_pnl?: number | null;
+  average_open_price?: number | null;
+}
+
+export interface AnalyticsData {
+  totalRealizedNetPnl: number;
+  totalRealizedGrossPnl: number;
+  totalFeesPaidOnClosedPortions: number;
+  winRateOverall: number | null;
+  avgWinPnlOverall: number | null;
+  avgLossPnlOverall: number | null;
+  largestWinPnl: number | null;
+  largestLossPnl: number | null;
+  longestWinStreak: number;
+  longestLossStreak: number;
+  numberOfWinningTrades: number;
+  numberOfLosingTrades: number;
+  numberOfBreakEvenTrades: number;
+  totalFullyClosedTrades: number;
+  cumulativePnlSeries: { date: string; cumulativeNetPnl: number }[];
+  pnlPerTradeSeries: { name: string; netPnl: number; trade_id: number }[];
+  winLossBreakEvenCounts: { name: string; value: number }[];
+  rMultipleDistribution: { range: string; count: number }[];
+  avgRMultiple: number | null;
+  pnlByAssetClass?: { name: string; totalNetPnl: number; winRate: number | null; tradeCount: number }[];
+  pnlByExchange?: { name: string; totalNetPnl: number; winRate: number | null; tradeCount: number }[];
+  pnlByStrategy?: { name: string; totalNetPnl: number; winRate: number | null; tradeCount: number }[];
+  maxDrawdownPercentage?: number | null;
+  totalUnrealizedPnl?: number | null;
+}
+
+export interface EmotionRecord {
+  emotion_id: number;
+  emotion_name: string;
+}
+
 export interface ElectronAPIDefinition {
-    getAppVersion: () => Promise<string>;
-    testDbConnection: () => Promise<string | { error: string }>;
-    
-    logTransaction: (data: LogTransactionPayload) => Promise<{ success: boolean; message: string; tradeId?: number; transactionId?: number }>;
-    getTrades: () => Promise<TradeListView[]>; 
-    getTradeWithTransactions: (tradeId: number) => Promise<Trade | null>; 
-    updateTradeDetails: (data: UpdateTradeDetailsPayload) => Promise<{ success: boolean; message: string }>;
-    updateSingleTransaction: (data: UpdateTransactionPayload) => Promise<{ success: boolean; message: string }>;
-    deleteSingleTransaction: (transactionId: number) => Promise<{ success: boolean; message: string }>;
-    deleteFullTrade: (tradeId: number) => Promise<{ success: boolean; message: string }>;
-    getBasicAnalytics: () => Promise<BasicAnalyticsData | { error: string }>;
+  getAppVersion: () => Promise<string>;
+  testDbConnection: () => Promise<{ status: 'ok' | 'error'; message: string } | string>;
+  logTransaction: (data: LogTransactionPayload) => Promise<{ success: boolean; message: string; tradeId?: number; transactionId?: number }>;
+  getTrades: () => Promise<TradeListView[]>;
+  getTradeWithTransactions: (tradeId: number) => Promise<Trade | null>;
+  updateTradeDetails: (data: UpdateTradeDetailsPayload) => Promise<{ success: boolean; message: string }>;
+  updateSingleTransaction: (data: UpdateTransactionPayload) => Promise<{ success: boolean; message: string }>;
+  deleteSingleTransaction: (transactionId: number) => Promise<{ success: boolean; message: string }>;
+  deleteFullTrade: (tradeId: number) => Promise<{ success: boolean; message: string }>;
+  getAnalyticsData: (filters?: any) => Promise<AnalyticsData | { error: string }>;
+  getEmotions: () => Promise<EmotionRecord[]>;
+  getTradeEmotions: (tradeId: number) => Promise<number[]>;
+  saveTradeEmotions: (payload: { tradeId: number; emotionIds: number[] }) => Promise<{ success: boolean; message: string }>;
+  // --- Stage 6: New IPC for mark-to-market ---
+  updateMarkPrice: (payload: { tradeId: number; marketPrice: number }) => Promise<{
+    success: boolean;
+    message: string;
+    unrealized_pnl?: number;
+    current_open_quantity?: number;
+    average_open_price?: number;
+    trade_id?: number;
+  }>;
+  // --- End Stage 6 ---
 }

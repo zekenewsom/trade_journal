@@ -39,8 +39,8 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({ transaction, 
   }, [transaction]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
-     if (errors[e.target.name as keyof EditTransactionFormData]) {
+    setFormData((prev: EditTransactionFormData) => ({ ...prev, [e.target.name]: e.target.value }));
+    if (errors[e.target.name as keyof EditTransactionFormData]) {
       setErrors(prev => ({ ...prev, [e.target.name]: undefined }));
     }
   };
@@ -94,30 +94,107 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({ transaction, 
   return (
     <form onSubmit={handleSubmit} style={formStyle}>
       <h4>Edit Transaction (ID: {formData.transaction_id})</h4>
-      <div style={labelStyle}>Action: <strong>{formData.action}</strong> (Not editable)</div>
-      <div style={labelStyle}>Date/Time:
-        <input type="datetime-local" name="datetime" value={formData.datetime} onChange={handleChange} style={inputStyle} required/>
+      <div style={labelStyle}>
+        <label>Date/Time:</label>
+        <input
+          type="datetime-local"
+          name="datetime"
+          value={formData.datetime}
+          onChange={handleChange}
+          style={inputStyle}
+        />
         {errors.datetime && <span style={errorStyle}>{errors.datetime}</span>}
       </div>
-      <div style={labelStyle}>Quantity:
-        <input type="number" step="any" name="quantity" value={formData.quantity} onChange={handleChange} style={inputStyle} required/>
+
+      <div style={labelStyle}>
+        <label>Action:</label>
+        <input
+          type="text"
+          name="action"
+          value={formData.action}
+          disabled
+          style={{...inputStyle, backgroundColor: '#333'}}
+        />
+      </div>
+
+      <div style={labelStyle}>
+        <label>Quantity:</label>
+        <input
+          type="number"
+          name="quantity"
+          value={formData.quantity}
+          onChange={handleChange}
+          step="any"
+          style={inputStyle}
+        />
         {errors.quantity && <span style={errorStyle}>{errors.quantity}</span>}
       </div>
-      <div style={labelStyle}>Price:
-        <input type="number" step="any" name="price" value={formData.price} onChange={handleChange} style={inputStyle} required/>
+
+      <div style={labelStyle}>
+        <label>Price:</label>
+        <input
+          type="number"
+          name="price"
+          value={formData.price}
+          onChange={handleChange}
+          step="any"
+          style={inputStyle}
+        />
         {errors.price && <span style={errorStyle}>{errors.price}</span>}
       </div>
-      <div style={labelStyle}>Fees:
-        <input type="number" step="any" name="fees" value={formData.fees} onChange={handleChange} style={inputStyle}/>
+
+      <div style={labelStyle}>
+        <label>Fees:</label>
+        <input
+          type="number"
+          name="fees"
+          value={formData.fees}
+          onChange={handleChange}
+          step="any"
+          style={inputStyle}
+        />
         {errors.fees && <span style={errorStyle}>{errors.fees}</span>}
       </div>
-      <div style={labelStyle}>Notes:
-        <textarea name="notes" value={formData.notes} onChange={handleChange} style={{...inputStyle, minHeight: '50px'}}/>
+
+      <div style={labelStyle}>
+        <label>Notes:</label>
+        <textarea
+          name="notes"
+          value={formData.notes}
+          onChange={handleChange}
+          style={{...inputStyle, minHeight: '60px'}}
+        />
       </div>
-      <div style={buttonRowStyle}>
-        <button type="button" onClick={onCancel} disabled={isSaving} style={{backgroundColor: '#555'}}>Cancel</button>
-        <button type="submit" disabled={isSaving} style={{backgroundColor: '#007bff'}}>
-          {isSaving ? "Saving..." : "Save Changes"}
+
+      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+        <button
+          type="submit"
+          disabled={isSaving}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: isSaving ? 'not-allowed' : 'pointer',
+            opacity: isSaving ? 0.7 : 1
+          }}
+        >
+          {isSaving ? 'Saving...' : 'Save Changes'}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#6c757d',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Cancel
         </button>
       </div>
     </form>
