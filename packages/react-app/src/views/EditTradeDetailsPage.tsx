@@ -2,22 +2,23 @@
 // Modified for Stage 6: Add Emotion Tagging UI
 
 import React, { useState, useEffect, useCallback } from 'react';
-import type { Trade, EditTradeDetailsFormData, UpdateTradeDetailsPayload, EmotionRecord, TransactionRecord } from '../types';
+import { useParams, useNavigate } from 'react-router-dom';
+import type { Trade, EditTradeDetailsFormData, EmotionRecord, TransactionRecord, UpdateTransactionPayload, EditTransactionFormData } from '../types';
 import EditTransactionForm from '../components/transactions/EditTransactionForm';
 
 interface EditTradeDetailsPageProps {
   tradeId: number;
   onEditComplete: () => void;
   onCancel: () => void;
+  onLogTransaction: () => void;
 }
 
-const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, onCancel }) => {
+const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, onEditComplete, onCancel, onLogTransaction }) => {
   const [trade, setTrade] = useState<Trade | null>(null);
-  const [tradeDetailsForm, setTradeDetailsForm] = useState<Partial<EditTradeDetailsFormData>>({ emotion_ids: [] });
-  const [availableEmotions, setAvailableEmotions] = useState<EmotionRecord[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingTransaction, setEditingTransaction] = useState<TransactionRecord | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [editingTransaction, setEditingTransaction] = useState<EditTransactionFormData | null>(null);
+  const [availableEmotions, setAvailableEmotions] = useState<EmotionRecord[]>([]);
   // Mark-to-market state
   const [markToMarket, setMarkToMarket] = useState<{
     mark_price?: number,
@@ -43,43 +44,25 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
   };
 
   const fetchTradeData = useCallback(async () => {
-    setIsLoading(true); setError(null);
+    setIsLoading(true);
+    setError(null);
     try {
-      if (!window.electronAPI?.getTradeWithTransactions || !window.electronAPI?.getEmotions || !window.electronAPI?.getTradeEmotions) {
-        throw new Error("Required API functions not available.");
-      }
-      
-      const [fetchedTrade, fetchedEmotions, linkedEmotionIds] = await Promise.all([
+      const [fetchedTrade, emotions] = await Promise.all([
         window.electronAPI.getTradeWithTransactions(tradeId),
-        window.electronAPI.getEmotions(),
-        window.electronAPI.getTradeEmotions(tradeId)
+        window.electronAPI.getEmotions()
       ]);
-
-      setAvailableEmotions(fetchedEmotions || []);
-
       if (fetchedTrade) {
         setTrade(fetchedTrade);
-        setTradeDetailsForm({
-          trade_id: fetchedTrade.trade_id,
-          instrument_ticker: fetchedTrade.instrument_ticker,
-          asset_class: fetchedTrade.asset_class,
-          exchange: fetchedTrade.exchange,
-          trade_direction: fetchedTrade.trade_direction,
-          status: fetchedTrade.status,
-          open_datetime: fetchedTrade.open_datetime,
-          close_datetime: fetchedTrade.close_datetime,
-          fees_total: fetchedTrade.fees_total,
-          strategy_id: (fetchedTrade.strategy_id || '').toString(),
-          market_conditions: fetchedTrade.market_conditions || '',
-          setup_description: fetchedTrade.setup_description || '',
-          reasoning: fetchedTrade.reasoning || '',
-          lessons_learned: fetchedTrade.lessons_learned || '',
-          r_multiple_initial_risk: (fetchedTrade.r_multiple_initial_risk || '').toString(),
-          emotion_ids: linkedEmotionIds || [] // Initialize with fetched emotion IDs
-        });
-      } else { setError(`Trade ID ${tradeId} not found.`); }
-    } catch (err) { setError((err as Error).message); console.error(err); }
-    finally { setIsLoading(false); }
+      } else {
+        setError(`Trade ID ${tradeId} not found.`);
+      }
+      setAvailableEmotions(emotions);
+    } catch (err) {
+      setError((err as Error).message);
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   }, [tradeId]);
 
   useEffect(() => {
@@ -99,64 +82,29 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
     }
   }, [trade]);
 
-  const handleDetailChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setTradeDetailsForm((prev: any) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleEmotionChange = (emotionId: number) => {
-    setTradeDetailsForm((prev: any) => {
-        const currentEmotionIds = prev.emotion_ids || [];
-        const newEmotionIds = currentEmotionIds.includes(emotionId)
-            ? currentEmotionIds.filter((id: number) => id !== emotionId)
-            : [...currentEmotionIds, emotionId];
-        return { ...prev, emotion_ids: newEmotionIds };
-    });
-  };
-
-  const handleSaveTradeDetailsAndEmotions = async () => {
-    if (!tradeDetailsForm.trade_id) return;
-    const metadataPayload: UpdateTradeDetailsPayload = {
-        trade_id: tradeDetailsForm.trade_id,
-        strategy_id: tradeDetailsForm.strategy_id ? Number(tradeDetailsForm.strategy_id) : null,
-        market_conditions: tradeDetailsForm.market_conditions || null,
-        setup_description: tradeDetailsForm.setup_description || null,
-        reasoning: tradeDetailsForm.reasoning || null,
-        lessons_learned: tradeDetailsForm.lessons_learned || null,
-        r_multiple_initial_risk: tradeDetailsForm.r_multiple_initial_risk ? parseFloat(tradeDetailsForm.r_multiple_initial_risk) : null,
-    };
-    // Save emotions separately or as part of a combined payload if backend supports it
-    const emotionsPayload = {
-        tradeId: tradeDetailsForm.trade_id,
-        emotionIds: tradeDetailsForm.emotion_ids || []
-    };
-
-    try {
-        const [detailsResult, emotionsResult] = await Promise.all([
-            window.electronAPI.updateTradeDetails(metadataPayload),
-            window.electronAPI.saveTradeEmotions(emotionsPayload)
-        ]);
-
-        if (detailsResult.success && emotionsResult.success) {
-             alert('Trade details and emotions updated!');
-             fetchTradeData(); // Refresh
-        } else {
-           const detailsMsg = detailsResult.success ? '' : detailsResult.message || 'Failed to update trade details.';
-           const emotionsMsg = emotionsResult.success ? '' : emotionsResult.message || 'Failed to update emotions.';
-           const errorMsg = [detailsMsg, emotionsMsg].filter(Boolean).join(' ');
-           alert(`Error: ${errorMsg || 'Unknown error.'}`);
-        }  
-    } catch (err) { alert(`Failed to update: ${(err as Error).message}`);}
-  };
-
   const handleEditTransactionClick = (transaction: TransactionRecord) => {
-    setEditingTransaction(transaction);
+    // Convert TransactionRecord to EditTransactionFormData
+    const formData = {
+      transaction_id: transaction.transaction_id!,
+      trade_id: transaction.trade_id,
+      action: transaction.action,
+      quantity: String(transaction.quantity),
+      price: String(transaction.price),
+      datetime: new Date(transaction.datetime).toISOString().slice(0, 16), // Format for datetime-local input
+      fees: String(transaction.fees || '0'),
+      notes: transaction.notes || '',
+      strategy_id: transaction.strategy_id ? String(transaction.strategy_id) : undefined,
+      market_conditions: transaction.market_conditions || undefined,
+      setup_description: transaction.setup_description || undefined,
+      reasoning: transaction.reasoning || undefined,
+      lessons_learned: transaction.lessons_learned || undefined,
+      r_multiple_initial_risk: transaction.r_multiple_initial_risk ? String(transaction.r_multiple_initial_risk) : undefined,
+      emotion_ids: transaction.emotion_ids || []
+    };
+    setEditingTransaction(formData);
   };
 
   const handleDeleteTransaction = async (transactionId: number) => {
-    if (!window.electronAPI?.deleteSingleTransaction) {
-      alert('Delete transaction API not available');
-      return;
-    }
     try {
       const result = await window.electronAPI.deleteSingleTransaction(transactionId);
       if (result.success) {
@@ -169,25 +117,26 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
     }
   };
 
-  const handleSaveEditedTransaction = async (data: any) => {
-    if (!window.electronAPI?.updateSingleTransaction) {
-      alert('Update transaction API not available');
-      return;
-    }
+  const handleSaveEditedTransaction = async (data: EditTransactionFormData) => {
     try {
-      const result = await window.electronAPI.updateSingleTransaction({
+      // Convert EditTransactionFormData to UpdateTransactionPayload
+      const payload: UpdateTransactionPayload = {
         transaction_id: data.transaction_id,
-        quantity: data.quantity,
-        price: data.price,
+        quantity: parseFloat(data.quantity),
+        price: parseFloat(data.price),
         datetime: data.datetime,
-        fees: data.fees || 0,
-        notes: data.notes || null
-      });
-      
-      if (!result) {
-        throw new Error('No response received from update transaction API');
-      }
-      
+        fees: parseFloat(data.fees),
+        notes: data.notes || null,
+        strategy_id: data.strategy_id ? parseInt(data.strategy_id) : undefined,
+        market_conditions: data.market_conditions,
+        setup_description: data.setup_description,
+        reasoning: data.reasoning,
+        lessons_learned: data.lessons_learned,
+        r_multiple_initial_risk: data.r_multiple_initial_risk ? parseFloat(data.r_multiple_initial_risk) : undefined,
+        emotion_ids: data.emotion_ids || []
+      };
+
+      const result = await window.electronAPI.updateSingleTransaction(payload);
       if (result.success) {
         setEditingTransaction(null);
         fetchTradeData(); // Refresh trade data
@@ -200,23 +149,39 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
     }
   };
 
-  // Styles (same as before)
+  // Styles
   const pageStyle: React.CSSProperties = { padding: '20px', maxWidth: '900px', margin: 'auto', color: '#eee' };
   const fieldsetStyle: React.CSSProperties = { border: '1px solid #444', borderRadius: '8px', padding: '20px', marginBottom: '25px', backgroundColor: '#333940' };
   const legendStyle: React.CSSProperties = { padding: '0 10px', fontWeight: 'bold', color: '#61dafb', fontSize: '1.2em' };
   const labelStyle: React.CSSProperties = { display: 'block', marginBottom: '12px', textAlign: 'left' };
-  const inputStyle: React.CSSProperties = {display: 'block', width: 'calc(100% - 16px)', padding: '8px', border: '1px solid #555', borderRadius: '4px', backgroundColor: '#2a2f36', color: 'white', marginTop: '4px' };
+  const inputStyle: React.CSSProperties = { display: 'block', width: 'calc(100% - 16px)', padding: '8px', border: '1px solid #555', borderRadius: '4px', backgroundColor: '#2a2f36', color: 'white', marginTop: '4px' };
   const buttonStyle: React.CSSProperties = { padding: '10px 15px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '1em', marginRight: '10px' };
-  const emotionCheckboxStyle: React.CSSProperties = { marginRight: '15px', marginBottom: '5px'};
-
 
   if (isLoading) return <p>Loading trade details...</p>;
   if (error) return <p style={{ color: 'red' }}>{error}</p>;
-  if (!trade || !tradeDetailsForm.trade_id) return <p>Trade data not available or invalid ID.</p>;
+  if (!trade) return <p>Trade data not available or invalid ID.</p>;
 
   return (
     <div style={pageStyle}>
-      <h2>Edit Trade (ID: {trade.trade_id}) - {trade.instrument_ticker}</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2>Trade Details</h2>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={onLogTransaction}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Log Transaction
+          </button>
+          <button onClick={onCancel} style={{ padding: '8px 16px' }}>Back to Trades List</button>
+        </div>
+      </div>
 
       {/* Mark-to-Market Section */}
       <fieldset style={{...fieldsetStyle, borderColor: '#f39c12'}}>
@@ -259,34 +224,7 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
         >Update Mark Price</button>
       </fieldset>
 
-      <fieldset style={fieldsetStyle}>
-        <legend style={legendStyle}>Edit Trade Metadata & Emotions</legend>
-        {/* ... (other metadata fields: strategy, market conditions, etc.) ... */}
-        <label style={labelStyle}>Strategy ID (Optional): <input type="text" name="strategy_id" value={tradeDetailsForm.strategy_id || ''} onChange={handleDetailChange} style={inputStyle} placeholder="Enter numeric ID or leave blank"/> </label>
-        <label style={labelStyle}>Market Conditions: <textarea name="market_conditions" value={tradeDetailsForm.market_conditions} onChange={handleDetailChange} style={inputStyle} rows={2}/> </label>
-        <label style={labelStyle}>Setup Description: <textarea name="setup_description" value={tradeDetailsForm.setup_description} onChange={handleDetailChange} style={inputStyle} rows={3}/> </label>
-        <label style={labelStyle}>Reasoning: <textarea name="reasoning" value={tradeDetailsForm.reasoning} onChange={handleDetailChange} style={inputStyle} rows={3}/> </label>
-        <label style={labelStyle}>Lessons Learned: <textarea name="lessons_learned" value={tradeDetailsForm.lessons_learned} onChange={handleDetailChange} style={inputStyle} rows={3}/> </label>
-        <label style={labelStyle}>Initial Risk (1R Value): <input type="number" step="any" name="r_multiple_initial_risk" value={tradeDetailsForm.r_multiple_initial_risk} onChange={handleDetailChange} style={inputStyle}/> </label>
-        
-        <div style={{marginTop: '15px', marginBottom: '15px'}}>
-            <label style={{...labelStyle, marginBottom: '5px'}}>Emotions:</label>
-            {availableEmotions.length > 0 ? availableEmotions.map(emotion => (
-                <label key={emotion.emotion_id} style={emotionCheckboxStyle}>
-                    <input
-                        type="checkbox"
-                        value={emotion.emotion_id}
-                        checked={tradeDetailsForm.emotion_ids?.includes(emotion.emotion_id) || false}
-                        onChange={() => handleEmotionChange(emotion.emotion_id)}
-                        style={{marginRight: '5px'}}
-                    />
-                    {emotion.emotion_name}
-                </label>
-            )) : <p style={{fontSize:'0.9em', color: '#aaa'}}>No predefined emotions found. Add some in settings or DB.</p>}
-        </div>
-        <button onClick={handleSaveTradeDetailsAndEmotions} style={{...buttonStyle, marginTop: '10px'}}>Save Metadata & Emotions</button>
-      </fieldset>
-
+      {/* Transactions Section */}
       <fieldset style={fieldsetStyle}>
         <legend style={legendStyle}>Transactions</legend>
         {trade?.transactions && trade.transactions.length > 0 ? (
@@ -368,10 +306,9 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
           transaction={editingTransaction}
           onSave={handleSaveEditedTransaction}
           onCancel={() => setEditingTransaction(null)}
+          availableEmotions={availableEmotions}
         />
       )}
-
-      <button onClick={onCancel} style={{...buttonStyle, backgroundColor: '#6c757d', marginTop: '20px'}}>Back to List</button>
     </div>
   );
 };

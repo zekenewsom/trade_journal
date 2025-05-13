@@ -57,8 +57,8 @@ const DashboardMetrics: React.FC = () => {
         </div>
         <div style={metricCardStyle}>
           <div style={metricLabelStyle}>Win Rate (Closed Trades)</div>
-          <div style={neutralValueStyle}>{formatPercentage(analytics.winRateOverall)}</div>
-           <div style={{fontSize: '0.8em', color: '#aaa'}}>({analytics.numberOfWinningTrades}W / {analytics.numberOfLosingTrades}L / {analytics.numberOfBreakEvenTrades}B of {analytics.totalFullyClosedTrades} closed)</div>
+          <div style={neutralValueStyle}>{analytics.winRateOverall !== null ? formatPercentage(analytics.winRateOverall * 100) : 'N/A'}</div>
+          <div style={{fontSize: '0.8em', color: '#aaa'}}>({analytics.numberOfWinningTrades}W / {analytics.numberOfLosingTrades}L / {analytics.numberOfBreakEvenTrades}B of {analytics.totalFullyClosedTrades} closed)</div>
         </div>
         <div style={metricCardStyle}>
           <div style={metricLabelStyle}>Avg. Win (Closed)</div>
@@ -67,6 +67,10 @@ const DashboardMetrics: React.FC = () => {
         <div style={metricCardStyle}>
           <div style={metricLabelStyle}>Avg. Loss (Closed)</div>
           <div style={negativeValueStyle}>{formatCurrency(analytics.avgLossPnlOverall)}</div>
+        </div>
+        <div style={metricCardStyle}>
+          <div style={metricLabelStyle}>Max Drawdown</div>
+          <div style={negativeValueStyle}>{formatPercentage(analytics.maxDrawdownPercentage)}</div>
         </div>
         {/* Add more key metrics as desired for dashboard */}
       </div>

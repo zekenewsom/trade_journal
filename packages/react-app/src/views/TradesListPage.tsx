@@ -7,9 +7,10 @@ import type { TradeListView } from '../types/index.ts';
 
 interface TradesListPageProps {
   onEditTrade: (tradeId: number) => void;
+  onLogTransaction: () => void;
 }
 
-const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade }) => {
+const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade, onLogTransaction }) => {
   const [trades, setTrades] = useState<TradeListView[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +56,15 @@ const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade }) => {
   };
 
   // ... (filteredTrades memo - same as your Stage 5)
-  const filteredTrades = useMemo(() => { /* ... */ return trades; }, [trades, filterText]);
+  const filteredTrades = useMemo(() => {
+    if (!filterText.trim()) return trades;
+    const searchTerm = filterText.toLowerCase().trim();
+    return trades.filter(trade => 
+      trade.instrument_ticker.toLowerCase().includes(searchTerm) ||
+      (trade.asset_class && trade.asset_class.toLowerCase().includes(searchTerm)) ||
+      (trade.exchange && trade.exchange.toLowerCase().includes(searchTerm))
+    );
+  }, [trades, filterText]);
 
 
   if (isLoading) return <p>Loading trades...</p>;
@@ -63,7 +72,22 @@ const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade }) => {
 
   return (
     <div>
-      <h2>All Trades (Positions)</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+        <h2>All Trades (Positions)</h2>
+        <button 
+          onClick={onLogTransaction}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Log Transaction
+        </button>
+      </div>
       <input
         type="text"
         placeholder="Filter trades..."
@@ -71,13 +95,13 @@ const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade }) => {
         onChange={(e) => setFilterText(e.target.value)}
         style={{ marginBottom: '15px', padding: '8px', width: 'calc(100% - 20px)', maxWidth: '400px' }}
       />
-       <button onClick={() => setRefreshKey(prev => prev + 1)} style={{marginBottom: '15px', marginLeft: '10px', padding: '8px'}}>Refresh List</button>
+      <button onClick={() => setRefreshKey(prev => prev + 1)} style={{marginBottom: '15px', marginLeft: '10px', padding: '8px'}}>Refresh List</button>
       {filteredTrades.length > 0 ? (
         <TradesTable
           trades={filteredTrades}
           onEdit={onEditTrade}
           onDelete={handleDeleteFullTrade}
-          onMarkPriceUpdate={handleMarkPriceUpdated} // Pass callback
+          onMarkPriceUpdate={handleMarkPriceUpdated}
         />
       ) : (
         <p>No trades match your filter, or no trades have been logged yet.</p>

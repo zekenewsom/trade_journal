@@ -2,202 +2,334 @@
 // New file for Stage 5 - A small form for editing a single transaction (e.g., in a modal)
 
 import React, { useState, useEffect } from 'react';
-import type { TransactionRecord, UpdateTransactionPayload, EditTransactionFormData } from '../../types';
+import type { EditTransactionFormData, EmotionRecord } from '../../types';
 
 interface EditTransactionFormProps {
-  transaction: TransactionRecord; // The transaction to edit
-  onSave: (updatedTxData: UpdateTransactionPayload) => Promise<void>;
+  transaction: EditTransactionFormData;
+  onSave: (data: EditTransactionFormData) => void;
   onCancel: () => void;
+  availableEmotions?: EmotionRecord[];
 }
 
-const EditTransactionForm: React.FC<EditTransactionFormProps> = ({ transaction, onSave, onCancel }) => {
-  const [formData, setFormData] = useState<EditTransactionFormData>({
-    transaction_id: transaction.transaction_id!,
-    trade_id: transaction.trade_id,
-    action: transaction.action, // Display only, not typically editable
-    quantity: transaction.quantity.toString(),
-    price: transaction.price.toString(),
-    datetime: transaction.datetime.slice(0, 16), // Format for datetime-local input
-    fees: (transaction.fees || 0).toString(),
-    notes: transaction.notes || '',
-  });
-  const [isSaving, setIsSaving] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof EditTransactionFormData, string>>>({});
+const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
+  transaction,
+  onSave,
+  onCancel,
+  availableEmotions = []
+}) => {
+  const [formData, setFormData] = useState<EditTransactionFormData>(transaction);
+  const [selectedEmotions, setSelectedEmotions] = useState<number[]>(transaction.emotion_ids || []);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    if (name === 'strategy_id' || name === 'r_multiple_initial_risk') {
+      const numValue = value === '' ? undefined : Number(value);
+      setFormData(prev => ({
+        ...prev,
+        [name]: numValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
+  };
 
-  useEffect(() => { // Re-initialize if the transaction prop changes
-    setFormData({
-        transaction_id: transaction.transaction_id!,
-        trade_id: transaction.trade_id,
-        action: transaction.action,
-        quantity: transaction.quantity.toString(),
-        price: transaction.price.toString(),
-        datetime: new Date(transaction.datetime).toISOString().slice(0,16),
-        fees: (transaction.fees || 0).toString(),
-        notes: transaction.notes || '',
+  const handleEmotionChange = (emotionId: number) => {
+    setSelectedEmotions(prev => {
+      if (prev.includes(emotionId)) {
+        return prev.filter(id => id !== emotionId);
+      } else {
+        return [...prev, emotionId];
+      }
     });
-  }, [transaction]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData((prev: EditTransactionFormData) => ({ ...prev, [e.target.name]: e.target.value }));
-    if (errors[e.target.name as keyof EditTransactionFormData]) {
-      setErrors(prev => ({ ...prev, [e.target.name]: undefined }));
-    }
   };
 
-   const validateForm = (): boolean => {
-    const newErrors: Partial<Record<keyof EditTransactionFormData, string>> = {};
-    if (!formData.datetime) newErrors.datetime = 'Date/Time is required.';
-    if (!formData.quantity || isNaN(parseFloat(formData.quantity)) || parseFloat(formData.quantity) <= 0) {
-      newErrors.quantity = 'Valid Positive Quantity is required.';
-    }
-    if (!formData.price || isNaN(parseFloat(formData.price)) || parseFloat(formData.price) <= 0) {
-      newErrors.price = 'Valid Positive Price is required.';
-    }
-    if (isNaN(parseFloat(formData.fees)) || parseFloat(formData.fees) < 0) {
-        newErrors.fees = 'Valid Fees are required (0 or more).';
-    }
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
-
-    setIsSaving(true);
-    const payload: UpdateTransactionPayload = {
-      transaction_id: formData.transaction_id,
-      // trade_id is not needed in payload for updateSingleTransaction, but good to have in form state
-      quantity: parseFloat(formData.quantity),
-      price: parseFloat(formData.price),
-      datetime: new Date(formData.datetime).toISOString(),
-      fees: parseFloat(formData.fees) || 0,
-      notes: formData.notes.trim() || null,
-    };
-    try {
-        await onSave(payload);
-    } finally {
-        setIsSaving(false);
-    }
+    onSave({
+      ...formData,
+      emotion_ids: selectedEmotions
+    });
   };
-  
-  // Basic inline styles
-  const formStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '10px' };
-  const labelStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '3px', textAlign: 'left', fontSize: '0.9em' };
-  const inputStyle: React.CSSProperties = { padding: '6px', border: '1px solid #555', borderRadius: '3px', backgroundColor: '#444', color: 'white' };
-  const errorStyle: React.CSSProperties = { color: 'orange', fontSize: '0.8em', marginTop: '1px' };
-  const buttonRowStyle: React.CSSProperties = {display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '15px'};
-
 
   return (
-    <form onSubmit={handleSubmit} style={formStyle}>
-      <h4>Edit Transaction (ID: {formData.transaction_id})</h4>
-      <div style={labelStyle}>
-        <label>Date/Time:</label>
-        <input
-          type="datetime-local"
-          name="datetime"
-          value={formData.datetime}
-          onChange={handleChange}
-          style={inputStyle}
-        />
-        {errors.datetime && <span style={errorStyle}>{errors.datetime}</span>}
-      </div>
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000
+    }}>
+      <div style={{
+        backgroundColor: '#2a2f36',
+        padding: '20px',
+        borderRadius: '8px',
+        width: '90%',
+        maxWidth: '600px',
+        maxHeight: '90vh',
+        overflowY: 'auto'
+      }}>
+        <h2 style={{ color: '#fff', marginBottom: '20px' }}>Edit Transaction</h2>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Quantity:</label>
+            <input
+              type="number"
+              name="quantity"
+              value={formData.quantity}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                backgroundColor: '#1a1d21',
+                border: '1px solid #444',
+                borderRadius: '4px',
+                color: '#fff'
+              }}
+              required
+            />
+          </div>
 
-      <div style={labelStyle}>
-        <label>Action:</label>
-        <input
-          type="text"
-          name="action"
-          value={formData.action}
-          disabled
-          style={{...inputStyle, backgroundColor: '#333'}}
-        />
-      </div>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Price:</label>
+            <input
+              type="number"
+              name="price"
+              value={formData.price}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                backgroundColor: '#1a1d21',
+                border: '1px solid #444',
+                borderRadius: '4px',
+                color: '#fff'
+              }}
+              required
+            />
+          </div>
 
-      <div style={labelStyle}>
-        <label>Quantity:</label>
-        <input
-          type="number"
-          name="quantity"
-          value={formData.quantity}
-          onChange={handleChange}
-          step="any"
-          style={inputStyle}
-        />
-        {errors.quantity && <span style={errorStyle}>{errors.quantity}</span>}
-      </div>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Date/Time:</label>
+            <input
+              type="datetime-local"
+              name="datetime"
+              value={formData.datetime}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                backgroundColor: '#1a1d21',
+                border: '1px solid #444',
+                borderRadius: '4px',
+                color: '#fff'
+              }}
+              required
+            />
+          </div>
 
-      <div style={labelStyle}>
-        <label>Price:</label>
-        <input
-          type="number"
-          name="price"
-          value={formData.price}
-          onChange={handleChange}
-          step="any"
-          style={inputStyle}
-        />
-        {errors.price && <span style={errorStyle}>{errors.price}</span>}
-      </div>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Fees:</label>
+            <input
+              type="number"
+              name="fees"
+              value={formData.fees}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                backgroundColor: '#1a1d21',
+                border: '1px solid #444',
+                borderRadius: '4px',
+                color: '#fff'
+              }}
+            />
+          </div>
 
-      <div style={labelStyle}>
-        <label>Fees:</label>
-        <input
-          type="number"
-          name="fees"
-          value={formData.fees}
-          onChange={handleChange}
-          step="any"
-          style={inputStyle}
-        />
-        {errors.fees && <span style={errorStyle}>{errors.fees}</span>}
-      </div>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Notes:</label>
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                backgroundColor: '#1a1d21',
+                border: '1px solid #444',
+                borderRadius: '4px',
+                color: '#fff',
+                minHeight: '100px'
+              }}
+            />
+          </div>
 
-      <div style={labelStyle}>
-        <label>Notes:</label>
-        <textarea
-          name="notes"
-          value={formData.notes}
-          onChange={handleChange}
-          style={{...inputStyle, minHeight: '60px'}}
-        />
-      </div>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Strategy:</label>
+            <input
+              type="number"
+              name="strategy_id"
+              value={formData.strategy_id || ''}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                backgroundColor: '#1a1d21',
+                border: '1px solid #444',
+                borderRadius: '4px',
+                color: '#fff'
+              }}
+            />
+          </div>
 
-      <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-        <button
-          type="submit"
-          disabled={isSaving}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: isSaving ? 'not-allowed' : 'pointer',
-            opacity: isSaving ? 0.7 : 1
-          }}
-        >
-          {isSaving ? 'Saving...' : 'Save Changes'}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#6c757d',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
-        >
-          Cancel
-        </button>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Market Conditions:</label>
+            <textarea
+              name="market_conditions"
+              value={formData.market_conditions || ''}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                backgroundColor: '#1a1d21',
+                border: '1px solid #444',
+                borderRadius: '4px',
+                color: '#fff',
+                minHeight: '100px'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Setup Description:</label>
+            <textarea
+              name="setup_description"
+              value={formData.setup_description || ''}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                backgroundColor: '#1a1d21',
+                border: '1px solid #444',
+                borderRadius: '4px',
+                color: '#fff',
+                minHeight: '100px'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Reasoning:</label>
+            <textarea
+              name="reasoning"
+              value={formData.reasoning || ''}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                backgroundColor: '#1a1d21',
+                border: '1px solid #444',
+                borderRadius: '4px',
+                color: '#fff',
+                minHeight: '100px'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Lessons Learned:</label>
+            <textarea
+              name="lessons_learned"
+              value={formData.lessons_learned || ''}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                backgroundColor: '#1a1d21',
+                border: '1px solid #444',
+                borderRadius: '4px',
+                color: '#fff',
+                minHeight: '100px'
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>R-Multiple Initial Risk:</label>
+            <input
+              type="number"
+              name="r_multiple_initial_risk"
+              value={formData.r_multiple_initial_risk || ''}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '8px',
+                backgroundColor: '#1a1d21',
+                border: '1px solid #444',
+                borderRadius: '4px',
+                color: '#fff'
+              }}
+            />
+          </div>
+
+          {availableEmotions.length > 0 && (
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Emotions:</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                {availableEmotions.map(emotion => (
+                  <label key={emotion.emotion_id} style={{ display: 'flex', alignItems: 'center', color: '#fff' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedEmotions.includes(emotion.emotion_id)}
+                      onChange={() => handleEmotionChange(emotion.emotion_id)}
+                      style={{ marginRight: '5px' }}
+                    />
+                    {emotion.emotion_name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
+            <button
+              type="button"
+              onClick={onCancel}
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#6c757d',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              style={{
+                padding: '8px 16px',
+                backgroundColor: '#007bff',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Save
+            </button>
+          </div>
+        </form>
       </div>
-    </form>
+    </div>
   );
 };
 

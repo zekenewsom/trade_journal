@@ -2,28 +2,68 @@
 // New file for Stage 5
 
 import React, { useState } from 'react';
-import type { LogTransactionFormData, LogTransactionPayload } from '../../types';
+import type { LogTransactionFormData, LogTransactionPayload, EmotionRecord } from '../../types';
 
-const initialLogFormData: LogTransactionFormData = {
-  instrumentTicker: '',
-  assetClass: '',
-  exchange: '',
-  action: '',
-  quantity: '',
-  price: '',
-  datetime: new Date().toISOString().slice(0, 16), // Default to current date and time
-  fees: '0',
-  notes: '',
+interface LogTransactionFormProps {
+  onSubmit: (formData: LogTransactionFormData) => Promise<void>;
+  onCancel: () => void;
+  availableEmotions: EmotionRecord[];
+  initialValues?: {
+    instrument_ticker: string;
+    asset_class: 'Stock' | 'Cryptocurrency';
+    exchange: string;
+  };
+}
+
+const getInitialFormData = (): LogTransactionFormData => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  
+  return {
+    instrument_ticker: '',
+    asset_class: null,
+    exchange: '',
+    action: 'Buy',
+    datetime: `${year}-${month}-${day}T${hours}:${minutes}`,
+    quantity: '',
+    price: '',
+    fees: '0',
+    notes: '',
+    strategy_id: undefined,
+    market_conditions: undefined,
+    setup_description: undefined,
+    reasoning: undefined,
+    lessons_learned: undefined,
+    r_multiple_initial_risk: undefined,
+    emotion_ids: []
+  };
 };
 
-const LogTransactionForm: React.FC<{ onSaveSuccess: () => void }> = ({ onSaveSuccess }) => {
-  const [formData, setFormData] = useState<LogTransactionFormData>(initialLogFormData);
+const LogTransactionForm: React.FC<LogTransactionFormProps> = ({ 
+  onSubmit, 
+  onCancel,
+  availableEmotions,
+  initialValues 
+}) => {
+  const [formData, setFormData] = useState<LogTransactionFormData>(() => ({
+    ...getInitialFormData(),
+    instrument_ticker: initialValues?.instrument_ticker || '',
+    asset_class: initialValues?.asset_class || null,
+    exchange: initialValues?.exchange || ''
+  }));
   const [errors, setErrors] = useState<Partial<Record<keyof LogTransactionFormData, string>>>({});
   const [submissionStatus, setSubmissionStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
     if (errors[name as keyof LogTransactionFormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
@@ -31,8 +71,7 @@ const LogTransactionForm: React.FC<{ onSaveSuccess: () => void }> = ({ onSaveSuc
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof LogTransactionFormData, string>> = {};
-    if (!formData.instrumentTicker.trim()) newErrors.instrumentTicker = 'Instrument/Ticker is required.';
-    if (!formData.assetClass) newErrors.assetClass = 'Asset Class is required.';
+    if (!formData.instrument_ticker.trim()) newErrors.instrument_ticker = 'Instrument/Ticker is required.';
     if (!formData.exchange.trim()) newErrors.exchange = 'Exchange is required.';
     if (!formData.action) newErrors.action = 'Action (Buy/Sell) is required.';
     if (!formData.datetime) newErrors.datetime = 'Date/Time is required.';
@@ -49,43 +88,41 @@ const LogTransactionForm: React.FC<{ onSaveSuccess: () => void }> = ({ onSaveSuc
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmissionStatus(null);
-
-    if (!validateForm()) {
-      setSubmissionStatus({ message: 'Please correct the errors in the form.', type: 'error' });
-      return;
-    }
-
-    const payload: LogTransactionPayload = {
-      instrument_ticker: formData.instrumentTicker.toUpperCase().trim(),
-      asset_class: formData.assetClass as 'Stock' | 'Cryptocurrency',
-      exchange: formData.exchange.trim() || null, // Send null if empty
-      action: formData.action as 'Buy' | 'Sell',
-      quantity: parseFloat(formData.quantity),
-      price: parseFloat(formData.price),
-      datetime: new Date(formData.datetime).toISOString(), // Ensure ISO format
-      fees_for_transaction: parseFloat(formData.fees) || 0,
-      notes_for_transaction: formData.notes.trim() || null,
-    };
+    if (!validateForm()) return;
 
     try {
-      if (window.electronAPI && window.electronAPI.logTransaction) {
-        const result = await window.electronAPI.logTransaction(payload);
-        if (result.success) {
-          setSubmissionStatus({ message: result.message, type: 'success' });
-          setFormData(initialLogFormData); // Reset form
-          if (onSaveSuccess) onSaveSuccess();
-        } else {
-          setSubmissionStatus({ message: `Error: ${result.message}`, type: 'error' });
-        }
+      const payload: LogTransactionPayload = {
+        instrument_ticker: formData.instrument_ticker.toUpperCase().trim(),
+        asset_class: formData.asset_class,
+        exchange: formData.exchange.trim(),
+        action: formData.action,
+        datetime: formData.datetime,
+        quantity: parseFloat(formData.quantity),
+        price: parseFloat(formData.price),
+        fees_for_transaction: parseFloat(formData.fees),
+        notes_for_transaction: formData.notes || null,
+        strategy_id: formData.strategy_id ? parseInt(formData.strategy_id) : undefined,
+        market_conditions: formData.market_conditions,
+        setup_description: formData.setup_description,
+        reasoning: formData.reasoning,
+        lessons_learned: formData.lessons_learned,
+        r_multiple_initial_risk: formData.r_multiple_initial_risk ? parseFloat(formData.r_multiple_initial_risk) : undefined,
+        emotion_ids: formData.emotion_ids
+      };
+
+      const result = await window.electronAPI.logTransaction(payload);
+      if (result.success) {
+        setSubmissionStatus({ message: 'Transaction logged successfully!', type: 'success' });
+        setFormData(getInitialFormData()); // Reset form with current date/time
+        if (onSubmit) await onSubmit(formData);
       } else {
-        throw new Error('logTransaction API is not available.');
+        setSubmissionStatus({ message: `Error: ${result.message}`, type: 'error' });
       }
-    } catch (error) {
-      console.error('Failed to log transaction:', error);
-      setSubmissionStatus({ message: `Failed: ${(error as Error).message}`, type: 'error' });
+    } catch (err) {
+      console.error('Error logging transaction:', err);
+      setSubmissionStatus({ message: `Error: ${(err as Error).message}`, type: 'error' });
     }
   };
   
@@ -98,43 +135,53 @@ const LogTransactionForm: React.FC<{ onSaveSuccess: () => void }> = ({ onSaveSuc
   return (
     <form onSubmit={handleSubmit} style={formStyle} noValidate>
       <div style={labelStyle}>Instrument/Ticker:
-        <input type="text" name="instrumentTicker" value={formData.instrumentTicker} onChange={handleChange} style={inputStyle} required/>
-        {errors.instrumentTicker && <span style={errorStyle}>{errors.instrumentTicker}</span>}
+        <input type="text" name="instrument_ticker" value={formData.instrument_ticker} onChange={handleInputChange} style={inputStyle} required/>
+        {errors.instrument_ticker && <span style={errorStyle}>{errors.instrument_ticker}</span>}
       </div>
       <div style={labelStyle}>Asset Class:
-        <select name="assetClass" value={formData.assetClass} onChange={handleChange} style={inputStyle} required>
-          <option value="">Select Asset Class</option><option value="Stock">Stock</option><option value="Cryptocurrency">Cryptocurrency</option>
+        <select 
+          name="asset_class" 
+          value={formData.asset_class || ''} 
+          onChange={handleInputChange} 
+          style={inputStyle} 
+          required
+        >
+          <option value="">Select Asset Class</option>
+          <option value="Stock">Stock</option>
+          <option value="Cryptocurrency">Cryptocurrency</option>
         </select>
-        {errors.assetClass && <span style={errorStyle}>{errors.assetClass}</span>}
+        {errors.asset_class && <span style={errorStyle}>{errors.asset_class}</span>}
       </div>
       <div style={labelStyle}>Exchange:
-        <input type="text" name="exchange" value={formData.exchange} onChange={handleChange} style={inputStyle} placeholder="e.g., NYSE, Binance" required/>
+        <input type="text" name="exchange" value={formData.exchange} onChange={handleInputChange} style={inputStyle} placeholder="e.g., NYSE, Binance" required/>
         {errors.exchange && <span style={errorStyle}>{errors.exchange}</span>}
       </div>
       <div style={labelStyle}>Action:
-        <select name="action" value={formData.action} onChange={handleChange} style={inputStyle} required>
-          <option value="">Select Action</option><option value="Buy">Buy</option><option value="Sell">Sell</option>
+        <select name="action" value={formData.action} onChange={handleInputChange} style={inputStyle} required>
+          <option value="">Select Action</option>
+          <option value="Buy">Buy</option>
+          <option value="Sell">Sell</option>
         </select>
         {errors.action && <span style={errorStyle}>{errors.action}</span>}
       </div>
       <div style={labelStyle}>Date/Time:
-        <input type="datetime-local" name="datetime" value={formData.datetime} onChange={handleChange} style={inputStyle} required/>
+        <input type="datetime-local" name="datetime" value={formData.datetime} onChange={handleInputChange} style={inputStyle} required/>
         {errors.datetime && <span style={errorStyle}>{errors.datetime}</span>}
       </div>
       <div style={labelStyle}>Quantity:
-        <input type="number" step="any" min="0.00000001" name="quantity" value={formData.quantity} onChange={handleChange} style={inputStyle} required/>
+        <input type="number" step="any" min="0.00000001" name="quantity" value={formData.quantity} onChange={handleInputChange} style={inputStyle} required/>
         {errors.quantity && <span style={errorStyle}>{errors.quantity}</span>}
       </div>
       <div style={labelStyle}>Price:
-        <input type="number" step="any" min="0.00000001" name="price" value={formData.price} onChange={handleChange} style={inputStyle} required/>
+        <input type="number" step="any" min="0.00000001" name="price" value={formData.price} onChange={handleInputChange} style={inputStyle} required/>
         {errors.price && <span style={errorStyle}>{errors.price}</span>}
       </div>
       <div style={labelStyle}>Fees (for this transaction):
-        <input type="number" step="any" min="0" name="fees" value={formData.fees} onChange={handleChange} style={inputStyle} />
+        <input type="number" step="any" min="0" name="fees" value={formData.fees} onChange={handleInputChange} style={inputStyle} />
         {errors.fees && <span style={errorStyle}>{errors.fees}</span>}
       </div>
        <div style={labelStyle}>Notes (Optional):
-        <textarea name="notes" value={formData.notes} onChange={handleChange} style={{...inputStyle, minHeight: '60px' }} />
+        <textarea name="notes" value={formData.notes} onChange={handleInputChange} style={{...inputStyle, minHeight: '60px' }} />
       </div>
       <button type="submit" style={buttonStyle}>Log Transaction</button>
       {submissionStatus && (
