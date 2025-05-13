@@ -1,22 +1,62 @@
 // File: zekenewsom-trade_journal/packages/react-app/src/views/LogTransactionPage.tsx
 // New file for Stage 5
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import LogTransactionForm from '../components/transactions/LogTransactionForm';
+import type { LogTransactionFormData } from '../types';
 
 interface LogTransactionPageProps {
   onTransactionLogged: () => void;
   onCancel: () => void;
+  initialValues?: {
+    instrument_ticker: string;
+    asset_class: 'Stock' | 'Cryptocurrency';
+    exchange: string;
+  };
 }
 
-const LogTransactionPage: React.FC<LogTransactionPageProps> = ({ onTransactionLogged, onCancel }) => {
+const LogTransactionPage: React.FC<LogTransactionPageProps> = ({ 
+  onTransactionLogged, 
+  onCancel,
+  initialValues 
+}) => {
+  const [availableEmotions, setAvailableEmotions] = useState([]);
+
+  useEffect(() => {
+    const fetchEmotions = async () => {
+      try {
+        const emotions = await window.electronAPI.getEmotions();
+        setAvailableEmotions(emotions);
+      } catch (err) {
+        console.error('Error fetching emotions:', err);
+      }
+    };
+    fetchEmotions();
+  }, []);
+
+  const handleSubmit = async (formData: LogTransactionFormData) => {
+    try {
+      const result = await window.electronAPI.logTransaction(formData);
+      if (result.success) {
+        onTransactionLogged();
+      } else {
+        alert(result.message || 'Failed to log transaction');
+      }
+    } catch (err) {
+      console.error('Error logging transaction:', err);
+      alert('Error logging transaction: ' + (err as Error).message);
+    }
+  };
+
   return (
-    <div style={{ padding: '20px' }}>
+    <div style={{ maxWidth: '800px', margin: '0 auto', padding: '20px' }}>
       <h2>Log New Transaction</h2>
-      <LogTransactionForm onSaveSuccess={onTransactionLogged} />
-      <button onClick={onCancel} style={{ marginTop: '20px' }}>
-        Cancel
-      </button>
+      <LogTransactionForm 
+        onSubmit={handleSubmit} 
+        onCancel={onCancel}
+        availableEmotions={availableEmotions}
+        initialValues={initialValues}
+      />
     </div>
   );
 };

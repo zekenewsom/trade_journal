@@ -1,77 +1,227 @@
 // File: zekenewsom-trade_journal/packages/react-app/src/views/AnalyticsPage.tsx
 // New file for Stage 6
 
-import React, { useState, useEffect } from 'react';
-import type { AnalyticsData } from '../types';
+import React, { useState, useEffect, useCallback } from 'react';
+import type { AnalyticsData, AnalyticsFilters } from '../types';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import PnlVsDurationScatterPlot from '../components/analytics/PnlVsDurationScatterPlot';
+import PerformanceByTimeChart from '../components/analytics/PerformanceByTimeChart';
+import GroupedPerformanceTable from '../components/analytics/GroupedPerformanceTable';
+import TradeStatsCard from '../components/analytics/TradeStatsCard';
+import EquityCurveChart from '../components/analytics/EquityCurveChart';
+import { TextField, Box, Button, Typography, Paper, Grid, CircularProgress, Alert } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { format } from 'date-fns';
+import { getAnalyticsData } from '../api/analytics';
+
+interface PnlSeriesPoint {
+  date: number;
+  equity: number;
+}
+
+interface PnlPerTradePoint {
+  date: number;
+  pnl: number;
+}
+
+interface WinLossCount {
+  name: string;
+  value: number;
+}
 
 const AnalyticsPage: React.FC = () => {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [filters, setFilters] = useState<AnalyticsFilters>({
+    dateRange: {
+      startDate: null,
+      endDate: null
+    }
+  });
+
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await getAnalyticsData(filters);
+      setAnalytics(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch analytics data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAnalyticsData = async () => {
-      setIsLoading(true); setError(null);
-      try {
-        if (window.electronAPI?.getAnalyticsData) {
-          const data = await window.electronAPI.getAnalyticsData(); // No filters for now
-          if ('error' in data) throw new Error(data.error);
-          setAnalytics(data);
-        } else { throw new Error("getAnalyticsData API not available."); }
-      } catch (err) {
-        console.error("Error fetching analytics data:", err);
-        setError((err as Error).message);
-      } finally { setIsLoading(false); }
-    };
     fetchAnalyticsData();
-  }, []);
+  }, [filters]);
+
+  const handleDateChange = (field: 'startDate' | 'endDate') => (date: Date | null) => {
+    setFilters(prev => ({
+      ...prev,
+      dateRange: {
+        startDate: field === 'startDate' ? (date ? date.toISOString() : null) : prev.dateRange?.startDate ?? null,
+        endDate: field === 'endDate' ? (date ? date.toISOString() : null) : prev.dateRange?.endDate ?? null
+      }
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      dateRange: {
+        startDate: null,
+        endDate: null
+      }
+    });
+  };
 
   const COLORS_PIE = ['#4CAF50', '#f44336', '#FFBB28']; // Green for Wins, Red for Losses, Yellow for Break-even
 
-  if (isLoading) return <p>Loading analytics data...</p>;
-  if (error) return <p style={{ color: 'red' }}>Error loading analytics: {error}</p>;
-  if (!analytics) return <p>No analytics data available.</p>;
-  
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box p={3}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
+  if (!analytics) {
+    return null;
+  }
+
   // Basic styling for layout
   const chartContainerStyle: React.CSSProperties = { marginBottom: '40px', padding: '20px', backgroundColor: '#333940', borderRadius: '8px'};
   const chartTitleStyle: React.CSSProperties = { color: '#61dafb', marginBottom: '15px'};
 
   return (
-    <div style={{color: '#eee'}}>
-      <h2>Advanced Trading Analytics</h2>
+    <Box p={3}>
+      <Typography variant="h4" gutterBottom>
+        Trading Analytics
+      </Typography>
+
+      {/* Summary Metrics */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2 }}>
+          <Box sx={{ textAlign: 'center', p: 2 }}>
+            <Typography variant="h6" color="primary">Total Net P&L</Typography>
+            <Typography variant="h4" color={analytics.totalRealizedNetPnl >= 0 ? 'success.main' : 'error.main'}>
+              ${analytics.totalRealizedNetPnl.toFixed(2)}
+            </Typography>
+          </Box>
+          <Box sx={{ textAlign: 'center', p: 2 }}>
+            <Typography variant="h6" color="primary">Win Rate</Typography>
+            <Typography variant="h4">
+              {analytics.winRateOverall ? `${(analytics.winRateOverall * 100).toFixed(1)}%` : 'N/A'}
+            </Typography>
+          </Box>
+          <Box sx={{ textAlign: 'center', p: 2 }}>
+            <Typography variant="h6" color="primary">Max Drawdown</Typography>
+            <Typography variant="h4" color="error.main">
+              {analytics.maxDrawdownPercentage ? `${analytics.maxDrawdownPercentage.toFixed(1)}%` : 'N/A'}
+            </Typography>
+          </Box>
+          <Box sx={{ textAlign: 'center', p: 2 }}>
+            <Typography variant="h6" color="primary">Total Trades</Typography>
+            <Typography variant="h4">
+              {analytics.numberOfWinningTrades + analytics.numberOfLosingTrades + analytics.numberOfBreakEvenTrades}
+            </Typography>
+          </Box>
+        </Box>
+      </Paper>
+
+      {/* Trade Statistics */}
+      <TradeStatsCard analytics={analytics} />
+
+      {/* Equity Curve & Drawdown */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <EquityCurveChart equityCurve={analytics.equityCurve} />
+      </Paper>
+
+      {/* Date Range Filter */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
+          <Box>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DatePicker
+                label="Start Date"
+                value={filters.dateRange?.startDate ? new Date(filters.dateRange.startDate) : null}
+                onChange={handleDateChange('startDate')}
+                slotProps={{
+                  textField: {
+                    fullWidth: true
+                  }
+                }}
+              />
+            </LocalizationProvider>
+          </Box>
+          <Box>
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DatePicker
+                label="End Date"
+                value={filters.dateRange?.endDate ? new Date(filters.dateRange.endDate) : null}
+                onChange={handleDateChange('endDate')}
+                slotProps={{
+                  textField: {
+                    fullWidth: true
+                  }
+                }}
+              />
+            </LocalizationProvider>
+          </Box>
+          <Box>
+            <Button variant="outlined" onClick={clearFilters} fullWidth>
+              Clear Filters
+            </Button>
+          </Box>
+        </Box>
+      </Paper>
 
       {/* Cumulative P&L Chart */}
-      {analytics.cumulativePnlSeries && analytics.cumulativePnlSeries.length > 0 && (
+      {analytics.equityCurve && analytics.equityCurve.length > 0 && (
         <div style={chartContainerStyle}>
           <h3 style={chartTitleStyle}>Cumulative Realized Net P&L</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={analytics.cumulativePnlSeries}>
+            <LineChart data={analytics.equityCurve}>
               <CartesianGrid strokeDasharray="3 3" stroke="#555" />
               <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#ccc' }}/>
               <YAxis tickFormatter={(value) => `$${value.toFixed(0)}`} tick={{ fontSize: 10, fill: '#ccc' }}/>
               <Tooltip formatter={(value:number) => `$${value.toFixed(2)}`} />
               <Legend />
-              <Line type="monotone" dataKey="cumulativeNetPnl" name="Cumulative Net P&L" stroke="#82ca9d" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="equity" name="Cumulative Net P&L" stroke="#82ca9d" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       )}
 
-      {/* P&L Per Trade Bar Chart (for fully closed trades) */}
+      {/* P&L Per Trade Bar Chart */}
       {analytics.pnlPerTradeSeries && analytics.pnlPerTradeSeries.length > 0 && (
          <div style={chartContainerStyle}>
-          <h3 style={chartTitleStyle}>Net P&L per Fully Closed Trade</h3>
+          <h3 style={chartTitleStyle}>Net P&L per Trade</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={analytics.pnlPerTradeSeries}>
               <CartesianGrid strokeDasharray="3 3" stroke="#555"/>
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#ccc' }}/>
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#ccc' }}/>
               <YAxis tickFormatter={(value) => `$${value.toFixed(0)}`} tick={{ fontSize: 10, fill: '#ccc' }}/>
               <Tooltip formatter={(value:number) => `$${value.toFixed(2)}`}/>
               <Legend />
-              <Bar dataKey="netPnl" name="Net P&L">
+              <Bar dataKey="pnl" name="Net P&L">
                 {analytics.pnlPerTradeSeries.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.netPnl >= 0 ? '#4CAF50' : '#f44336'} />
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.pnl >= 0 ? '#4CAF50' : '#f44336'} 
+                    opacity={entry.isFullyClosed ? 1 : 0.5}
+                  />
                 ))}
               </Bar>
             </BarChart>
@@ -79,10 +229,10 @@ const AnalyticsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Win/Loss Pie Chart (for fully closed trades) */}
+      {/* Win/Loss Pie Chart */}
       {analytics.winLossBreakEvenCounts && analytics.winLossBreakEvenCounts.some(item => item.value > 0) && (
         <div style={chartContainerStyle}>
-            <h3 style={chartTitleStyle}>Trade Outcomes (Fully Closed)</h3>
+            <h3 style={chartTitleStyle}>Trade Outcomes</h3>
             <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                     <Pie
@@ -95,7 +245,7 @@ const AnalyticsPage: React.FC = () => {
                         fill="#8884d8"
                         dataKey="value"
                     >
-                        {analytics.winLossBreakEvenCounts.map((_, index) => (
+                        {analytics.winLossBreakEvenCounts.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={COLORS_PIE[index % COLORS_PIE.length]} />
                         ))}
                     </Pie>
@@ -106,10 +256,10 @@ const AnalyticsPage: React.FC = () => {
         </div>
       )}
       
-      {/* R-Multiple Histogram (if data available) */}
+      {/* R-Multiple Histogram */}
       {analytics.rMultipleDistribution && analytics.rMultipleDistribution.length > 0 && (
         <div style={chartContainerStyle}>
-          <h3 style={chartTitleStyle}>R-Multiple Distribution (Fully Closed Trades)</h3>
+          <h3 style={chartTitleStyle}>R-Multiple Distribution</h3>
           <p>Average R-Multiple: {analytics.avgRMultiple !== null ? analytics.avgRMultiple.toFixed(2) : 'N/A'}</p>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={analytics.rMultipleDistribution}>
@@ -124,10 +274,76 @@ const AnalyticsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Placeholder for P&L by Asset Class/Exchange/Strategy tables */}
-      {/* ... More charts and tables to be added here ... */}
+      {/* P&L vs Duration Scatter Plot */}
+      {analytics.pnlVsDurationSeries && analytics.pnlVsDurationSeries.length > 0 && (
+        <div style={chartContainerStyle}>
+          <h3 style={chartTitleStyle}>P&L vs Trade Duration</h3>
+          <PnlVsDurationScatterPlot data={analytics.pnlVsDurationSeries} />
+        </div>
+      )}
 
-    </div>
+      {/* Grouped Performance Tables */}
+      {analytics.pnlByAssetClass && analytics.pnlByAssetClass.length > 0 && (
+        <div style={chartContainerStyle}>
+          <GroupedPerformanceTable 
+            title="Performance by Asset Class" 
+            data={analytics.pnlByAssetClass} 
+          />
+        </div>
+      )}
+
+      {analytics.pnlByExchange && analytics.pnlByExchange.length > 0 && (
+        <div style={chartContainerStyle}>
+          <GroupedPerformanceTable 
+            title="Performance by Exchange" 
+            data={analytics.pnlByExchange} 
+          />
+        </div>
+      )}
+
+      {analytics.pnlByStrategy && analytics.pnlByStrategy.length > 0 && (
+        <div style={chartContainerStyle}>
+          <GroupedPerformanceTable 
+            title="Performance by Strategy" 
+            data={analytics.pnlByStrategy} 
+          />
+        </div>
+      )}
+
+      {analytics.pnlByEmotion && analytics.pnlByEmotion.length > 0 && (
+        <div style={chartContainerStyle}>
+          <GroupedPerformanceTable 
+            title="Performance by Emotional State" 
+            data={analytics.pnlByEmotion} 
+          />
+        </div>
+      )}
+
+      {/* Monthly Performance Chart */}
+      {analytics.pnlByMonth && analytics.pnlByMonth.length > 0 && (
+        <div style={chartContainerStyle}>
+          <PerformanceByTimeChart
+            title="Monthly Performance"
+            data={analytics.pnlByMonth}
+            dataKeyX="period"
+            dataKeyY="totalNetPnl"
+          />
+        </div>
+      )}
+
+      {/* Daily Performance Chart */}
+      {analytics.pnlByDayOfWeek && analytics.pnlByDayOfWeek.length > 0 && (
+        <div style={chartContainerStyle}>
+          <PerformanceByTimeChart
+            title="Performance by Day of Week"
+            data={analytics.pnlByDayOfWeek}
+            dataKeyX="period"
+            dataKeyY="totalNetPnl"
+          />
+        </div>
+      )}
+
+    </Box>
   );
 };
 

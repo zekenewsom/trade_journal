@@ -65,9 +65,26 @@ CREATE TABLE IF NOT EXISTS transactions (
     price REAL NOT NULL,
     datetime TEXT NOT NULL, 
     fees REAL DEFAULT 0.0, 
-    notes TEXT, 
+    notes TEXT,
+    strategy_id INTEGER,
+    market_conditions TEXT,
+    setup_description TEXT,
+    reasoning TEXT,
+    lessons_learned TEXT,
+    r_multiple_initial_risk REAL,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (trade_id) REFERENCES trades(trade_id) ON DELETE CASCADE
+    FOREIGN KEY (trade_id) REFERENCES trades(trade_id) ON DELETE CASCADE,
+    FOREIGN KEY (strategy_id) REFERENCES strategies(strategy_id)
+);`;
+
+const transactionEmotionsTable = `
+CREATE TABLE IF NOT EXISTS transaction_emotions (
+    transaction_emotion_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    transaction_id INTEGER NOT NULL,
+    emotion_id INTEGER NOT NULL,
+    UNIQUE (transaction_id, emotion_id),
+    FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id) ON DELETE CASCADE,
+    FOREIGN KEY (emotion_id) REFERENCES emotions(emotion_id) ON DELETE CASCADE
 );`;
 
 const tradeEmotionsTable = `
@@ -103,6 +120,7 @@ function createTables(db) {
     db.exec(tradesTable); // Updated
     db.exec(tradesUpdatedAtTrigger);
     db.exec(transactionsTable);
+    db.exec(transactionEmotionsTable);
     db.exec(tradeEmotionsTable);
     db.exec(tradeAttachmentsTable);
     console.log('Database schema applied successfully (Stage 6 - mark price).');

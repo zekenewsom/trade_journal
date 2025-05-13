@@ -11,7 +11,7 @@ let db;
 // --- Initialization and Connection Management ---
 function initializeDatabase(dbFilePath) {
   if (db && db.open) {
-    // console.warn('Database already initialized and open.'); // Less noisy
+    console.log('Database already initialized and open');
     return db;
   }
   try {
@@ -20,11 +20,12 @@ function initializeDatabase(dbFilePath) {
       fs.mkdirSync(dbDir, { recursive: true });
       console.log(`Created database directory: ${dbDir}`);
     }
-    db = new Database(dbFilePath); // Removed verbose logging by default
+    db = new Database(dbFilePath);
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');
-    createTables(db); // Applies schema (Stage 5, plus emotion tables assumed in schema)
-    seedInitialData(db); // Seed necessary lookup data like emotions
+    
+    createTables(db);
+    seedInitialData(db);
     console.log(`Database initialized successfully: ${dbFilePath}`);
   } catch (error) {
     console.error('Failed to initialize database:', error);
@@ -36,6 +37,7 @@ function initializeDatabase(dbFilePath) {
 
 function getDb() {
   if (!db || !db.open) {
+    console.error('Database not initialized or has been closed');
     throw new Error('Database not initialized or has been closed. Ensure initializeDatabase() is called on app start.');
   }
   return db;
@@ -172,58 +174,74 @@ function updateMarkToMarketPrice(tradeId, marketPrice) {
 
 // --- Read Operations for UI (Modified for Stage 6) ---
 function fetchTradesForListView() {
+  console.log('[fetchTradesForListView CALLED]');
   const currentDb = getDb();
-  // Include current_market_price for open trades
-  return currentDb.prepare(
+  // Fetch all trades with strategy names
+  const trades = currentDb.prepare(
     `SELECT 
-        trade_id, instrument_ticker, asset_class, exchange, trade_direction, 
-        status, open_datetime, close_datetime, fees_total, strategy_id, 
-        current_market_price, -- Added for Stage 6
-        created_at, updated_at 
-     FROM trades ORDER BY 
-     CASE status WHEN 'Open' THEN 0 ELSE 1 END, -- Show open trades first
-     COALESCE(open_datetime, created_at) DESC`
+      t.trade_id, 
+      t.instrument_ticker, 
+      t.asset_class, 
+      t.exchange, 
+      t.trade_direction, 
+      t.status, 
+      t.open_datetime, 
+      t.close_datetime, 
+      t.fees_total, 
+      t.strategy_id,
+      s.strategy_name,
+      t.current_market_price, 
+      t.created_at, 
+      t.updated_at 
+    FROM trades t
+    LEFT JOIN strategies s ON t.strategy_id = s.strategy_id
+    ORDER BY COALESCE(t.open_datetime, t.created_at) DESC`
   ).all();
+
+  // For each trade, fetch transactions and calculate open qty & unrealized P&L
+  return trades.map(trade => {
+    const transactions = currentDb.prepare('SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC').all(trade.trade_id);
+    const pnl = calculateTradePnlFifoEnhanced(trade, transactions);
+    console.log('[P&L MAP DEBUG]', {
+      trade_id: trade.trade_id,
+      status: trade.status,
+      current_market_price: trade.current_market_price,
+      openQuantity: pnl.openQuantity,
+      unrealizedGrossPnlOnOpenPortion: pnl.unrealizedGrossPnlOnOpenPortion,
+      averageOpenPrice: pnl.averageOpenPrice,
+      transactions
+    });
+    return {
+      ...trade,
+      current_open_quantity: pnl.openQuantity ?? null,
+      unrealized_pnl: pnl.unrealizedGrossPnlOnOpenPortion ?? null,
+      average_open_price: pnl.averageOpenPrice ?? null
+    };
+  });
 }
 
 function fetchTradeWithTransactions(tradeId) {
   const currentDb = getDb();
-  console.log(`[fetchTradeWithTransactions] Fetching trade ID: ${tradeId}`);
-  
   const trade = currentDb.prepare('SELECT * FROM trades WHERE trade_id = ?').get(tradeId);
-  console.log(`[fetchTradeWithTransactions] Found trade:`, trade);
-  
-  if (!trade) {
-    console.log(`[fetchTradeWithTransactions] No trade found for ID: ${tradeId}`);
-    return null;
-  }
-  
-  // First, let's check if there are any transactions at all
-  const transactionCount = currentDb.prepare('SELECT COUNT(*) as count FROM transactions WHERE trade_id = ?').get(tradeId);
-  console.log(`[fetchTradeWithTransactions] Transaction count:`, transactionCount);
-  
+  if (!trade) return null;
+
   const transactions = currentDb.prepare(
     'SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC'
   ).all(tradeId);
-  console.log(`[fetchTradeWithTransactions] Found ${transactions.length} transactions:`, transactions);
-  
-  // Log the SQL query for debugging
-  const query = currentDb.prepare('SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC').toString();
-  console.log(`[fetchTradeWithTransactions] SQL Query:`, query);
-  
-  // Calculate P&L for the trade
-  const pnl = calculateTradePnlFifoEnhanced(trade, transactions);
-  console.log(`[fetchTradeWithTransactions] Calculated P&L:`, pnl);
-  
-  const result = { 
-    ...trade, 
-    transactions,
-    openQuantity: pnl.openQuantity,
-    unrealizedGrossPnlOnOpenPortion: pnl.unrealizedGrossPnlOnOpenPortion,
-    averageOpenPrice: pnl.averageOpenPrice
-  };
-  console.log(`[fetchTradeWithTransactions] Returning combined result:`, result);
-  return result;
+
+  // Get emotions for each transaction
+  const transactionsWithEmotions = transactions.map(transaction => {
+    const emotionIds = currentDb.prepare(
+      'SELECT emotion_id FROM transaction_emotions WHERE transaction_id = ?'
+    ).all(transaction.transaction_id).map(row => row.emotion_id);
+    
+    return {
+      ...transaction,
+      emotion_ids: emotionIds
+    };
+  });
+
+  return { ...trade, transactions: transactionsWithEmotions };
 }
 
 console.log('[DB.JS LOADED]');
@@ -237,7 +255,7 @@ function calculateTradePnlFifoEnhanced(trade, transactionsForThisTrade) {
 
     // --- Robust defaults ---
     let weightedAvgEntryPriceForOpenPortion = null;
-    
+
     const entries = transactionsForThisTrade
         .filter(tx => (trade.trade_direction === 'Long' && tx.action === 'Buy') || (trade.trade_direction === 'Short' && tx.action === 'Sell'))
         .map(tx => ({ ...tx, remainingQuantity: Math.abs(tx.quantity) }))
@@ -260,9 +278,13 @@ function calculateTradePnlFifoEnhanced(trade, transactionsForThisTrade) {
             if (entry.remainingQuantity === 0 || exitQtyToMatch === 0) continue;
             const matchedQty = Math.min(exitQtyToMatch, entry.remainingQuantity);
             
-            realizedGrossPnl += (exit.price - entry.price) * matchedQty * directionMultiplier;
+            // For Long trades: P&L = (Sell Price - Buy Price) * Quantity
+            // For Short trades: P&L = (Sell Price - Buy Price) * Quantity * -1
+            const pnl = (exit.price - entry.price) * matchedQty * directionMultiplier;
+            realizedGrossPnl += pnl;
+
             if (entry.quantity > 0) {
-                 feesAttributableToClosedPortion += (entry.fees || 0) * (matchedQty / entry.quantity);
+                feesAttributableToClosedPortion += (entry.fees || 0) * (matchedQty / entry.quantity);
             }
             totalCostOfClosedEntries += entry.price * matchedQty;
 
@@ -300,7 +322,12 @@ function calculateTradePnlFifoEnhanced(trade, transactionsForThisTrade) {
         openQuantity,
         weightedAvgEntryPriceForOpenPortion,
         current_market_price: trade.current_market_price,
-        unrealizedGrossPnlOnOpenPortion
+        unrealizedGrossPnlOnOpenPortion,
+        realizedGrossPnl,
+        realizedNetPnl,
+        directionMultiplier,
+        entries: entries.map(e => ({ price: e.price, quantity: e.quantity, remaining: e.remainingQuantity })),
+        exits: exits.map(e => ({ price: e.price, quantity: e.quantity }))
     });
     
     let rMultipleActual = null;
@@ -317,6 +344,12 @@ function calculateTradePnlFifoEnhanced(trade, transactionsForThisTrade) {
     let outcome = null;
     if (trade.status === 'Closed') {
         const finalNetPnlForOutcome = realizedGrossPnl - (trade.fees_total || 0);
+        console.log('[OUTCOME DEBUG]', {
+            trade_id: trade.trade_id,
+            finalNetPnlForOutcome,
+            realizedGrossPnl,
+            fees_total: trade.fees_total
+        });
         if (finalNetPnlForOutcome > 0.000001) outcome = 'Win';
         else if (finalNetPnlForOutcome < -0.000001) outcome = 'Loss';
         else outcome = 'Break Even';
@@ -342,142 +375,359 @@ function calculateTradePnlFifoEnhanced(trade, transactionsForThisTrade) {
     };
 }
 
-function calculateAnalyticsData(filters = {}) {
-  const currentDb = getDb();
-  const allTradesWithData = fetchTradesForListView();
+async function calculateAnalyticsData(filters = {}) {
+  try {
+    const db = await getDb();
+    console.log('Executing analytics query with filters:', filters);
 
-  let totalRealizedNetPnl = 0;
-  let totalRealizedGrossPnl = 0;
-  let totalFeesPaidOnClosedPortions = 0;
+    // Build the WHERE clause based on filters
+    let whereClause = '';
+    const params = [];
 
-  let fullyClosedWins = 0;
-  let fullyClosedLosses = 0;
-  let fullyClosedBreakEvens = 0;
-  let sumNetPnlWinningClosedTrades = 0;
-  let sumNetPnlLosingClosedTrades = 0;
-  let largestWin = null;
-  let largestLoss = null;
-  const closedTradeOutcomesForStreaks = [];
-
-  const cumulativePnlSeries = [];
-  let currentCumulativePnl = 0;
-  const pnlPerTradeSeries = [];
-  const rMultipleValues = [];
-
-  const pnlByAssetClass = {};
-  const pnlByExchange = {};
-  const pnlByStrategy = {};
-
-  // Fetch all transactions once, then group them by trade_id for processing
-  const allDbTransactions = currentDb.prepare('SELECT * FROM transactions ORDER BY datetime ASC, transaction_id ASC').all();
-  const transactionsByTradeId = allDbTransactions.reduce((acc, tx) => {
-    if (!acc[tx.trade_id]) acc[tx.trade_id] = [];
-    acc[tx.trade_id].push(tx);
-    return acc;
-  }, {});
-
-  // Sort trades by their open datetime for chronological processing of cumulative P&L
-  const chronoSortedTrades = [...allTradesWithData].sort((a,b) => new Date(a.open_datetime).getTime() - new Date(b.open_datetime).getTime());
-
-  for (const trade of chronoSortedTrades) {
-    const transactionsForThisTrade = transactionsByTradeId[trade.trade_id] || [];
-    if (transactionsForThisTrade.length === 0) continue;
-
-    const tradeAnalysis = calculateTradePnlFifoEnhanced(trade, transactionsForThisTrade);
-
-    // Accumulate P&L realized from this trade (even if partial)
-    if (tradeAnalysis.closedQuantity > 0) {
-      totalRealizedGrossPnl += tradeAnalysis.realizedGrossPnl;
-      totalRealizedNetPnl += tradeAnalysis.realizedNetPnl;
-      totalFeesPaidOnClosedPortions += tradeAnalysis.feesAttributableToClosedPortion;
+    if (filters.dateRange?.startDate || filters.dateRange?.endDate) {
+      whereClause = 'WHERE ';
+      if (filters.dateRange.startDate) {
+        whereClause += 't.open_datetime >= ? ';
+        params.push(filters.dateRange.startDate);
+      }
+      if (filters.dateRange.endDate) {
+        whereClause += filters.dateRange.startDate ? 'AND ' : '';
+        whereClause += 't.open_datetime <= ? ';
+        params.push(filters.dateRange.endDate);
+      }
     }
 
-    // For cumulative P&L, we want points as trades close or realize significant P&L
-    if (tradeAnalysis.isFullyClosed) {
-      currentCumulativePnl += tradeAnalysis.realizedNetPnl;
-      cumulativePnlSeries.push({ date: tradeAnalysis.relevantDate, cumulativeNetPnl: currentCumulativePnl });
-      
-      pnlPerTradeSeries.push({ name: `${trade.instrument_ticker} (ID:${trade.trade_id})`, netPnl: tradeAnalysis.realizedNetPnl, trade_id: trade.trade_id });
-      closedTradeOutcomesForStreaks.push({ pnl: tradeAnalysis.realizedNetPnl, date: tradeAnalysis.relevantDate });
+    const trades = db.prepare(`
+      SELECT t.*, s.strategy_name 
+      FROM trades t 
+      LEFT JOIN strategies s ON t.strategy_id = s.strategy_id 
+      ${whereClause}
+      ORDER BY t.open_datetime ASC
+    `).all(...params);
 
-      if (tradeAnalysis.outcome === 'Win') {
-        fullyClosedWins++;
-        sumNetPnlWinningClosedTrades += tradeAnalysis.realizedNetPnl;
-        if (largestWin === null || tradeAnalysis.realizedNetPnl > largestWin) largestWin = tradeAnalysis.realizedNetPnl;
-      } else if (tradeAnalysis.outcome === 'Loss') {
-        fullyClosedLosses++;
-        sumNetPnlLosingClosedTrades += tradeAnalysis.realizedNetPnl;
-        if (largestLoss === null || tradeAnalysis.realizedNetPnl < largestLoss) largestLoss = tradeAnalysis.realizedNetPnl;
-      } else if (tradeAnalysis.outcome === 'Break Even'){
-        fullyClosedBreakEvens++;
+    console.log(`Found ${trades.length} trades matching filters`);
+
+    // Initialize analytics data structure
+    const analyticsData = {
+      totalRealizedNetPnl: 0,
+      totalRealizedGrossPnl: 0,
+      totalFeesPaidOnClosedPortions: 0,
+      totalUnrealizedPnl: 0,
+      winRateOverall: null,
+      avgWinPnlOverall: null,
+      avgLossPnlOverall: null,
+      largestWinPnl: null,
+      largestLossPnl: null,
+      longestWinStreak: 0,
+      longestLossStreak: 0,
+      numberOfWinningTrades: 0,
+      numberOfLosingTrades: 0,
+      numberOfBreakEvenTrades: 0,
+      totalFullyClosedTrades: 0,
+      avgRMultiple: null,
+      equityCurve: [],
+      pnlPerTradeSeries: [],
+      winLossBreakEvenCounts: [
+        { name: 'Wins', value: 0 },
+        { name: 'Losses', value: 0 },
+        { name: 'Break Even', value: 0 }
+      ],
+      rMultipleDistribution: [],
+      pnlByMonth: [],
+      pnlByDayOfWeek: [],
+      pnlVsDurationSeries: [],
+      pnlByAssetClass: [],
+      pnlByExchange: [],
+      pnlByStrategy: [],
+      pnlByEmotion: [],
+      maxDrawdownPercentage: null
+    };
+
+    // Track sums for averages
+    let sumWinningPnl = 0;
+    let sumLosingPnl = 0;
+
+    // Process each trade
+    for (const trade of trades) {
+      const transactions = db.prepare('SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC').all(trade.trade_id);
+      trade.transactions = transactions;
+
+      // Calculate P&L for this trade
+      let realizedPnl = 0;
+      let realizedGrossPnl = 0;
+      let feesPaid = 0;
+      let openQuantity = 0;
+      let weightedAvgEntryPrice = 0;
+      let totalQuantity = 0;
+      let hasRealizedPnl = false;
+
+      // Process transactions chronologically
+      for (const tx of transactions) {
+        if (tx.action === 'Buy') {
+          openQuantity += tx.quantity;
+          totalQuantity += tx.quantity;
+          weightedAvgEntryPrice = ((weightedAvgEntryPrice * (totalQuantity - tx.quantity)) + (tx.price * tx.quantity)) / totalQuantity;
+        } else if (tx.action === 'Sell') {
+          const closedQuantity = Math.min(openQuantity, tx.quantity);
+          const pnl = (tx.price - weightedAvgEntryPrice) * closedQuantity;
+          realizedPnl += pnl;
+          realizedGrossPnl += pnl;
+          feesPaid += (tx.fees || 0);
+          openQuantity -= closedQuantity;
+          hasRealizedPnl = true;
+        }
       }
 
-      if (tradeAnalysis.rMultipleActual !== null) {
-        rMultipleValues.push(tradeAnalysis.rMultipleActual);
+      // Update analytics data
+      analyticsData.totalRealizedNetPnl += realizedPnl;
+      analyticsData.totalRealizedGrossPnl += realizedGrossPnl;
+      analyticsData.totalFeesPaidOnClosedPortions += feesPaid;
+
+      // Only count trades that have realized P&L (at least one sell transaction)
+      if (hasRealizedPnl) {
+        // Calculate trade outcome and update sums for averages
+        if (realizedPnl > 0) {
+          analyticsData.numberOfWinningTrades++;
+          analyticsData.winLossBreakEvenCounts[0].value++;
+          sumWinningPnl += realizedPnl;
+        } else if (realizedPnl < 0) {
+          analyticsData.numberOfLosingTrades++;
+          analyticsData.winLossBreakEvenCounts[1].value++;
+          sumLosingPnl += realizedPnl;
+        } else {
+          analyticsData.numberOfBreakEvenTrades++;
+          analyticsData.winLossBreakEvenCounts[2].value++;
+        }
+
+        // Update largest win/loss
+        if (realizedPnl > 0 && (analyticsData.largestWinPnl === null || realizedPnl > analyticsData.largestWinPnl)) {
+          analyticsData.largestWinPnl = realizedPnl;
+        }
+        if (realizedPnl < 0 && (analyticsData.largestLossPnl === null || realizedPnl < analyticsData.largestLossPnl)) {
+          analyticsData.largestLossPnl = realizedPnl;
+        }
+
+        // Add to P&L series for all trades with realized P&L
+        if (transactions.length > 0) {
+          const lastTx = transactions[transactions.length - 1];
+          analyticsData.pnlPerTradeSeries.push({
+            date: new Date(lastTx.datetime).getTime(),
+            pnl: realizedPnl,
+            isFullyClosed: openQuantity === 0
+          });
+
+          // Calculate duration for all trades with realized P&L
+          if (trade.open_datetime) {
+            const durationMs = new Date(lastTx.datetime) - new Date(trade.open_datetime);
+            const durationHours = durationMs / (1000 * 60 * 60);
+            analyticsData.pnlVsDurationSeries.push({
+              durationHours,
+              netPnl: realizedPnl,
+              rMultiple: trade.r_multiple_actual,
+              trade_id: trade.trade_id,
+              instrument_ticker: trade.instrument_ticker,
+              isFullyClosed: openQuantity === 0
+            });
+          }
+        }
       }
-      
-      // Grouped P&L for fully closed trades
-      const groups = [
-        { key: trade.asset_class, dataObj: pnlByAssetClass, nameField: 'Asset Class' },
-        { key: trade.exchange, dataObj: pnlByExchange, nameField: 'Exchange' },
-        { key: trade.strategy_id ? trade.strategy_id.toString() : 'Untagged', dataObj: pnlByStrategy, nameField: 'Strategy' }
-      ];
-      groups.forEach(group => {
-        if (!group.key) return;
-        if (!group.dataObj[group.key]) group.dataObj[group.key] = { name: group.key, totalNetPnl: 0, wins: 0, losses: 0, bes: 0, tradeCount: 0 };
-        const g = group.dataObj[group.key];
-        g.totalNetPnl += tradeAnalysis.realizedNetPnl;
-        g.tradeCount++;
-        if(tradeAnalysis.outcome === 'Win') g.wins++;
-        else if(tradeAnalysis.outcome === 'Loss') g.losses++;
-        else if(tradeAnalysis.outcome === 'Break Even') g.bes++;
-      });
+
+      // Group by month and day of week for all trades
+      if (trade.open_datetime) {
+        const openDate = new Date(trade.open_datetime);
+        const monthKey = openDate.toLocaleString('default', { month: 'long' });
+        const dayKey = openDate.toLocaleString('default', { weekday: 'long' });
+
+        // Update monthly P&L
+        let monthData = analyticsData.pnlByMonth.find(m => m.period === monthKey);
+        if (!monthData) {
+          monthData = { period: monthKey, totalNetPnl: 0, tradeCount: 0, winRate: null };
+          analyticsData.pnlByMonth.push(monthData);
+        }
+        monthData.totalNetPnl += realizedPnl;
+        if (hasRealizedPnl) {
+          monthData.tradeCount++;
+        }
+
+        // Update daily P&L
+        let dayData = analyticsData.pnlByDayOfWeek.find(d => d.period === dayKey);
+        if (!dayData) {
+          dayData = { period: dayKey, totalNetPnl: 0, tradeCount: 0, winRate: null };
+          analyticsData.pnlByDayOfWeek.push(dayData);
+        }
+        dayData.totalNetPnl += realizedPnl;
+        if (hasRealizedPnl) {
+          dayData.tradeCount++;
+        }
+
+        // Update grouped performance data
+        // Asset Class
+        let assetClassData = analyticsData.pnlByAssetClass.find(a => a.name === trade.asset_class);
+        if (!assetClassData) {
+          assetClassData = {
+            name: trade.asset_class,
+            totalNetPnl: 0,
+            tradeCount: 0,
+            wins: 0,
+            losses: 0,
+            breakEvens: 0,
+            winRate: null
+          };
+          analyticsData.pnlByAssetClass.push(assetClassData);
+        }
+        assetClassData.totalNetPnl += realizedPnl;
+        if (hasRealizedPnl) {
+          assetClassData.tradeCount++;
+          if (realizedPnl > 0) assetClassData.wins++;
+          else if (realizedPnl < 0) assetClassData.losses++;
+          else assetClassData.breakEvens++;
+        }
+
+        // Exchange
+        let exchangeData = analyticsData.pnlByExchange.find(e => e.name === trade.exchange);
+        if (!exchangeData) {
+          exchangeData = {
+            name: trade.exchange,
+            totalNetPnl: 0,
+            tradeCount: 0,
+            wins: 0,
+            losses: 0,
+            breakEvens: 0,
+            winRate: null
+          };
+          analyticsData.pnlByExchange.push(exchangeData);
+        }
+        exchangeData.totalNetPnl += realizedPnl;
+        if (hasRealizedPnl) {
+          exchangeData.tradeCount++;
+          if (realizedPnl > 0) exchangeData.wins++;
+          else if (realizedPnl < 0) exchangeData.losses++;
+          else exchangeData.breakEvens++;
+        }
+
+        // Strategy
+        let strategyData = analyticsData.pnlByStrategy.find(s => s.name === trade.strategy);
+        if (!strategyData) {
+          strategyData = {
+            name: trade.strategy || 'Unspecified',
+            totalNetPnl: 0,
+            tradeCount: 0,
+            wins: 0,
+            losses: 0,
+            breakEvens: 0,
+            winRate: null
+          };
+          analyticsData.pnlByStrategy.push(strategyData);
+        }
+        strategyData.totalNetPnl += realizedPnl;
+        if (hasRealizedPnl) {
+          strategyData.tradeCount++;
+          if (realizedPnl > 0) strategyData.wins++;
+          else if (realizedPnl < 0) strategyData.losses++;
+          else strategyData.breakEvens++;
+        }
+
+        // Emotion
+        const emotions = db.prepare(`
+          SELECT e.emotion_name 
+          FROM emotions e
+          JOIN transaction_emotions te ON e.emotion_id = te.emotion_id
+          JOIN transactions t ON te.transaction_id = t.transaction_id
+          WHERE t.trade_id = ?
+        `).all(trade.trade_id);
+        const emotionNames = emotions.map(e => e.emotion_name);
+        if (emotionNames.length > 0) {
+          emotionNames.forEach(emotion => {
+            let emotionData = analyticsData.pnlByEmotion.find(e => e.name === emotion);
+            if (!emotionData) {
+              emotionData = {
+                name: emotion,
+                totalNetPnl: 0,
+                tradeCount: 0,
+                wins: 0,
+                losses: 0,
+                breakEvens: 0,
+                winRate: null
+              };
+              analyticsData.pnlByEmotion.push(emotionData);
+            }
+            emotionData.totalNetPnl += realizedPnl;
+            if (hasRealizedPnl) {
+              emotionData.tradeCount++;
+              if (realizedPnl > 0) emotionData.wins++;
+              else if (realizedPnl < 0) emotionData.losses++;
+              else emotionData.breakEvens++;
+            }
+          });
+        }
+      }
     }
+
+    // Calculate win rates for grouped data
+    const calculateWinRate = (group) => {
+      if (group.tradeCount > 0) {
+        group.winRate = (group.wins / group.tradeCount) * 100;
+      }
+    };
+
+    analyticsData.pnlByAssetClass.forEach(calculateWinRate);
+    analyticsData.pnlByExchange.forEach(calculateWinRate);
+    analyticsData.pnlByStrategy.forEach(calculateWinRate);
+    analyticsData.pnlByEmotion.forEach(calculateWinRate);
+
+    // Sort grouped data by total P&L
+    const sortByPnl = (a, b) => b.totalNetPnl - a.totalNetPnl;
+    analyticsData.pnlByAssetClass.sort(sortByPnl);
+    analyticsData.pnlByExchange.sort(sortByPnl);
+    analyticsData.pnlByStrategy.sort(sortByPnl);
+    analyticsData.pnlByEmotion.sort(sortByPnl);
+
+    // Calculate win rates and averages
+    const totalTrades = analyticsData.numberOfWinningTrades + analyticsData.numberOfLosingTrades + analyticsData.numberOfBreakEvenTrades;
+    if (totalTrades > 0) {
+      analyticsData.winRateOverall = analyticsData.numberOfWinningTrades / totalTrades;
+    }
+
+    // Calculate average win and loss P&L
+    if (analyticsData.numberOfWinningTrades > 0) {
+      analyticsData.avgWinPnlOverall = sumWinningPnl / analyticsData.numberOfWinningTrades;
+    }
+    if (analyticsData.numberOfLosingTrades > 0) {
+      analyticsData.avgLossPnlOverall = sumLosingPnl / analyticsData.numberOfLosingTrades;
+    }
+
+    // Sort and calculate cumulative P&L
+    analyticsData.pnlPerTradeSeries.sort((a, b) => a.date - b.date);
+    let cumulativePnl = 0;
+    analyticsData.equityCurve = analyticsData.pnlPerTradeSeries.map(point => {
+      cumulativePnl += point.pnl;
+      return {
+        date: point.date,
+        equity: cumulativePnl
+      };
+    });
+
+    // Calculate max drawdown
+    let peak = -Infinity;
+    let maxDrawdown = 0;
+    if (analyticsData.equityCurve.length > 0) {
+      for (const point of analyticsData.equityCurve) {
+        if (point.equity > peak) {
+          peak = point.equity;
+        }
+        if (peak > 0) {  // Only calculate drawdown if we have a positive peak
+          const drawdown = (point.equity - peak) / peak;  // Changed order to match standard definition
+          maxDrawdown = Math.min(maxDrawdown, drawdown);  // Changed to min since drawdown is now negative
+        }
+      }
+    }
+    analyticsData.maxDrawdownPercentage = Math.abs(maxDrawdown * 100);  // Take absolute value for display
+
+    return analyticsData;
+  } catch (error) {
+    console.error('Error calculating analytics data:', error);
+    throw error;
   }
-
-  // Streaks
-  closedTradeOutcomesForStreaks.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  let longestWinStreak = 0, currentWinStreak = 0, longestLossStreak = 0, currentLossStreak = 0;
-  for (const outcome of closedTradeOutcomesForStreaks) {
-    if (outcome.pnl > 0.000001) { currentWinStreak++; currentLossStreak = 0; longestWinStreak = Math.max(longestWinStreak, currentWinStreak); }
-    else if (outcome.pnl < -0.000001) { currentLossStreak++; currentWinStreak = 0; longestLossStreak = Math.max(longestLossStreak, currentLossStreak); }
-    else { currentWinStreak = 0; currentLossStreak = 0; }
-  }
-
-  const totalFullyClosedTrades = fullyClosedWins + fullyClosedLosses + fullyClosedBreakEvens;
-
-  const rMultipleDistributionData = rMultipleValues.reduce((acc, r) => {
-    let range;
-    if (r < -2) range = '< -2R'; else if (r < -1) range = '-2R to -1R';
-    else if (r < 0) range = '-1R to <0R'; else if (r === 0) range = '0R (BE)';
-    else if (r <= 1) range = '>0R to 1R'; else if (r <= 2) range = '>1R to 2R';
-    else range = '> 2R';
-    acc[range] = (acc[range] || 0) + 1;
-    return acc;
-  }, {});
-
-  const transformGroupedData = (dataObj) => Object.values(dataObj).map(d => ({
-    ...d, winRate: (d.wins + d.losses) > 0 ? (d.wins / (d.wins + d.losses)) * 100 : null
-  }));
-
-  return {
-    totalRealizedNetPnl, totalRealizedGrossPnl,
-    totalFeesPaidOnClosedPortions,
-    winRateOverall: totalFullyClosedTrades > 0 ? (fullyClosedWins / totalFullyClosedTrades) * 100 : null,
-    avgWinPnlOverall: fullyClosedWins > 0 ? sumNetPnlWinningClosedTrades / fullyClosedWins : null,
-    avgLossPnlOverall: fullyClosedLosses > 0 ? sumNetPnlLosingClosedTrades / fullyClosedLosses : null,
-    largestWinPnl: largestWin, largestLossPnl: largestLoss,
-    longestWinStreak, longestLossStreak,
-    numberOfWinningTrades: fullyClosedWins, numberOfLosingTrades: fullyClosedLosses,
-    numberOfBreakEvenTrades: fullyClosedBreakEvens, totalFullyClosedTrades,
-    cumulativePnlSeries, pnlPerTradeSeries,
-    winLossBreakEvenCounts: [ { name: 'Wins', value: fullyClosedWins }, { name: 'Losses', value: fullyClosedLosses }, { name: 'Break-Even', value: fullyClosedBreakEvens } ],
-    rMultipleDistribution: Object.entries(rMultipleDistributionData).map(([range, count]) => ({ range, count })).sort((a,b) => a.range.localeCompare(b.range)), // Basic sort
-    avgRMultiple: rMultipleValues.length > 0 ? rMultipleValues.reduce((a,b) => a+b, 0) / rMultipleValues.length : null,
-    pnlByAssetClass: transformGroupedData(pnlByAssetClass),
-    pnlByExchange: transformGroupedData(pnlByExchange),
-    pnlByStrategy: transformGroupedData(pnlByStrategy)
-  };
 }
 
 // --- Stage 5: Core Transaction and Trade Management ---
@@ -579,22 +829,22 @@ function addTransactionAndManageTrade(transactionData) {
 function updateTradeMetadata(payload) {
   const currentDb = getDb();
   try {
-    const { trade_id, strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk } = payload;
-    const stmt = currentDb.prepare(`UPDATE trades SET strategy_id = @strategy_id, market_conditions = @market_conditions, setup_description = @setup_description, reasoning = @reasoning, lessons_learned = @lessons_learned, r_multiple_initial_risk = @r_multiple_initial_risk, updated_at = CURRENT_TIMESTAMP WHERE trade_id = @trade_id`);
-    const result = stmt.run({
-      trade_id,
-      strategy_id: strategy_id || null,
-      market_conditions,
-      setup_description,
-      reasoning,
-      lessons_learned,
-      r_multiple_initial_risk: (r_multiple_initial_risk !== undefined && r_multiple_initial_risk !== null && !isNaN(parseFloat(r_multiple_initial_risk))) ? parseFloat(r_multiple_initial_risk) : null
-    });
+  const { trade_id, strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk } = payload;
+  const stmt = currentDb.prepare(`UPDATE trades SET strategy_id = @strategy_id, market_conditions = @market_conditions, setup_description = @setup_description, reasoning = @reasoning, lessons_learned = @lessons_learned, r_multiple_initial_risk = @r_multiple_initial_risk, updated_at = CURRENT_TIMESTAMP WHERE trade_id = @trade_id`);
+  const result = stmt.run({
+    trade_id,
+    strategy_id: strategy_id || null,
+    market_conditions,
+    setup_description,
+    reasoning,
+    lessons_learned,
+    r_multiple_initial_risk: (r_multiple_initial_risk !== undefined && r_multiple_initial_risk !== null && !isNaN(parseFloat(r_multiple_initial_risk))) ? parseFloat(r_multiple_initial_risk) : null
+  });
     
-    if (result.changes === 0) {
-      console.warn(`updateTradeMetadata: No trade metadata updated for ID ${trade_id}. Payload: ${JSON.stringify(payload)}`);
-      return { success: true, message: 'No changes made (fields may be unchanged or all optional).' };
-    }
+  if (result.changes === 0) {
+    console.warn(`updateTradeMetadata: No trade metadata updated for ID ${trade_id}. Payload: ${JSON.stringify(payload)}`);
+    return { success: true, message: 'No changes made (fields may be unchanged or all optional).' };
+  }
     return { success: true, message: 'Trade metadata updated successfully.' };
   } catch (error) {
     console.error('Error updating trade metadata:', error);
@@ -605,14 +855,74 @@ function updateTradeMetadata(payload) {
 function updateSingleTransaction(data) {
   const currentDb = getDb();
   try {
-    const { transaction_id, quantity, price, datetime, fees, notes } = data;
+    const { 
+      transaction_id, 
+      quantity, 
+      price, 
+      datetime, 
+      fees, 
+      notes,
+      strategy_id,
+      market_conditions,
+      setup_description,
+      reasoning,
+      lessons_learned,
+      r_multiple_initial_risk,
+      emotion_ids
+    } = data;
+
     const txDetails = currentDb.prepare('SELECT trade_id FROM transactions WHERE transaction_id = ?').get(transaction_id);
     if (!txDetails) {
       return { success: false, message: `Update failed: Transaction ID ${transaction_id} not found.` };
     }
 
-    const stmt = currentDb.prepare(`UPDATE transactions SET quantity = ?, price = ?, datetime = ?, fees = ?, notes = ? WHERE transaction_id = ?`);
-    stmt.run(quantity, price, datetime, fees, notes, transaction_id);
+    // Update transaction details
+    const stmt = currentDb.prepare(`
+      UPDATE transactions 
+      SET quantity = ?, 
+          price = ?, 
+          datetime = ?, 
+          fees = ?, 
+          notes = ?,
+          strategy_id = ?,
+          market_conditions = ?,
+          setup_description = ?,
+          reasoning = ?,
+          lessons_learned = ?,
+          r_multiple_initial_risk = ?
+      WHERE transaction_id = ?
+    `);
+    
+    stmt.run(
+      quantity, 
+      price, 
+      datetime, 
+      fees, 
+      notes,
+      strategy_id || null,
+      market_conditions || null,
+      setup_description || null,
+      reasoning || null,
+      lessons_learned || null,
+      r_multiple_initial_risk || null,
+      transaction_id
+    );
+
+    // Update emotions
+    if (emotion_ids) {
+      // Delete existing emotions
+      currentDb.prepare('DELETE FROM transaction_emotions WHERE transaction_id = ?').run(transaction_id);
+      
+      // Insert new emotions
+      const insertEmotionStmt = currentDb.prepare(
+        'INSERT INTO transaction_emotions (transaction_id, emotion_id) VALUES (?, ?)'
+      );
+      
+      for (const emotionId of emotion_ids) {
+        insertEmotionStmt.run(transaction_id, emotionId);
+      }
+    }
+
     _recalculateTradeState(txDetails.trade_id);
     
     return { success: true, message: 'Transaction updated successfully.' };
@@ -624,13 +934,21 @@ function updateSingleTransaction(data) {
 
 function deleteSingleTransaction(transaction_id) {
 const currentDb = getDb();
+  try {
 const transactFn = currentDb.transaction(() => {
 const tx = currentDb.prepare('SELECT trade_id FROM transactions WHERE transaction_id = ?').get(transaction_id);
-if (!tx) throw new Error(`Delete failed: Transaction ID ${transaction_id} not found.`);
+      if (!tx) {
+        throw new Error(`Delete failed: Transaction ID ${transaction_id} not found.`);
+      }
 currentDb.prepare('DELETE FROM transactions WHERE transaction_id = ?').run(transaction_id);
 _recalculateTradeState(tx.trade_id); // This might delete the parent trade if it's the last transaction
 });
 transactFn();
+    return { success: true, message: 'Transaction deleted successfully.' };
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    return { success: false, message: error.message || 'Failed to delete transaction.' };
+  }
 }
 
 function deleteFullTradeAndTransactions(tradeId) {
@@ -680,10 +998,24 @@ function fetchTradeWithTransactions(tradeId) {
   const currentDb = getDb();
   const trade = currentDb.prepare('SELECT * FROM trades WHERE trade_id = ?').get(tradeId);
   if (!trade) return null;
+
   const transactions = currentDb.prepare(
     'SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC'
   ).all(tradeId);
-  return { ...trade, transactions };
+
+  // Get emotions for each transaction
+  const transactionsWithEmotions = transactions.map(transaction => {
+    const emotionIds = currentDb.prepare(
+      'SELECT emotion_id FROM transaction_emotions WHERE transaction_id = ?'
+    ).all(transaction.transaction_id).map(row => row.emotion_id);
+    
+    return {
+      ...transaction,
+      emotion_ids: emotionIds
+    };
+  });
+
+  return { ...trade, transactions: transactionsWithEmotions };
 }
 
 // --- Stage 6: Emotion Management Functions ---
@@ -698,19 +1030,19 @@ return currentDb.prepare('SELECT emotion_id FROM trade_emotions WHERE trade_id =
 }
 
 function saveTradeEmotions(tradeId, emotionIds = []) {
-  const currentDb = getDb();
+const currentDb = getDb();
   try {
-    const transactFn = currentDb.transaction(() => {
-      currentDb.prepare('DELETE FROM trade_emotions WHERE trade_id = ?').run(tradeId);
-      if (emotionIds && emotionIds.length > 0) {
-        const stmt = currentDb.prepare('INSERT INTO trade_emotions (trade_id, emotion_id) VALUES (?, ?)');
-        for (const emotionId of emotionIds) {
-          stmt.run(tradeId, emotionId);
-        }
-      }
-      currentDb.prepare('UPDATE trades SET updated_at = CURRENT_TIMESTAMP WHERE trade_id = ?').run(tradeId);
-    });
-    transactFn();
+const transactFn = currentDb.transaction(() => {
+currentDb.prepare('DELETE FROM trade_emotions WHERE trade_id = ?').run(tradeId);
+if (emotionIds && emotionIds.length > 0) {
+const stmt = currentDb.prepare('INSERT INTO trade_emotions (trade_id, emotion_id) VALUES (?, ?)');
+for (const emotionId of emotionIds) {
+stmt.run(tradeId, emotionId);
+}
+}
+currentDb.prepare('UPDATE trades SET updated_at = CURRENT_TIMESTAMP WHERE trade_id = ?').run(tradeId);
+});
+transactFn();
     return { success: true, message: 'Trade emotions updated successfully.' };
   } catch (error) {
     console.error('Error saving trade emotions:', error);

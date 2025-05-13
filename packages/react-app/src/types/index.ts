@@ -13,14 +13,62 @@ export interface TransactionRecord {
   datetime: string;
   fees?: number;
   notes?: string | null;
+  strategy_id?: number | null;
+  market_conditions?: string | null;
+  setup_description?: string | null;
+  reasoning?: string | null;
+  lessons_learned?: string | null;
+  r_multiple_initial_risk?: number | null;
+  emotion_ids?: number[];
+  created_at?: string;
 }
 
-export interface LogTransactionPayload { [key: string]: any; }
-export interface UpdateTradeDetailsPayload { [key: string]: any; }
-export interface UpdateTransactionPayload { [key: string]: any; }
+export interface LogTransactionPayload {
+  instrument_ticker: string;
+  asset_class: 'Stock' | 'Cryptocurrency' | null;
+  exchange: string;
+  action: 'Buy' | 'Sell';
+  datetime: string;
+  quantity: number;
+  price: number;
+  fees_for_transaction: number;
+  notes_for_transaction: string | null;
+  strategy_id?: number;
+  market_conditions?: string;
+  setup_description?: string;
+  reasoning?: string;
+  lessons_learned?: string;
+  r_multiple_initial_risk?: number;
+  emotion_ids: number[];
+}
+
+export interface UpdateTransactionPayload {
+  transaction_id: number;
+  quantity: number;
+  price: number;
+  datetime: string;
+  fees: number;
+  notes: string | null;
+  strategy_id?: number;
+  market_conditions?: string;
+  setup_description?: string;
+  reasoning?: string;
+  lessons_learned?: string;
+  r_multiple_initial_risk?: number;
+  emotion_ids: number[];
+}
 
 // Placeholder for EditTradeDetailsFormData
-export interface EditTradeDetailsFormData { [key: string]: any; }
+export interface EditTradeDetailsFormData {
+  trade_id: number;
+  strategy_id?: number | null;
+  market_conditions?: string;
+  setup_description?: string;
+  reasoning?: string;
+  lessons_learned?: string;
+  r_multiple_initial_risk?: number;
+  emotion_ids?: number[];
+}
 
 export interface EditTransactionFormData {
   transaction_id: number;
@@ -31,6 +79,13 @@ export interface EditTransactionFormData {
   datetime: string;
   fees: string;
   notes: string;
+  strategy_id?: string;
+  market_conditions?: string;
+  setup_description?: string;
+  reasoning?: string;
+  lessons_learned?: string;
+  r_multiple_initial_risk?: string;
+  emotion_ids?: number[];
 }
 
 export interface Trade {
@@ -49,33 +104,126 @@ export interface Trade {
   lessons_learned?: string | null;
   r_multiple_initial_risk?: number | null;
   fees_total?: number;
+
+  current_market_price?: number | null;
+  unrealized_pnl?: number | null;
+  average_open_price?: number | null;
+  current_open_quantity?: number | null;
+  realized_pnl_for_trade?: number | null;
+
   calculated_pnl_gross?: number;
   calculated_pnl_net?: number;
   outcome?: 'Win' | 'Loss' | 'Break Even' | null;
+  r_multiple_actual?: number | null;
+  duration_ms?: number | null;
+
   created_at?: string;
   updated_at?: string;
   transactions?: TransactionRecord[];
-  r_multiple_actual?: number | null;
-  duration_ms?: number | null;
   emotion_ids?: number[];
-  // --- Stage 6: Mark-to-Market & Unrealized P&L ---
-  current_market_price?: number | null; // User-inputted mark price for open trades
-  unrealized_pnl?: number | null;     // Calculated based on current_market_price
-  average_open_price?: number | null; // Weighted average price of the currently open quantity
-  current_open_quantity?: number | null; // Current open quantity
-  // --- End Stage 6 additions ---
 }
 
-export interface TradeListView extends Omit<Trade, 'transactions' | 'calculated_pnl_gross' | 'calculated_pnl_net' | 'outcome' | 'market_conditions' | 'setup_description' | 'reasoning' | 'lessons_learned' | 'r_multiple_initial_risk' | 'strategy_id' | 'r_multiple_actual' | 'duration_ms' | 'emotion_ids'> {
-  current_open_quantity?: number | null;
+export interface TradeListView extends Omit<Trade, 'transactions' | 'calculated_pnl_gross' | 'calculated_pnl_net' | 'outcome' | 'market_conditions' | 'setup_description' | 'reasoning' | 'lessons_learned' | 'r_multiple_initial_risk' | 'strategy_id' | 'r_multiple_actual' | 'duration_ms' | 'emotion_ids' | 'average_open_price' | 'realized_pnl_for_trade'> {
+  current_market_price?: number | null;
   unrealized_pnl?: number | null;
-  average_open_price?: number | null;
+  current_open_quantity?: number | null;
+}
+
+export interface LogTransactionFormData {
+  instrument_ticker: string;
+  asset_class: 'Stock' | 'Cryptocurrency' | null;
+  exchange: string;
+  action: 'Buy' | 'Sell';
+  datetime: string;
+  quantity: string;
+  price: string;
+  fees: string;
+  notes: string;
+  strategy_id?: string;
+  market_conditions?: string;
+  setup_description?: string;
+  reasoning?: string;
+  lessons_learned?: string;
+  r_multiple_initial_risk?: string;
+  emotion_ids: number[];
+}
+
+export interface UpdateTradeDetailsPayload {
+  trade_id: number;
+  strategy_id?: number;
+  market_conditions?: string;
+  setup_description?: string;
+  reasoning?: string;
+  lessons_learned?: string;
+  r_multiple_initial_risk?: number;
+  emotion_ids: number[];
+}
+
+export interface EmotionRecord {
+  emotion_id: number;
+  emotion_name: string;
+}
+
+export interface AnalyticsFilters {
+  dateRange?: {
+    startDate: string | null;
+    endDate: string | null;
+  };
+  assetClasses?: string[];
+  exchanges?: string[];
+  strategies?: number[];
+}
+
+export interface PnlEvent {
+  date: string;
+  netPnlRealized: number;
+}
+
+export interface TimePerformanceData {
+  period: string;
+  totalNetPnl: number;
+  tradeCount: number;
+  winRate: number | null;
+  wins?: number;
+  losses?: number;
+  breakEvens?: number;
+}
+
+export interface DurationPerformanceData {
+  durationHours: number;
+  netPnl: number;
+  rMultiple?: number | null;
+  trade_id: number;
+  instrument_ticker: string;
+}
+
+export interface GroupedPerformance {
+  name: string;
+  totalNetPnl: number;
+  winRate: number | null;
+  tradeCount: number;
+  wins: number;
+  losses: number;
+  breakEvens: number;
+}
+
+export interface PnlPerTradePoint {
+  date: number;
+  pnl: number;
+  isFullyClosed: boolean;
+}
+
+export interface EquityCurvePoint {
+  date: number;
+  equity: number;
 }
 
 export interface AnalyticsData {
   totalRealizedNetPnl: number;
   totalRealizedGrossPnl: number;
   totalFeesPaidOnClosedPortions: number;
+  totalUnrealizedPnl: number | null;
+
   winRateOverall: number | null;
   avgWinPnlOverall: number | null;
   avgLossPnlOverall: number | null;
@@ -87,38 +235,45 @@ export interface AnalyticsData {
   numberOfLosingTrades: number;
   numberOfBreakEvenTrades: number;
   totalFullyClosedTrades: number;
-  cumulativePnlSeries: { date: string; cumulativeNetPnl: number }[];
-  pnlPerTradeSeries: { name: string; netPnl: number; trade_id: number }[];
+  avgRMultiple: number | null;
+
+  equityCurve: { date: number; equity: number }[];
+  pnlPerTradeSeries: PnlPerTradePoint[];
   winLossBreakEvenCounts: { name: string; value: number }[];
   rMultipleDistribution: { range: string; count: number }[];
-  avgRMultiple: number | null;
-  pnlByAssetClass?: { name: string; totalNetPnl: number; winRate: number | null; tradeCount: number }[];
-  pnlByExchange?: { name: string; totalNetPnl: number; winRate: number | null; tradeCount: number }[];
-  pnlByStrategy?: { name: string; totalNetPnl: number; winRate: number | null; tradeCount: number }[];
-  maxDrawdownPercentage?: number | null;
-  totalUnrealizedPnl?: number | null;
-}
 
-export interface EmotionRecord {
-  emotion_id: number;
-  emotion_name: string;
+  pnlByMonth: TimePerformanceData[];
+  pnlByDayOfWeek: TimePerformanceData[];
+  pnlVsDurationSeries: DurationPerformanceData[];
+
+  pnlByAssetClass: GroupedPerformance[];
+  pnlByExchange: GroupedPerformance[];
+  pnlByStrategy: GroupedPerformance[];
+  pnlByEmotion: GroupedPerformance[];
+
+  maxDrawdownPercentage: number | null;
+
+  availableStrategies?: { strategy_id: number; strategy_name: string }[];
+  availableExchanges?: string[];
+  availableAssetClasses?: string[];
+  availableEmotions?: EmotionRecord[];
+  availableTickers?: string[];
 }
 
 export interface ElectronAPIDefinition {
   getAppVersion: () => Promise<string>;
   testDbConnection: () => Promise<{ status: 'ok' | 'error'; message: string } | string>;
-  logTransaction: (data: LogTransactionPayload) => Promise<{ success: boolean; message: string; tradeId?: number; transactionId?: number }>;
+  logTransaction: (data: LogTransactionPayload) => Promise<{ success: boolean; message: string; tradeId?: number; transactionId?: number; unrealized_pnl?: number; current_open_quantity?: number; average_open_price?: number }>;
   getTrades: () => Promise<TradeListView[]>;
   getTradeWithTransactions: (tradeId: number) => Promise<Trade | null>;
   updateTradeDetails: (data: UpdateTradeDetailsPayload) => Promise<{ success: boolean; message: string }>;
   updateSingleTransaction: (data: UpdateTransactionPayload) => Promise<{ success: boolean; message: string }>;
   deleteSingleTransaction: (transactionId: number) => Promise<{ success: boolean; message: string }>;
   deleteFullTrade: (tradeId: number) => Promise<{ success: boolean; message: string }>;
-  getAnalyticsData: (filters?: any) => Promise<AnalyticsData | { error: string }>;
+  getAnalyticsData: (filters?: AnalyticsFilters) => Promise<AnalyticsData | { error: string }>;
   getEmotions: () => Promise<EmotionRecord[]>;
   getTradeEmotions: (tradeId: number) => Promise<number[]>;
   saveTradeEmotions: (payload: { tradeId: number; emotionIds: number[] }) => Promise<{ success: boolean; message: string }>;
-  // --- Stage 6: New IPC for mark-to-market ---
   updateMarkPrice: (payload: { tradeId: number; marketPrice: number }) => Promise<{
     success: boolean;
     message: string;
@@ -127,5 +282,4 @@ export interface ElectronAPIDefinition {
     average_open_price?: number;
     trade_id?: number;
   }>;
-  // --- End Stage 6 ---
 }

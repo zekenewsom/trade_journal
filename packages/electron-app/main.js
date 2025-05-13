@@ -9,21 +9,37 @@ const userDataPath = app.getPath('userData');
 const dbPath = path.join(userDataPath, 'trade_journal.sqlite3');
 // ... (createWindow, app lifecycle events - same as your Stage 5)
 function createWindow() {
-  const win = new BrowserWindow({
+  const mainWindow = new BrowserWindow({
     width: 1200,
-    height: 900,
+    height: 800,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false,
+      nodeIntegration: true,
       contextIsolation: true,
-    },
+      preload: path.join(__dirname, 'preload.js')
+    }
+  });
+
+  // Set secure Content Security Policy
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data:",
+          "connect-src 'self'"
+        ].join('; ')
+      }
+    });
   });
 
   if (process.env.NODE_ENV === 'development') {
-    win.loadURL('http://localhost:5173');
-    win.webContents.openDevTools();
+    mainWindow.loadURL('http://localhost:5173');
+    mainWindow.webContents.openDevTools();
   } else {
-    win.loadFile(path.join(__dirname, '../react-app/dist/index.html'));
+    mainWindow.loadFile(path.join(__dirname, '../react-app/dist/index.html'));
   }
 }
 app.whenReady().then(() => { dbModule.initializeDatabase(dbPath); createWindow(); /* ... */ });
@@ -42,8 +58,24 @@ ipcMain.handle('log-transaction', async (event, transactionData) => {
     return { success: false, message: err.message || 'Unknown error logging transaction.' };
   }
 });
-ipcMain.handle('get-trades', async () => dbModule.fetchTradesForListView());
-ipcMain.handle('get-trade-with-transactions', async (event, tradeId) => dbModule.fetchTradeWithTransactions(tradeId));
+ipcMain.handle('get-trades', async () => {
+  try {
+    const trades = await dbModule.fetchTradesForListView();
+    return trades;
+  } catch (error) {
+    console.error('Error in get-trades handler:', error);
+    return { error: error.message || 'Failed to fetch trades' };
+  }
+});
+ipcMain.handle('get-trade-with-transactions', async (event, tradeId) => {
+  try {
+    const trade = await dbModule.fetchTradeWithTransactions(tradeId);
+    return trade;
+  } catch (error) {
+    console.error('Error in get-trade-with-transactions handler:', error);
+    return { error: error.message || 'Failed to fetch trade details' };
+  }
+});
 ipcMain.handle('update-trade-details', async (event, data) => {
   try {
     const result = dbModule.updateTradeMetadata(data);
@@ -62,15 +94,23 @@ ipcMain.handle('update-single-transaction', async (event, data) => {
     return { success: false, message: error.message || 'Failed to update transaction.' };
   }
 });
-ipcMain.handle('delete-single-transaction', async (event, transactionId) => { /* ... from Stage 5 ... */ });
+ipcMain.handle('delete-single-transaction', async (event, transactionId) => {
+  try {
+    const result = dbModule.deleteSingleTransaction(transactionId);
+    return result;
+  } catch (error) {
+    console.error('Error deleting transaction:', error);
+    return { success: false, message: error.message || 'Failed to delete transaction.' };
+  }
+});
 ipcMain.handle('delete-full-trade', async (event, tradeId) => { /* ... from Stage 5 ... */ });
 ipcMain.handle('get-analytics-data', async (event, filters) => {
   try {
-    const result = dbModule.calculateAnalyticsData(filters || {});
-    return result || { error: 'No analytics data returned from backend.' };
-  } catch (err) {
-    console.error('Error in get-analytics-data IPC:', err);
-    return { error: err.message || 'Unknown error fetching analytics.' };
+    const result = await dbModule.calculateAnalyticsData(filters);
+    return result;
+  } catch (error) {
+    console.error('Error in get-analytics-data handler:', error);
+    return { error: error.message || 'Failed to calculate analytics data' };
   }
 });
 ipcMain.handle('get-emotions', async () => dbModule.getEmotions());
