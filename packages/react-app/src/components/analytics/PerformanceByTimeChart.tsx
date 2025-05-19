@@ -14,40 +14,49 @@ interface Props {
 
 const PerformanceByTimeChart: React.FC<Props> = ({ title, data, dataKeyX, dataKeyY }) => {
   if (!data || data.length === 0) {
-    return <p>No data available for {title}.</p>;
+    return (
+      <div className="text-gray-400 text-sm">
+        No data available for {title}.
+      </div>
+    );
   }
+
   const yAxisLabel = dataKeyY === 'totalNetPnl' ? "Net P&L ($)" : "Count / Rate";
 
   return (
     <div>
-      <h3 style={{ color: '#61dafb', marginBottom: '15px' }}>{title}</h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#555" />
-          <XAxis 
-            dataKey={dataKeyX} 
-            tick={{ fontSize: 10, fill: '#ccc' }}
-          />
-          <YAxis 
-            tickFormatter={(value) => `$${value.toFixed(0)}`}
-            tick={{ fontSize: 10, fill: '#ccc' }}
-          />
-          <Tooltip 
-            formatter={(value: number) => [`$${value.toFixed(2)}`, 'P&L']}
-            labelStyle={{ color: '#61dafb' }}
-            contentStyle={{ 
-              backgroundColor: '#2a2f36',
-              border: '1px solid #444',
-              borderRadius: '4px'
-            }}
-          />
-          <Bar 
-            dataKey={dataKeyY} 
-            fill="#8884d8"
-            name="P&L"
-          />
-        </BarChart>
-      </ResponsiveContainer>
+      <h3 className="text-xl font-semibold mb-4 text-white">{title}</h3>
+      <div className="h-[400px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#2A2B2D" />
+            <XAxis 
+              dataKey={dataKeyX} 
+              tick={{ fontSize: 12, fill: '#9CA3AF' }}
+            />
+            <YAxis 
+              tickFormatter={(value) => `$${value.toFixed(0)}`}
+              tick={{ fontSize: 12, fill: '#9CA3AF' }}
+            />
+            <Tooltip 
+              formatter={(value: number) => [`$${value.toFixed(2)}`, 'P&L']}
+              contentStyle={{ 
+                backgroundColor: '#1A1B1D',
+                border: '1px solid #2A2B2D',
+                borderRadius: '0.375rem'
+              }}
+            />
+            <Bar dataKey={dataKeyY} name="P&L">
+              {data.map((entry, index) => (
+                <Cell 
+                  key={`cell-${index}`}
+                  fill={entry.totalNetPnl >= 0 ? '#00E28A' : '#FF4D67'}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };

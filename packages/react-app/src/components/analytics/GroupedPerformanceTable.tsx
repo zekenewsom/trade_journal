@@ -12,34 +12,36 @@ interface Props {
 const GroupedPerformanceTable: React.FC<Props> = ({ title, data }) => {
   return (
     <div>
-      <h3 style={{ color: '#61dafb', marginBottom: '15px' }}>{title}</h3>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', color: '#eee' }}>
+      <h3 className="text-xl font-semibold mb-4 text-white">{title}</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
           <thead>
-            <tr>
-              <th style={tableHeaderStyle}>Name</th>
-              <th style={tableHeaderStyle}>Total P&L</th>
-              <th style={tableHeaderStyle}>Win Rate</th>
-              <th style={tableHeaderStyle}>Trades</th>
-              <th style={tableHeaderStyle}>Wins</th>
-              <th style={tableHeaderStyle}>Losses</th>
-              <th style={tableHeaderStyle}>Break Even</th>
+            <tr className="bg-gray-900">
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Name</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Total P&L</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Win Rate</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Trades</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Wins</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Losses</th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Break Even</th>
             </tr>
           </thead>
           <tbody>
             {data.map((item, index) => (
-              <tr key={index}>
-                <td style={tableCellStyle}>{item.name}</td>
-                <td style={{...tableCellStyle, color: item.totalNetPnl >= 0 ? '#4CAF50' : '#f44336'}}>
+              <tr key={index} className="hover:bg-gray-900/50 transition-colors">
+                <td className="px-4 py-3 text-sm text-gray-300 border-b border-gray-800">{item.name}</td>
+                <td className={`px-4 py-3 text-sm font-medium border-b border-gray-800 ${
+                  item.totalNetPnl >= 0 ? 'text-positive' : 'text-negative'
+                }`}>
                   ${item.totalNetPnl.toFixed(2)}
                 </td>
-                <td style={tableCellStyle}>
+                <td className="px-4 py-3 text-sm text-gray-300 border-b border-gray-800">
                   {item.winRate !== null ? `${item.winRate.toFixed(1)}%` : 'N/A'}
                 </td>
-                <td style={tableCellStyle}>{item.tradeCount}</td>
-                <td style={tableCellStyle}>{item.wins}</td>
-                <td style={tableCellStyle}>{item.losses}</td>
-                <td style={tableCellStyle}>{item.breakEvens}</td>
+                <td className="px-4 py-3 text-sm text-gray-300 border-b border-gray-800">{item.tradeCount}</td>
+                <td className="px-4 py-3 text-sm text-positive border-b border-gray-800">{item.wins}</td>
+                <td className="px-4 py-3 text-sm text-negative border-b border-gray-800">{item.losses}</td>
+                <td className="px-4 py-3 text-sm text-gray-300 border-b border-gray-800">{item.breakEvens}</td>
               </tr>
             ))}
           </tbody>
@@ -47,20 +49,6 @@ const GroupedPerformanceTable: React.FC<Props> = ({ title, data }) => {
       </div>
     </div>
   );
-};
-
-const tableHeaderStyle: React.CSSProperties = {
-  backgroundColor: '#2a2f36',
-  padding: '12px',
-  textAlign: 'left',
-  borderBottom: '2px solid #444',
-  color: '#61dafb'
-};
-
-const tableCellStyle: React.CSSProperties = {
-  padding: '12px',
-  borderBottom: '1px solid #444',
-  textAlign: 'left'
 };
 
 export default GroupedPerformanceTable;

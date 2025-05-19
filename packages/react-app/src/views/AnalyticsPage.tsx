@@ -82,17 +82,17 @@ const AnalyticsPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
-        <CircularProgress />
-      </Box>
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <CircularProgress className="text-primary-action" />
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box p={3}>
+      <div className="p-4">
         <Alert severity="error">{error}</Alert>
-      </Box>
+      </div>
     );
   }
 
@@ -100,58 +100,46 @@ const AnalyticsPage: React.FC = () => {
     return null;
   }
 
-  // Basic styling for layout
-  const chartContainerStyle: React.CSSProperties = { marginBottom: '40px', padding: '20px', backgroundColor: '#333940', borderRadius: '8px'};
-  const chartTitleStyle: React.CSSProperties = { color: '#61dafb', marginBottom: '15px'};
-
   return (
-    <Box p={3}>
-      <Typography variant="h4" gutterBottom>
-        Trading Analytics
-      </Typography>
+    <div className="min-h-screen bg-pure-dark text-white p-6">
+      {/* Header Section */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Trading Analytics</h1>
+        <p className="text-gray-400">Comprehensive analysis of your trading performance</p>
+      </div>
 
-      {/* Summary Metrics */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(4, 1fr)' }, gap: 2 }}>
-          <Box sx={{ textAlign: 'center', p: 2 }}>
-            <Typography variant="h6" color="primary">Total Net P&L</Typography>
-            <Typography variant="h4" color={analytics.totalRealizedNetPnl >= 0 ? 'success.main' : 'error.main'}>
-              ${analytics.totalRealizedNetPnl.toFixed(2)}
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: 'center', p: 2 }}>
-            <Typography variant="h6" color="primary">Win Rate</Typography>
-            <Typography variant="h4">
-              {analytics.winRateOverall ? `${(analytics.winRateOverall * 100).toFixed(1)}%` : 'N/A'}
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: 'center', p: 2 }}>
-            <Typography variant="h6" color="primary">Max Drawdown</Typography>
-            <Typography variant="h4" color="error.main">
-              {analytics.maxDrawdownPercentage ? `${analytics.maxDrawdownPercentage.toFixed(1)}%` : 'N/A'}
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: 'center', p: 2 }}>
-            <Typography variant="h6" color="primary">Total Trades</Typography>
-            <Typography variant="h4">
-              {analytics.numberOfWinningTrades + analytics.numberOfLosingTrades + analytics.numberOfBreakEvenTrades}
-            </Typography>
-          </Box>
-        </Box>
-      </Paper>
-
-      {/* Trade Statistics */}
-      <TradeStatsCard analytics={analytics} />
-
-      {/* Equity Curve & Drawdown */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <EquityCurveChart equityCurve={analytics.equityCurve} />
-      </Paper>
+      {/* Key Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="bg-card-stroke rounded-lg p-6 border border-gray-800">
+          <h3 className="text-gray-400 text-sm font-medium mb-2">Total Net P&L</h3>
+          <p className={`text-2xl font-bold ${analytics.totalRealizedNetPnl >= 0 ? 'text-positive' : 'text-negative'}`}>
+            ${analytics.totalRealizedNetPnl.toFixed(2)}
+          </p>
+        </div>
+        <div className="bg-card-stroke rounded-lg p-6 border border-gray-800">
+          <h3 className="text-gray-400 text-sm font-medium mb-2">Win Rate</h3>
+          <p className="text-2xl font-bold text-white">
+            {analytics.winRateOverall ? `${(analytics.winRateOverall * 100).toFixed(1)}%` : 'N/A'}
+          </p>
+        </div>
+        <div className="bg-card-stroke rounded-lg p-6 border border-gray-800">
+          <h3 className="text-gray-400 text-sm font-medium mb-2">Max Drawdown</h3>
+          <p className="text-2xl font-bold text-negative">
+            {analytics.maxDrawdownPercentage ? `${analytics.maxDrawdownPercentage.toFixed(1)}%` : 'N/A'}
+          </p>
+        </div>
+        <div className="bg-card-stroke rounded-lg p-6 border border-gray-800">
+          <h3 className="text-gray-400 text-sm font-medium mb-2">Total Trades</h3>
+          <p className="text-2xl font-bold text-white">
+            {analytics.numberOfWinningTrades + analytics.numberOfLosingTrades + analytics.numberOfBreakEvenTrades}
+          </p>
+        </div>
+      </div>
 
       {/* Date Range Filter */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2 }}>
-          <Box>
+      <div className="bg-card-stroke rounded-lg p-6 border border-gray-800 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <DatePicker
                 label="Start Date"
@@ -159,13 +147,14 @@ const AnalyticsPage: React.FC = () => {
                 onChange={handleDateChange('startDate')}
                 slotProps={{
                   textField: {
-                    fullWidth: true
+                    fullWidth: true,
+                    className: "bg-gray-900"
                   }
                 }}
               />
             </LocalizationProvider>
-          </Box>
-          <Box>
+          </div>
+          <div>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <DatePicker
                 label="End Date"
@@ -173,177 +162,206 @@ const AnalyticsPage: React.FC = () => {
                 onChange={handleDateChange('endDate')}
                 slotProps={{
                   textField: {
-                    fullWidth: true
+                    fullWidth: true,
+                    className: "bg-gray-900"
                   }
                 }}
               />
             </LocalizationProvider>
-          </Box>
-          <Box>
-            <Button variant="outlined" onClick={clearFilters} fullWidth>
+          </div>
+          <div>
+            <Button 
+              variant="outlined" 
+              onClick={clearFilters} 
+              fullWidth
+              className="border-primary-action text-primary-action hover:bg-primary-action hover:text-white"
+            >
               Clear Filters
             </Button>
-          </Box>
-        </Box>
-      </Paper>
-
-      {/* Cumulative P&L Chart */}
-      {analytics.equityCurve && analytics.equityCurve.length > 0 && (
-        <div style={chartContainerStyle}>
-          <h3 style={chartTitleStyle}>Cumulative Realized Net P&L</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={analytics.equityCurve}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#555" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#ccc' }}/>
-              <YAxis tickFormatter={(value) => `$${value.toFixed(0)}`} tick={{ fontSize: 10, fill: '#ccc' }}/>
-              <Tooltip formatter={(value:number) => `$${value.toFixed(2)}`} />
-              <Legend />
-              <Line type="monotone" dataKey="equity" name="Cumulative Net P&L" stroke="#82ca9d" strokeWidth={2} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* P&L Per Trade Bar Chart */}
-      {analytics.pnlPerTradeSeries && analytics.pnlPerTradeSeries.length > 0 && (
-         <div style={chartContainerStyle}>
-          <h3 style={chartTitleStyle}>Net P&L per Trade</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={analytics.pnlPerTradeSeries}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#555"/>
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#ccc' }}/>
-              <YAxis tickFormatter={(value) => `$${value.toFixed(0)}`} tick={{ fontSize: 10, fill: '#ccc' }}/>
-              <Tooltip formatter={(value:number) => `$${value.toFixed(2)}`}/>
-              <Legend />
-              <Bar dataKey="pnl" name="Net P&L">
-                {analytics.pnlPerTradeSeries.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.pnl >= 0 ? '#4CAF50' : '#f44336'} 
-                    opacity={entry.isFullyClosed ? 1 : 0.5}
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Equity Curve Chart */}
+        <div className="bg-card-stroke rounded-lg p-6 border border-gray-800">
+          <h3 className="text-xl font-semibold mb-4 text-white">Equity Curve</h3>
+          <div className="h-[400px]">
+            <EquityCurveChart equityCurve={analytics.equityCurve} />
+          </div>
+        </div>
+
+        {/* P&L Per Trade Chart */}
+        <div className="bg-card-stroke rounded-lg p-6 border border-gray-800">
+          <h3 className="text-xl font-semibold mb-4 text-white">P&L Distribution</h3>
+          <div className="h-[400px]">
+            {analytics.pnlPerTradeSeries && analytics.pnlPerTradeSeries.length > 0 && (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={analytics.pnlPerTradeSeries}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#2A2B2D" />
+                  <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#9CA3AF' }} />
+                  <YAxis tickFormatter={(value) => `$${value.toFixed(0)}`} tick={{ fontSize: 12, fill: '#9CA3AF' }} />
+                  <Tooltip 
+                    formatter={(value:number) => [`$${value.toFixed(2)}`, 'P&L']}
+                    contentStyle={{ backgroundColor: '#1A1B1D', border: '1px solid #2A2B2D' }}
                   />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+                  <Bar dataKey="pnl" name="P&L">
+                    {analytics.pnlPerTradeSeries.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.pnl >= 0 ? '#00E28A' : '#FF4D67'} 
+                        opacity={entry.isFullyClosed ? 1 : 0.5}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </div>
-      )}
+      </div>
 
-      {/* Win/Loss Pie Chart */}
-      {analytics.winLossBreakEvenCounts && analytics.winLossBreakEvenCounts.some(item => item.value > 0) && (
-        <div style={chartContainerStyle}>
-            <h3 style={chartTitleStyle}>Trade Outcomes</h3>
-            <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                    <Pie
-                        data={analytics.winLossBreakEvenCounts}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                    >
-                        {analytics.winLossBreakEvenCounts.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS_PIE[index % COLORS_PIE.length]} />
-                        ))}
-                    </Pie>
-                    <Tooltip formatter={(value: number, name: string) => [`${value} trades`, name]} />
-                    <Legend />
-                </PieChart>
+      {/* Trade Statistics */}
+      <div className="bg-card-stroke rounded-lg p-6 border border-gray-800 mb-8">
+        <TradeStatsCard analytics={analytics} />
+      </div>
+
+      {/* Win/Loss Distribution */}
+      <div className="bg-card-stroke rounded-lg p-6 border border-gray-800 mb-8">
+        <h3 className="text-xl font-semibold mb-4 text-white">Trade Outcomes</h3>
+        <div className="h-[400px]">
+          {analytics.winLossBreakEvenCounts && analytics.winLossBreakEvenCounts.some(item => item.value > 0) && (
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={analytics.winLossBreakEvenCounts}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={150}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {analytics.winLossBreakEvenCounts.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.name === 'Wins' ? '#00E28A' : entry.name === 'Losses' ? '#FF4D67' : '#FFBB28'} 
+                    />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value:number) => [value, 'Trades']}
+                  contentStyle={{ backgroundColor: '#1A1B1D', border: '1px solid #2A2B2D' }}
+                />
+              </PieChart>
             </ResponsiveContainer>
+          )}
         </div>
-      )}
-      
-      {/* R-Multiple Histogram */}
+      </div>
+
+      {/* R-Multiple Distribution */}
       {analytics.rMultipleDistribution && analytics.rMultipleDistribution.length > 0 && (
-        <div style={chartContainerStyle}>
-          <h3 style={chartTitleStyle}>R-Multiple Distribution</h3>
-          <p>Average R-Multiple: {analytics.avgRMultiple !== null ? analytics.avgRMultiple.toFixed(2) : 'N/A'}</p>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={analytics.rMultipleDistribution}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#555"/>
-              <XAxis dataKey="range" tick={{ fontSize: 10, fill: '#ccc' }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#ccc' }}/>
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="count" name="Number of Trades" fill="#8884d8" />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="bg-card-stroke rounded-lg p-6 border border-gray-800 mb-8">
+          <h3 className="text-xl font-semibold mb-4 text-white">R-Multiple Distribution</h3>
+          <p className="text-gray-400 mb-4">Average R-Multiple: {analytics.avgRMultiple !== null ? analytics.avgRMultiple.toFixed(2) : 'N/A'}</p>
+          <div className="h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={analytics.rMultipleDistribution}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#2A2B2D" />
+                <XAxis dataKey="range" tick={{ fontSize: 12, fill: '#9CA3AF' }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#9CA3AF' }} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#1A1B1D', border: '1px solid #2A2B2D' }}
+                />
+                <Bar dataKey="count" name="Number of Trades" fill="#3A7BFF" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
 
       {/* P&L vs Duration Scatter Plot */}
       {analytics.pnlVsDurationSeries && analytics.pnlVsDurationSeries.length > 0 && (
-        <div style={chartContainerStyle}>
-          <h3 style={chartTitleStyle}>P&L vs Trade Duration</h3>
-          <PnlVsDurationScatterPlot data={analytics.pnlVsDurationSeries} />
+        <div className="bg-card-stroke rounded-lg p-6 border border-gray-800 mb-8">
+          <h3 className="text-xl font-semibold mb-4 text-white">P&L vs Trade Duration</h3>
+          <div className="h-[400px]">
+            <PnlVsDurationScatterPlot data={analytics.pnlVsDurationSeries} />
+          </div>
         </div>
       )}
 
-      {/* Grouped Performance Tables */}
-      {analytics.pnlByAssetClass && analytics.pnlByAssetClass.length > 0 && (
-        <div style={chartContainerStyle}>
-          <GroupedPerformanceTable 
-            title="Performance by Asset Class" 
-            data={analytics.pnlByAssetClass} 
-          />
-        </div>
-      )}
+      {/* Performance Tables Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Performance by Asset Class */}
+        {analytics.pnlByAssetClass && analytics.pnlByAssetClass.length > 0 && (
+          <div className="bg-card-stroke rounded-lg p-6 border border-gray-800">
+            <GroupedPerformanceTable 
+              title="Performance by Asset Class" 
+              data={analytics.pnlByAssetClass} 
+            />
+          </div>
+        )}
 
-      {analytics.pnlByExchange && analytics.pnlByExchange.length > 0 && (
-        <div style={chartContainerStyle}>
-          <GroupedPerformanceTable 
-            title="Performance by Exchange" 
-            data={analytics.pnlByExchange} 
-          />
-        </div>
-      )}
+        {/* Performance by Exchange */}
+        {analytics.pnlByExchange && analytics.pnlByExchange.length > 0 && (
+          <div className="bg-card-stroke rounded-lg p-6 border border-gray-800">
+            <GroupedPerformanceTable 
+              title="Performance by Exchange" 
+              data={analytics.pnlByExchange} 
+            />
+          </div>
+        )}
 
-      {analytics.pnlByStrategy && analytics.pnlByStrategy.length > 0 && (
-        <div style={chartContainerStyle}>
-          <GroupedPerformanceTable 
-            title="Performance by Strategy" 
-            data={analytics.pnlByStrategy} 
-          />
-        </div>
-      )}
+        {/* Performance by Strategy */}
+        {analytics.pnlByStrategy && analytics.pnlByStrategy.length > 0 && (
+          <div className="bg-card-stroke rounded-lg p-6 border border-gray-800">
+            <GroupedPerformanceTable 
+              title="Performance by Strategy" 
+              data={analytics.pnlByStrategy} 
+            />
+          </div>
+        )}
 
-      {analytics.pnlByEmotion && analytics.pnlByEmotion.length > 0 && (
-        <div style={chartContainerStyle}>
-          <GroupedPerformanceTable 
-            title="Performance by Emotional State" 
-            data={analytics.pnlByEmotion} 
-          />
-        </div>
-      )}
+        {/* Performance by Emotional State */}
+        {analytics.pnlByEmotion && analytics.pnlByEmotion.length > 0 && (
+          <div className="bg-card-stroke rounded-lg p-6 border border-gray-800">
+            <GroupedPerformanceTable 
+              title="Performance by Emotional State" 
+              data={analytics.pnlByEmotion} 
+            />
+          </div>
+        )}
+      </div>
 
-      {/* Monthly Performance Chart */}
-      {analytics.pnlByMonth && analytics.pnlByMonth.length > 0 && (
-        <div style={chartContainerStyle}>
-          <PerformanceByTimeChart
-            title="Monthly Performance"
-            data={analytics.pnlByMonth}
-            dataKeyX="period"
-            dataKeyY="totalNetPnl"
-          />
-        </div>
-      )}
+      {/* Time-based Performance Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Monthly Performance */}
+        {analytics.pnlByMonth && analytics.pnlByMonth.length > 0 && (
+          <div className="bg-card-stroke rounded-lg p-6 border border-gray-800">
+            <PerformanceByTimeChart
+              title="Monthly Performance"
+              data={analytics.pnlByMonth}
+              dataKeyX="period"
+              dataKeyY="totalNetPnl"
+            />
+          </div>
+        )}
 
-      {/* Daily Performance Chart */}
-      {analytics.pnlByDayOfWeek && analytics.pnlByDayOfWeek.length > 0 && (
-        <div style={chartContainerStyle}>
-          <PerformanceByTimeChart
-            title="Performance by Day of Week"
-            data={analytics.pnlByDayOfWeek}
-            dataKeyX="period"
-            dataKeyY="totalNetPnl"
-          />
-        </div>
-      )}
-
-    </Box>
+        {/* Daily Performance */}
+        {analytics.pnlByDayOfWeek && analytics.pnlByDayOfWeek.length > 0 && (
+          <div className="bg-card-stroke rounded-lg p-6 border border-gray-800">
+            <PerformanceByTimeChart
+              title="Performance by Day of Week"
+              data={analytics.pnlByDayOfWeek}
+              dataKeyX="period"
+              dataKeyY="totalNetPnl"
+            />
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

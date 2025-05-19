@@ -1,0 +1,63 @@
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
+
+interface DrawdownCurveChartProps {
+  data?: { date: string; value: number }[];
+}
+
+export function DrawdownCurveChart({ data }: DrawdownCurveChartProps = {}) {
+  // Mock data if not provided
+  const mockData = data || [
+    { date: 'Jan 1', value: 0 },
+    { date: 'Jan 15', value: -2 },
+    { date: 'Feb 1', value: -5 },
+    { date: 'Feb 15', value: -3 },
+    { date: 'Mar 1', value: -1 },
+    { date: 'Mar 15', value: -7 },
+    { date: 'Apr 1', value: -10 },
+    { date: 'Apr 15', value: -5 },
+    { date: 'May 1', value: -2 }
+  ];
+
+  return (
+    <div className="h-[300px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={mockData}>
+          <defs>
+            <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#FF4D67" stopOpacity={0.8}/>
+              <stop offset="95%" stopColor="#FF4D67" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" />
+          <XAxis 
+            dataKey="date" 
+            tick={{ fill: '#9ca3af', fontSize: 12 }}
+            axisLine={{ stroke: '#1A1B1D' }}
+            tickLine={false}
+          />
+          <YAxis 
+            tick={{ fill: '#9ca3af', fontSize: 12 }}
+            axisLine={{ stroke: '#1A1B1D' }}
+            tickLine={false}
+            tickFormatter={(value) => `${value}%`}
+            domain={['dataMin', 0]}
+          />
+          <Tooltip 
+            contentStyle={{ backgroundColor: '#0E0F11', borderColor: '#1A1B1D' }}
+            itemStyle={{ color: '#FF4D67' }}
+            formatter={(value: number) => [`${value}%`, 'Drawdown']}
+            labelFormatter={(label) => `Date: ${label}`}
+          />
+          <Area 
+            type="monotone" 
+            dataKey="value" 
+            stroke="#FF4D67" 
+            strokeWidth={2}
+            fillOpacity={1}
+            fill="url(#drawdownGradient)"
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+} 
