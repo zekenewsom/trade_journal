@@ -2,6 +2,7 @@
 // New File for Stage 6
 
 import React from 'react';
+
 import type { DurationPerformanceData } from '../../types';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -16,6 +17,7 @@ interface FormattedDataPoint extends DurationPerformanceData {
 }
 
 const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props: PnlVsDurationScatterPlotProps) => {
+
   // Validate input data
   const { data } = props;
   if (!data || !Array.isArray(data) || data.length === 0) {
@@ -52,17 +54,17 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
 
   return (
     <div>
-      <h4 className="mb-3 text-lg font-semibold text-gray-900 dark:text-white">Net P&L vs. Trade Duration (Fully Closed Trades)</h4>
+      <h4 className="mb-3 text-lg font-semibold text-on-surface">Net P&L vs. Trade Duration (Fully Closed Trades)</h4>
       <ResponsiveContainer width="100%" height={400}>
         <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-          <CartesianGrid stroke="#E5E7EB"/>
+          <CartesianGrid stroke="var(--color-card-stroke)" />
           <XAxis 
             type="number" 
             dataKey="durationHours" 
             name="Duration (Hours)" 
             unit="h" 
-            tick={{ fontSize: 10, fill: '#6B7280' }}
-            label={{ value: "Duration (Hours)", position: "insideBottom", offset: -15, fill: colors.textSecondary, fontSize: 10 }}
+            tick={{ fontSize: 10, fill: 'var(--color-on-surface-variant)' }}
+            label={{ value: "Duration (Hours)", position: "insideBottom", offset: -15, fill: 'var(--color-on-surface-variant)', fontSize: 10 }}
           />
           <YAxis 
             type="number" 
@@ -70,8 +72,8 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
             name="Net P&L" 
             unit="$" 
             tickFormatter={(value) => `$${value.toFixed(0)}`}
-            tick={{ fontSize: 10, fill: '#6B7280' }}
-            label={{ value: "Net P&L ($)", angle: -90, position: "insideLeft", fill: colors.textSecondary, fontSize: 10 }}
+            tick={{ fontSize: 10, fill: 'var(--color-on-surface-variant)' }}
+            label={{ value: "Net P&L ($)", angle: -90, position: "insideLeft", fill: 'var(--color-on-surface-variant)', fontSize: 10 }}
           />
           {/* ZAxis can be used for bubble size if we have another metric like volume */}
           {/* <ZAxis dataKey="rMultiple" range={[10, 500]} name="R-Multiple" unit="R"/> */}
@@ -95,7 +97,7 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
                 cx={entry.durationHours}
                 cy={entry.netPnl}
                 r={5}
-                fill={entry.netPnl >= 0 ? '#22C55E' : '#EF4444'}
+                fill={entry.netPnl >= 0 ? 'var(--color-success)' : 'var(--color-error)'}
               />
             ))}
           </Scatter>

@@ -1,4 +1,5 @@
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { useTheme } from '@mui/material/styles';
 import { MetricCard } from '../ui/MetricCard';
 import CountUp from 'react-countup';
 
@@ -28,13 +29,14 @@ export function NetBalanceCard({
   ];
   
   const isPositive = change >= 0;
-  const changeColor = isPositive ? 'text-green-500' : 'text-red-500';
+  const changeColor = isPositive ? 'text-green-600' : 'text-error';
   const changePrefix = isPositive ? '+' : '';
 
+  const theme = useTheme();
   return (
-    <MetricCard title="Net Account Balance" size="lg" status={isPositive ? 'good' : 'bad'}>
+    <MetricCard title="Net Account Balance" size="lg" status={isPositive ? 'good' : 'bad'} className="bg-white">
       <div className="flex flex-col gap-1">
-        <div className="text-3xl font-semibold font-mono">
+        <div className="text-3xl font-semibold font-mono text-primary">
           $<CountUp end={value} separator="," decimals={2} preserveValue />
         </div>
         <div className={`flex items-center gap-2 text-sm ${changeColor}`}>
@@ -49,7 +51,7 @@ export function NetBalanceCard({
             <Line 
               type="monotone" 
               dataKey="v" 
-              stroke="#2563EB" 
+              stroke={theme.palette.text.primary} 
               strokeWidth={2} 
               dot={false} 
               isAnimationActive={true}

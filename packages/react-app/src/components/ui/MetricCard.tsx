@@ -1,7 +1,6 @@
 import { type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../../utils/cn';
-import { colors } from '../../styles/design-tokens';
 
 interface MetricCardProps {
   title: string;
@@ -18,13 +17,7 @@ export function MetricCard({
   size = 'md',
   status = 'default'
 }: MetricCardProps) {
-  const statusColors = {
-    default: undefined,
-    good: colors.success,
-    moderate: colors.warning,
-    bad: colors.error,
-    strong: colors.primary,
-  };
+
 
   const sizeClasses = {
     sm: 'col-span-3',
@@ -38,33 +31,24 @@ export function MetricCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.15 }}
       className={cn(
-        'rounded-xl2 shadow-card p-4 flex flex-col gap-2 relative',
+        'rounded-2xl shadow-card p-4 flex flex-col gap-2 relative bg-surface border border-card-stroke',
         sizeClasses[size],
         className
       )}
-      style={{
-        background: colors.surface,
-        border: `1px solid ${colors.border}`,
-        position: 'relative',
-      }}
+      style={{ position: 'relative' }}
     >
       {status !== 'default' && (
         <span
-          style={{
-            background: statusColors[status],
-            position: 'absolute',
-            top: 0,
-            right: 0,
-            width: '0.375rem',
-            height: '1rem',
-            borderBottomRightRadius: '0.375rem',
-            borderBottomLeftRadius: '0.375rem',
-            content: '""',
-            display: 'block',
-          }}
+          className={cn(
+            'absolute top-0 right-0 w-1.5 h-4 rounded-b-md',
+            status === 'good' && 'bg-success',
+            status === 'moderate' && 'bg-warning',
+            status === 'bad' && 'bg-error',
+            status === 'strong' && 'bg-primary'
+          )}
         />
       )}
-      <h3 className="text-xs font-medium uppercase tracking-wide" style={{ color: colors.textSecondary }}>{title}</h3>
+      <h3 className="text-xs font-medium uppercase tracking-wide text-on-surface-variant">{title}</h3>
       {children}
     </motion.section>
   );

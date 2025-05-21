@@ -1,6 +1,6 @@
 import { MetricCard } from '../ui/MetricCard';
 import CountUp from 'react-countup';
-import { colors } from '../../styles/design-tokens';
+import clsx from 'clsx';
 
 interface RoiCardProps {
   value: number; // ROI as a percentage
@@ -20,17 +20,18 @@ export function RoiCard({ value }: RoiCardProps) {
       title="ROI %" 
       size="sm"
       status={getStatus()}
+      className="bg-white"
     >
       <div className="flex flex-col">
-        <div className="text-2xl font-semibold font-mono" style={{ color: value >= 0 ? colors.success : colors.error }}>
+        <div className={clsx('text-2xl font-semibold font-mono text-primary')}>
           {value >= 0 ? '+' : ''}<CountUp end={value} decimals={1} duration={1} suffix="%" />
         </div>
         
         <div className="flex gap-1 mt-2">
-          <div className="h-1.5 rounded-sm" style={{ width: '10%', background: value >= 0 ? colors.success + '33' : colors.error + '33' }}></div>
-          <div className="h-1.5 rounded-sm" style={{ width: '20%', background: value >= 5 ? colors.success + '80' : colors.cardStroke }}></div>
-          <div className="h-1.5 rounded-sm" style={{ width: '30%', background: value >= 10 ? colors.success + 'B3' : colors.cardStroke }}></div>
-          <div className="h-1.5 rounded-sm" style={{ width: '40%', background: value >= 15 ? colors.success : colors.cardStroke }}></div>
+          <div className={clsx('h-1.5 rounded-sm', value >= 0 ? 'bg-white' : 'bg-gray-200')} style={{ width: '10%' }}></div>
+          <div className={clsx('h-1.5 rounded-sm', value >= 5 ? 'bg-white' : 'bg-gray-200')} style={{ width: '20%' }}></div>
+          <div className={clsx('h-1.5 rounded-sm', value >= 10 ? 'bg-white' : 'bg-gray-200')} style={{ width: '30%' }}></div>
+          <div className={clsx('h-1.5 rounded-sm', value >= 15 ? 'bg-white' : 'bg-gray-200')} style={{ width: '40%' }}></div>
         </div>
       </div>
     </MetricCard>

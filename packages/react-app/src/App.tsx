@@ -8,12 +8,8 @@ import LogTransactionPage from './views/LogTransactionPage';
 import EditTradeDetailsPage from './views/EditTradeDetailsPage';
 import TradesListPage from './views/TradesListPage';
 import DashboardMetrics from './components/dashboard/DashboardMetrics';
-import AnalyticsPage from './views/AnalyticsPage'; // New for Stage 6
+import AnalyticsPage from './views/AnalyticsPage';
 // Types now imported in the store as needed
-
-
-
-
 
 function App() {
   const {

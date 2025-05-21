@@ -81,6 +81,6 @@ module.exports = {
   initializeDatabase,
   getDb,
   closeDatabase,
-  seedInitialData, // Exported if needed elsewhere, though called internally
+  seedInitialData,
   testDbConnection,
 };

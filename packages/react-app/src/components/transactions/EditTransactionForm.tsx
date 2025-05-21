@@ -67,14 +67,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               name="quantity"
               value={formData.quantity}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: colors.surface,
-                border: `1px solid ${colors.cardStroke}`,
-                borderRadius: '4px',
-                color: colors.onSurface
-              }}
+              
               required
             />
           </div>
@@ -86,14 +79,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               name="price"
               value={formData.price}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: colors.surface,
-                border: `1px solid ${colors.cardStroke}`,
-                borderRadius: '4px',
-                color: colors.onSurface
-              }}
+              
               required
             />
           </div>
@@ -105,14 +91,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               name="datetime"
               value={formData.datetime}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: colors.surface,
-                border: `1px solid ${colors.cardStroke}`,
-                borderRadius: '4px',
-                color: colors.onSurface
-              }}
+              
               required
             />
           </div>
@@ -145,14 +124,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               name="strategy_id"
               value={formData.strategy_id || ''}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: colors.surface,
-                border: `1px solid ${colors.cardStroke}`,
-                borderRadius: '4px',
-                color: colors.onSurface
-              }}
+              
             />
           </div>
 
@@ -162,15 +134,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
   className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary"              name="market_conditions"
               value={formData.market_conditions || ''}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: colors.surface,
-                border: `1px solid ${colors.cardStroke}`,
-                borderRadius: '4px',
-                color: colors.onSurface,
-                minHeight: '100px'
-              }}
+              
             />
           </div>
 
@@ -180,15 +144,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
   className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary"              name="setup_description"
               value={formData.setup_description || ''}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: colors.surface,
-                border: `1px solid ${colors.cardStroke}`,
-                borderRadius: '4px',
-                color: colors.onSurface,
-                minHeight: '100px'
-              }}
+              
             />
           </div>
 
@@ -198,15 +154,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
   className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary"              name="reasoning"
               value={formData.reasoning || ''}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: colors.surface,
-                border: `1px solid ${colors.cardStroke}`,
-                borderRadius: '4px',
-                color: colors.onSurface,
-                minHeight: '100px'
-              }}
+              
             />
           </div>
 

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
-import { colors } from '../../styles/design-tokens';
 
 export interface AppShellProps {
   children: React.ReactNode;
@@ -9,7 +8,7 @@ export interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   return (
-    <div className="flex h-screen" style={{ color: colors.textPrimary, background: colors.background, fontSize: '0.875rem' }}>
+    <div className="flex h-screen text-on-surface bg-background text-sm font-sans">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <TopBar />

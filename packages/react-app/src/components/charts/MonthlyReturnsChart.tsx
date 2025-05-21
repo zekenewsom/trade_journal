@@ -24,7 +24,7 @@ export function MonthlyReturnsChart({ data }: MonthlyReturnsChartProps = {}) {
     <div className="h-[300px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={mockData} barGap={2}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-card-stroke)" vertical={false} />
           <XAxis 
             dataKey="value" 
             tick={{ fill: colors.textSecondary, fontSize: 12 }}

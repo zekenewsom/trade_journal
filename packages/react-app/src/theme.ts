@@ -16,10 +16,7 @@ export const darkTheme = createTheme({
       default: colors.background,
       paper: colors.surface,
     },
-    surface: {
-      main: colors.surface,
-      contrastText: colors.onSurface,
-    },
+
     text: {
       primary: colors.textPrimary,
       secondary: colors.textSecondary,

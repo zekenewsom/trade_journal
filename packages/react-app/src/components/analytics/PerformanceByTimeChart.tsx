@@ -24,24 +24,24 @@ const PerformanceByTimeChart: React.FC<Props> = ({ title, data, dataKeyX, dataKe
 
   return (
     <div>
-      <h3 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">{title}</h3>
+      <h3 className="text-xl font-semibold mb-4 text-on-surface">{title}</h3>
       <div className="h-[400px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-card-stroke)" />
             <XAxis 
               dataKey={dataKeyX} 
-              tick={{ fontSize: 12, fill: '#6B7280' }}
+              tick={{ fontSize: 12, fill: 'var(--color-on-surface-variant)' }}
             />
             <YAxis 
               tickFormatter={(value) => `$${value.toFixed(0)}`}
-              tick={{ fontSize: 12, fill: '#6B7280' }}
+              tick={{ fontSize: 12, fill: 'var(--color-on-surface-variant)' }}
             />
             <Tooltip 
               formatter={(value: number) => [`$${value.toFixed(2)}`, 'P&L']}
               contentStyle={{ 
-                backgroundColor: '#fff',
-                border: '1px solid #E5E7EB',
+                backgroundColor: 'var(--color-surface)',
+                border: '1px solid var(--color-card-stroke)',
                 borderRadius: '0.375rem'
               }}
             />
@@ -49,7 +49,7 @@ const PerformanceByTimeChart: React.FC<Props> = ({ title, data, dataKeyX, dataKe
               {data.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`}
-                  fill={entry.totalNetPnl >= 0 ? '#22C55E' : '#EF4444'}
+                  fill={entry.totalNetPnl >= 0 ? 'var(--color-success)' : 'var(--color-error)'}
                 />
               ))}
             </Bar>

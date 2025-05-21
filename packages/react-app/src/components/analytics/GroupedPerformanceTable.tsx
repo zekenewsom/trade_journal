@@ -3,7 +3,6 @@
 
 import React from 'react';
 import type { GroupedPerformance } from '../../types';
-import { colors } from '../../styles/design-tokens';
 
 interface Props {
   title: string;
@@ -39,9 +38,9 @@ const GroupedPerformanceTable: React.FC<Props> = ({ title, data }) => {
                 <td className="px-4 py-3 text-sm border-b text-success border-card-stroke">{item.wins}</td>
                 <td className="px-4 py-3 text-sm border-b text-error border-card-stroke">{item.losses}</td>
                 <td className="px-4 py-3 text-sm border-b text-on-surface border-card-stroke">{item.breakEvens}</td>
-                <td className="px-4 py-3 text-sm border-b" style={{ color: colors.success, borderColor: colors.cardStroke }}>{item.wins}</td>
-                <td className="px-4 py-3 text-sm border-b" style={{ color: colors.error, borderColor: colors.cardStroke }}>{item.losses}</td>
-                <td className="px-4 py-3 text-sm border-b" style={{ color: colors.onSurface, borderColor: colors.cardStroke }}>{item.breakEvens}</td>
+                <td className="px-4 py-3 text-sm border-b text-success border-card-stroke">{item.wins}</td>
+                <td className="px-4 py-3 text-sm border-b text-error border-card-stroke">{item.losses}</td>
+                <td className="px-4 py-3 text-sm border-b text-on-surface border-card-stroke">{item.breakEvens}</td>
               </tr>
             ))}
           </tbody>

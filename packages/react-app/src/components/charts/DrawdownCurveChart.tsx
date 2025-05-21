@@ -26,11 +26,11 @@ export function DrawdownCurveChart({ data }: DrawdownCurveChartProps = {}) {
         <AreaChart data={mockData}>
           <defs>
             <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#FF4D67" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#FF4D67" stopOpacity={0}/>
+              <stop offset="5%" stopColor="var(--color-error)" stopOpacity={0.8}/>
+              <stop offset="95%" stopColor="var(--color-error)" stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-card-stroke)" />
           <XAxis 
             dataKey="date" 
             tick={{ fill: colors.textSecondary, fontSize: 12 }}
@@ -53,7 +53,7 @@ export function DrawdownCurveChart({ data }: DrawdownCurveChartProps = {}) {
           <Area 
             type="monotone" 
             dataKey="value" 
-            stroke="#FF4D67" 
+            stroke="var(--color-error)" 
             strokeWidth={2}
             fillOpacity={1}
             fill="url(#drawdownGradient)"
