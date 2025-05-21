@@ -1,4 +1,5 @@
 import React from 'react';
+import { colors } from '../../styles/design-tokens';
 
 // Mock data for the 30-day heatmap
 const generateMockData = () => {
@@ -29,25 +30,36 @@ export function DailyHeatmapCalendar({ data }: DailyHeatmapCalendarProps = {}) {
   const heatmapData = data || generateMockData();
   
   // Function to get the color based on value
+  // Utility to convert hex color to rgba
+  function hexToRgba(hex: string, alpha: number) {
+    const h = hex.replace('#', '');
+    const bigint = parseInt(h, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
   const getColor = (value: number) => {
     if (value > 0) {
       // Positive value - green gradient
       const intensity = Math.min(value / 3, 1);
-      return `rgba(0, 226, 138, ${intensity})`;
+      return hexToRgba(colors.success, intensity);
     } else if (value < 0) {
       // Negative value - red gradient
       const intensity = Math.min(Math.abs(value) / 3, 1);
-      return `rgba(255, 77, 103, ${intensity})`;
+      return hexToRgba(colors.error, intensity);
     }
     // Zero or close to zero - neutral
-    return 'rgba(70, 70, 70, 0.2)';
+    return hexToRgba(colors.cardStroke, 0.2);
   };
+
   
   return (
     <div className="h-full w-full flex flex-col">
       <div className="grid grid-cols-7 mb-2">
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-          <div key={day} className="text-center text-gray-400 text-xs">
+          <div key={day} className="text-center text-xs" style={{ color: colors.textSecondary }}>
             {day}
           </div>
         ))}
@@ -59,7 +71,7 @@ export function DailyHeatmapCalendar({ data }: DailyHeatmapCalendarProps = {}) {
             {week.map((day, dayIndex) => (
               <div 
                 key={`day-${weekIndex}-${dayIndex}`} 
-                className="rounded-sm relative hover:ring-1 hover:ring-primary hover:z-10 transition-all"
+                className="rounded-sm relative hover:ring-1 hover:z-10 transition-all"
                 style={{ 
                   backgroundColor: getColor(day.value),
                 }}
@@ -75,15 +87,15 @@ export function DailyHeatmapCalendar({ data }: DailyHeatmapCalendarProps = {}) {
       </div>
       
       <div className="mt-3 flex justify-center items-center gap-1">
-        <div className="text-xs text-gray-400 mr-1">Loss</div>
-        <div className="w-3 h-3 rounded-sm bg-negative/30"></div>
-        <div className="w-3 h-3 rounded-sm bg-negative/60"></div>
-        <div className="w-3 h-3 rounded-sm bg-negative/90"></div>
-        <div className="mx-1 w-3 h-3 rounded-sm bg-dark-800"></div>
-        <div className="w-3 h-3 rounded-sm bg-positive/30"></div>
-        <div className="w-3 h-3 rounded-sm bg-positive/60"></div>
-        <div className="w-3 h-3 rounded-sm bg-positive/90"></div>
-        <div className="text-xs text-gray-400 ml-1">Gain</div>
+        <div className="text-xs mr-1" style={{ color: colors.textSecondary }}>Loss</div>
+        <div className="w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.error, 0.3) }}></div>
+        <div className="w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.error, 0.6) }}></div>
+        <div className="w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.error, 0.9) }}></div>
+        <div className="mx-1 w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.cardStroke, 0.7) }}></div>
+        <div className="w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.success, 0.3) }}></div>
+        <div className="w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.success, 0.6) }}></div>
+        <div className="w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.success, 0.9) }}></div>
+        <div className="text-xs ml-1" style={{ color: colors.textSecondary }}>Gain</div>
       </div>
     </div>
   );

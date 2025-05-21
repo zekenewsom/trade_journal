@@ -1,5 +1,6 @@
 import { MetricCard } from '../ui/MetricCard';
 import CountUp from 'react-countup';
+import { colors } from '../../styles/design-tokens';
 
 interface SwingTradesCardProps {
   value: number;
@@ -23,21 +24,21 @@ export function SwingTradesCard({
         </div>
         
         <div className="flex items-center text-xs gap-3 mt-2">
-          <div className="bg-dark-700 px-2 py-1 rounded-md">
-            <span className="text-gray-400 mr-1">Trades:</span>
+          <div className="px-2 py-1 rounded-md" style={{ background: colors.cardStroke }}>
+            <span className="mr-1" style={{ color: colors.textSecondary }}>Trades:</span>
             <span className="font-medium">{totalTrades}</span>
           </div>
           
-          <div className="bg-dark-700 px-2 py-1 rounded-md">
-            <span className="text-gray-400 mr-1">Profit:</span>
-            <span className="font-medium text-positive">{Math.round(profitPercentage)}%</span>
+          <div className="px-2 py-1 rounded-md" style={{ background: colors.cardStroke }}>
+            <span className="mr-1" style={{ color: colors.textSecondary }}>Profit:</span>
+            <span className="font-medium" style={{ color: colors.success }}>{Math.round(profitPercentage)}%</span>
           </div>
         </div>
         
-        <div className="w-full bg-dark-800 h-1.5 rounded-full overflow-hidden mt-2">
+        <div className="w-full h-1.5 rounded-full overflow-hidden mt-2" style={{ background: colors.cardStroke }}>
           <div 
-            className="h-full bg-primary"
-            style={{ width: `${Math.min(profitPercentage, 100)}%` }}
+            className="h-full"
+            style={{ width: `${Math.min(profitPercentage, 100)}%`, background: colors.primary }}
           />
         </div>
       </div>

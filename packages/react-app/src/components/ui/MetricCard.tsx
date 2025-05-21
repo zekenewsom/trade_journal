@@ -1,6 +1,7 @@
 import { type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '../../utils/cn';
+import { colors } from '../../styles/design-tokens';
 
 interface MetricCardProps {
   title: string;
@@ -17,12 +18,12 @@ export function MetricCard({
   size = 'md',
   status = 'default'
 }: MetricCardProps) {
-  const statusClasses = {
-    default: '',
-    good: 'after:bg-positive',
-    moderate: 'after:bg-warning',
-    bad: 'after:bg-negative',
-    strong: 'after:bg-primary',
+  const statusColors = {
+    default: undefined,
+    good: colors.success,
+    moderate: colors.warning,
+    bad: colors.error,
+    strong: colors.primary,
   };
 
   const sizeClasses = {
@@ -37,14 +38,33 @@ export function MetricCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.15 }}
       className={cn(
-        'bg-[#131417] rounded-xl2 shadow-card border border-stroke/60 p-4 flex flex-col gap-2 relative',
+        'rounded-xl2 shadow-card p-4 flex flex-col gap-2 relative',
         sizeClasses[size],
-        status !== 'default' && 'after:content-[""] after:absolute after:top-0 after:right-0 after:w-1.5 after:h-4 after:rounded-br-md after:rounded-bl-md',
-        statusClasses[status],
         className
       )}
+      style={{
+        background: colors.surface,
+        border: `1px solid ${colors.border}`,
+        position: 'relative',
+      }}
     >
-      <h3 className="text-xs font-medium text-gray-400 uppercase tracking-wide">{title}</h3>
+      {status !== 'default' && (
+        <span
+          style={{
+            background: statusColors[status],
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '0.375rem',
+            height: '1rem',
+            borderBottomRightRadius: '0.375rem',
+            borderBottomLeftRadius: '0.375rem',
+            content: '""',
+            display: 'block',
+          }}
+        />
+      )}
+      <h3 className="text-xs font-medium uppercase tracking-wide" style={{ color: colors.textSecondary }}>{title}</h3>
       {children}
     </motion.section>
   );

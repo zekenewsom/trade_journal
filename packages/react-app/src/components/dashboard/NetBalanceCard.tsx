@@ -1,6 +1,7 @@
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { MetricCard } from '../ui/MetricCard';
 import CountUp from 'react-countup';
+import { colors } from '../../styles/design-tokens';
 
 interface NetBalanceCardProps {
   value: number;
@@ -27,7 +28,7 @@ export function NetBalanceCard({
   ];
   
   const isPositive = change >= 0;
-  const changeColor = isPositive ? 'text-positive' : 'text-negative';
+  const changeColor = isPositive ? colors.success : colors.error;
   const changePrefix = isPositive ? '+' : '';
 
   return (
@@ -36,7 +37,7 @@ export function NetBalanceCard({
         <div className="text-3xl font-semibold font-mono">
           $<CountUp end={value} separator="," decimals={2} preserveValue />
         </div>
-        <div className={`flex items-center gap-2 text-sm ${changeColor}`}>
+        <div className="flex items-center gap-2 text-sm" style={{ color: changeColor }}>
           <span>{changePrefix}${Math.abs(change).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
           <span>({changePrefix}{Math.abs(changePercentage).toFixed(2)}%)</span>
         </div>
@@ -48,7 +49,7 @@ export function NetBalanceCard({
             <Line 
               type="monotone" 
               dataKey="v" 
-              stroke="#3A7BFF" 
+              stroke={colors.primary} 
               strokeWidth={2} 
               dot={false} 
               isAnimationActive={true}

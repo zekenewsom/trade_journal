@@ -48,19 +48,12 @@ const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade, onLogTrans
   if (errorLoadingTrades) return <p style={{ color: 'red' }}>Error loading trades: {errorLoadingTrades}</p>;
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h2>All Trades (Positions)</h2>
+    <div className="p-4 bg-surface rounded-2xl shadow-elevation-1 border border-card-stroke">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold text-on-surface">All Trades (Positions)</h2>
         <button 
           onClick={onLogTransaction}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#4CAF50',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer'
-          }}
+          className="px-4 py-2 bg-primary text-on-primary rounded-lg font-semibold shadow-elevation-1 hover:bg-primary/90 transition-colors"
         >
           Log Transaction
         </button>
@@ -70,7 +63,7 @@ const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade, onLogTrans
         placeholder="Filter trades..."
         value={filterText}
         onChange={(e) => setFilterText(e.target.value)}
-        style={{ marginBottom: '15px', padding: '8px', width: 'calc(100% - 20px)', maxWidth: '400px' }}
+        className="mb-4 px-3 py-2 w-full max-w-md bg-surface-variant border border-card-stroke rounded text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
       />
 
       {(() => { console.log('[TradesListPage] filteredTrades:', filteredTrades); return null; })()}

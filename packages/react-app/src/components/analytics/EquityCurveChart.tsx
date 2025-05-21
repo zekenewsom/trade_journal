@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import type { EquityCurvePoint } from '../../types';
+import { colors } from '../../styles/design-tokens';
 
 interface Props {
   equityCurve: EquityCurvePoint[];
@@ -36,36 +37,36 @@ const EquityCurveChart: React.FC<Props> = ({ equityCurve }) => {
 
   return (
     <div>
-      <h3 style={{ color: '#61dafb', marginBottom: '15px' }}>Equity Curve & Drawdown</h3>
+      <h3 style={{ color: colors.accent, marginBottom: '15px' }}>Equity Curve & Drawdown</h3>
       <ResponsiveContainer width="100%" height={400}>
         <AreaChart data={equityData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <defs>
             <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#82ca9d" stopOpacity={0}/>
+              <stop offset="5%" stopColor={colors.success} stopOpacity={0.8}/>
+              <stop offset="95%" stopColor={colors.success} stopOpacity={0}/>
             </linearGradient>
             <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f44336" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#f44336" stopOpacity={0}/>
+              <stop offset="5%" stopColor={colors.error} stopOpacity={0.8}/>
+              <stop offset="95%" stopColor={colors.error} stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#555" />
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.cardStroke} />
           <XAxis 
             dataKey="date" 
-            tick={{ fontSize: 10, fill: '#ccc' }}
+            tick={{ fontSize: 10, fill: colors.textSecondary }}
             tickFormatter={(value) => new Date(value).toLocaleDateString()}
           />
           <YAxis 
             yAxisId="equity"
             orientation="left"
             tickFormatter={(value) => `$${value.toFixed(0)}`}
-            tick={{ fontSize: 10, fill: '#ccc' }}
+            tick={{ fontSize: 10, fill: colors.textSecondary }}
           />
           <YAxis 
             yAxisId="drawdown"
             orientation="right"
             tickFormatter={(value) => `${value.toFixed(1)}%`}
-            tick={{ fontSize: 10, fill: '#ccc' }}
+            tick={{ fontSize: 10, fill: colors.textSecondary }}
           />
           <Tooltip 
             formatter={(value: number, name: string) => {
@@ -75,8 +76,8 @@ const EquityCurveChart: React.FC<Props> = ({ equityCurve }) => {
             }}
             labelFormatter={(label) => new Date(label).toLocaleDateString()}
             contentStyle={{ 
-              backgroundColor: '#2a2f36',
-              border: '1px solid #444',
+              backgroundColor: colors.surfaceVariant,
+              border: `1px solid ${colors.cardStroke}`,
               borderRadius: '4px'
             }}
           />
@@ -86,7 +87,7 @@ const EquityCurveChart: React.FC<Props> = ({ equityCurve }) => {
             type="monotone"
             dataKey="equity"
             name="Equity"
-            stroke="#82ca9d"
+            stroke={colors.success}
             fillOpacity={1}
             fill="url(#equityGradient)"
           />
@@ -95,7 +96,7 @@ const EquityCurveChart: React.FC<Props> = ({ equityCurve }) => {
             type="monotone"
             dataKey="drawdown"
             name="Drawdown"
-            stroke="#f44336"
+            stroke={colors.error}
             fillOpacity={1}
             fill="url(#drawdownGradient)"
           />

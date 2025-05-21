@@ -3,6 +3,7 @@
 
 import React from 'react';
 import type { GroupedPerformance } from '../../types';
+import { colors } from '../../styles/design-tokens';
 
 interface Props {
   title: string;
@@ -12,36 +13,34 @@ interface Props {
 const GroupedPerformanceTable: React.FC<Props> = ({ title, data }) => {
   return (
     <div>
-      <h3 className="text-xl font-semibold mb-4 text-white">{title}</h3>
+      <h3 className="text-xl font-semibold mb-4" style={{ color: colors.onSurface }}>{title}</h3>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-gray-900">
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Name</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Total P&L</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Win Rate</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Trades</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Wins</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Losses</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-400 border-b border-gray-800">Break Even</th>
+            <tr style={{ background: colors.surface }}>
+              <th className="px-4 py-3 text-left text-sm font-medium border-b" style={{ color: colors.textSecondary, borderColor: colors.cardStroke }}>Name</th>
+              <th className="px-4 py-3 text-left text-sm font-medium border-b" style={{ color: colors.textSecondary, borderColor: colors.cardStroke }}>Total P&L</th>
+              <th className="px-4 py-3 text-left text-sm font-medium border-b" style={{ color: colors.textSecondary, borderColor: colors.cardStroke }}>Win Rate</th>
+              <th className="px-4 py-3 text-left text-sm font-medium border-b" style={{ color: colors.textSecondary, borderColor: colors.cardStroke }}>Trades</th>
+              <th className="px-4 py-3 text-left text-sm font-medium border-b" style={{ color: colors.textSecondary, borderColor: colors.cardStroke }}>Wins</th>
+              <th className="px-4 py-3 text-left text-sm font-medium border-b" style={{ color: colors.textSecondary, borderColor: colors.cardStroke }}>Losses</th>
+              <th className="px-4 py-3 text-left text-sm font-medium border-b" style={{ color: colors.textSecondary, borderColor: colors.cardStroke }}>Break Even</th>
             </tr>
           </thead>
           <tbody>
             {data.map((item, index) => (
-              <tr key={index} className="hover:bg-gray-900/50 transition-colors">
-                <td className="px-4 py-3 text-sm text-gray-300 border-b border-gray-800">{item.name}</td>
-                <td className={`px-4 py-3 text-sm font-medium border-b border-gray-800 ${
-                  item.totalNetPnl >= 0 ? 'text-positive' : 'text-negative'
-                }`}>
+              <tr key={index} style={{ transition: 'background 0.2s' }} onMouseOver={e => (e.currentTarget.style.background = colors.surfaceVariant)} onMouseOut={e => (e.currentTarget.style.background = '')}>
+                <td className="px-4 py-3 text-sm border-b" style={{ color: colors.onSurface, borderColor: colors.cardStroke }}>{item.name}</td>
+                <td className="px-4 py-3 text-sm font-medium border-b" style={{ color: item.totalNetPnl >= 0 ? colors.success : colors.error, borderColor: colors.cardStroke }}>
                   ${item.totalNetPnl.toFixed(2)}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-300 border-b border-gray-800">
+                <td className="px-4 py-3 text-sm border-b" style={{ color: colors.onSurface, borderColor: colors.cardStroke }}>
                   {item.winRate !== null ? `${item.winRate.toFixed(1)}%` : 'N/A'}
                 </td>
-                <td className="px-4 py-3 text-sm text-gray-300 border-b border-gray-800">{item.tradeCount}</td>
-                <td className="px-4 py-3 text-sm text-positive border-b border-gray-800">{item.wins}</td>
-                <td className="px-4 py-3 text-sm text-negative border-b border-gray-800">{item.losses}</td>
-                <td className="px-4 py-3 text-sm text-gray-300 border-b border-gray-800">{item.breakEvens}</td>
+                <td className="px-4 py-3 text-sm border-b" style={{ color: colors.onSurface, borderColor: colors.cardStroke }}>{item.tradeCount}</td>
+                <td className="px-4 py-3 text-sm border-b" style={{ color: colors.success, borderColor: colors.cardStroke }}>{item.wins}</td>
+                <td className="px-4 py-3 text-sm border-b" style={{ color: colors.error, borderColor: colors.cardStroke }}>{item.losses}</td>
+                <td className="px-4 py-3 text-sm border-b" style={{ color: colors.onSurface, borderColor: colors.cardStroke }}>{item.breakEvens}</td>
               </tr>
             ))}
           </tbody>

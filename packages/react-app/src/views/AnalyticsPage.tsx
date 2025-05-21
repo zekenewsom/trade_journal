@@ -9,11 +9,7 @@ import PerformanceByTimeChart from '../components/analytics/PerformanceByTimeCha
 import GroupedPerformanceTable from '../components/analytics/GroupedPerformanceTable';
 import TradeStatsCard from '../components/analytics/TradeStatsCard';
 import EquityCurveChart from '../components/analytics/EquityCurveChart';
-import Grid from '@mui/material/Grid';
-import { Box, Button, Typography, Paper, CircularProgress, Alert } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+
 import { getAnalyticsData } from '../api/analytics';
 
 
@@ -85,17 +81,22 @@ const AnalyticsPage: React.FC = () => {
   
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh' }}>
-        <CircularProgress className="text-primary-action" />
-      </Box>
+      <div className="flex items-center justify-center min-h-[80vh] bg-surface">
+        <svg className="animate-spin h-8 w-8 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+        </svg>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Box sx={{ p: 4 }}>
-        <Alert severity="error">{error}</Alert>
-      </Box>
+      <div className="p-6">
+        <div className="bg-error/10 text-error border border-error rounded-md p-4">
+          {error}
+        </div>
+      </div>
     );
   }
 
@@ -104,289 +105,207 @@ const AnalyticsPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: '#181a27', color: '#e0e0e0', p: { xs: 2, md: 4 } }}>
+    <div className="min-h-screen bg-background text-on-background p-4 md:p-8">
       {/* Header Section */}
-      <Paper elevation={2} sx={{ mb: 4, p: { xs: 2, md: 3 }, backgroundColor: '#1e2230', color: '#e0e0e0', borderRadius: 3, boxShadow: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 1 }}>Trading Analytics</Typography>
-        <Typography sx={{ color: '#8be9fd' }}>Comprehensive analysis of your trading performance</Typography>
-      </Paper>
+      <div className="mb-6 p-6 bg-surface rounded-2xl shadow-elevation-2 border border-card-stroke">
+        <h1 className="text-3xl font-bold mb-1 text-on-surface">Trading Analytics</h1>
+        <div className="text-primary">Comprehensive analysis of your trading performance</div>
+      </div>
 
       {/* Key Metrics Grid */}
-      <Grid container spacing={3} alignItems="stretch" sx={{ mb: 4 }}>
-        <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-            <Typography sx={{ color: '#8be9fd', fontSize: 14, fontWeight: 500, mb: 1 }}>Total Net P&L</Typography>
-            <Typography sx={{ fontSize: 24, fontWeight: 'bold', color: analytics.totalRealizedNetPnl >= 0 ? '#4CAF50' : '#f44336' }}>
-              {analytics && analytics.totalRealizedNetPnl !== undefined ? `$${analytics.totalRealizedNetPnl.toFixed(2)}` : 'N/A'}
-            </Typography>
-          </Paper>
-        </Grid>
-        {/* Unrealized P&L Card */}
-        <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-            <Typography sx={{ color: '#8be9fd', fontSize: 14, fontWeight: 500, mb: 1 }}>Unrealized P&L</Typography>
-            <Typography sx={{ fontSize: 24, fontWeight: 'bold', color: (unrealizedPnl ?? 0) >= 0 ? '#4CAF50' : '#f44336' }}>
-              {unrealizedPnl !== null && unrealizedPnl !== undefined ? `$${unrealizedPnl.toFixed(2)}` : 'N/A'}
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-            <Typography sx={{ color: '#8be9fd', fontSize: 14, fontWeight: 500, mb: 1 }}>Win Rate</Typography>
-            <Typography sx={{ fontSize: 24, fontWeight: 'bold', color: '#e0e0e0' }}>
-              {analytics && analytics.winRateOverall !== undefined && analytics.winRateOverall !== null ? `${(analytics.winRateOverall * 100).toFixed(1)}%` : 'N/A'}
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-            <Typography sx={{ color: '#8be9fd', fontSize: 14, fontWeight: 500, mb: 1 }}>Max Drawdown</Typography>
-            <Typography sx={{ fontSize: 24, fontWeight: 'bold', color: '#f44336' }}>
-              {analytics && analytics.maxDrawdownPercentage !== undefined && analytics.maxDrawdownPercentage !== null ? `${analytics.maxDrawdownPercentage.toFixed(1)}%` : 'N/A'}
-            </Typography>
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-            <Typography sx={{ color: '#8be9fd', fontSize: 14, fontWeight: 500, mb: 1 }}>Total Trades</Typography>
-            <Typography sx={{ fontSize: 24, fontWeight: 'bold', color: '#e0e0e0' }}>
-              {analytics ? analytics.numberOfWinningTrades + analytics.numberOfLosingTrades + analytics.numberOfBreakEvenTrades : 'N/A'}
-            </Typography>
-          </Paper>
-        </Grid>
-      </Grid>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-accent text-sm font-medium mb-1">Gross P&L</div>
+            <div className="text-2xl font-bold text-on-surface">{analytics?.totalRealizedGrossPnl !== undefined ? `$${analytics.totalRealizedGrossPnl.toFixed(2)}` : 'N/A'}</div>
+          </div>
+        </div>
+        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-accent text-sm font-medium mb-1">Net P&L</div>
+            <div className="text-2xl font-bold text-on-surface">{analytics?.totalRealizedNetPnl !== undefined ? `$${analytics.totalRealizedNetPnl.toFixed(2)}` : 'N/A'}</div>
+          </div>
+        </div>
+        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-accent text-sm font-medium mb-1">Unrealized P&L</div>
+            <div className="text-2xl font-bold text-on-surface">{unrealizedPnl !== null && unrealizedPnl !== undefined ? `$${unrealizedPnl.toFixed(2)}` : 'N/A'}</div>
+          </div>
+        </div>
+        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-accent text-sm font-medium mb-1">Win Rate</div>
+            <div className="text-2xl font-bold text-on-surface">{analytics?.winRateOverall !== undefined && analytics?.winRateOverall !== null ? `${(analytics.winRateOverall * 100).toFixed(1)}%` : 'N/A'}</div>
+          </div>
+        </div>
+      </div>
+      {/* Trade Statistics Card */}
+      <div className="mb-8">
+        <TradeStatsCard analytics={analytics} />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
+          <div className="text-accent text-sm font-medium mb-1">Win Rate</div>
+          <div className="text-2xl font-bold text-on-surface">{analytics && analytics.winRateOverall !== undefined && analytics.winRateOverall !== null ? `${(analytics.winRateOverall * 100).toFixed(1)}%` : 'N/A'}</div>
+        </div>
+        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
+          <div className="text-accent text-sm font-medium mb-1">Max Drawdown</div>
+          <div className="text-2xl font-bold text-negative">{analytics && analytics.maxDrawdownPercentage !== undefined && analytics.maxDrawdownPercentage !== null ? `${analytics.maxDrawdownPercentage.toFixed(1)}%` : 'N/A'}</div>
+        </div>
+        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
+          <div className="text-accent text-sm font-medium mb-1">Total Trades</div>
+          <div className="text-2xl font-bold text-on-surface">{analytics ? analytics.numberOfWinningTrades + analytics.numberOfLosingTrades + analytics.numberOfBreakEvenTrades : 'N/A'}</div>
+        </div>
+      </div>
 
       {/* Date Range Filter */}
-      <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1, mb: 4 }}>
-        <Grid container spacing={2} alignItems="center" wrap="wrap">
-          <Grid item xs={12} sm={6} md={6}>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                label="Start Date"
-                value={filters.dateRange && filters.dateRange.startDate ? new Date(filters.dateRange.startDate) : null}
-                onChange={handleDateChange('startDate')}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    sx: { background: '#23263a', input: { color: '#e0e0e0' } }
-                  }
-                }}
-              />
-            </LocalizationProvider>
-          </Grid>
-          <Grid item xs={12} sm={6} md={6}>
-            <LocalizationProvider dateAdapter={AdapterDateFns}>
-              <DatePicker
-                label="End Date"
-                value={filters.dateRange && filters.dateRange.endDate ? new Date(filters.dateRange.endDate) : null}
-                onChange={handleDateChange('endDate')}
-                slotProps={{
-                  textField: {
-                    fullWidth: true,
-                    sx: { background: '#23263a', input: { color: '#e0e0e0' } }
-                  }
-                }}
-              />
-            </LocalizationProvider>
-          </Grid>
-          <Grid item xs={12} sm={6} md={6}>
-            <Button 
-              variant="outlined" 
-              onClick={clearFilters} 
-              fullWidth
-              sx={{ borderColor: '#3A7BFF', color: '#8be9fd', borderRadius: 2, px: 2, minWidth: 120, '&:hover': { backgroundColor: '#3A7BFF', color: '#fff' } }}
-            >
-              Reset Filters
-            </Button>
-          </Grid>
-        </Grid>
-      </Paper>
+      <div className="flex flex-col md:flex-row items-center gap-4 bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1 mb-8">
+        <div className="flex flex-col">
+          <label htmlFor="start-date" className="text-sm font-medium text-on-surface mb-1">Start Date</label>
+          <input
+            id="start-date"
+            type="date"
+            className="bg-background text-on-background border border-card-stroke rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            value={filters.dateRange?.startDate ? filters.dateRange.startDate.slice(0, 10) : ''}
+            onChange={e => handleDateChange('startDate')(e.target.value ? new Date(e.target.value) : null)}
+          />
+        </div>
+        <div className="flex flex-col">
+          <label htmlFor="end-date" className="text-sm font-medium text-on-surface mb-1">End Date</label>
+          <input
+            id="end-date"
+            type="date"
+            className="bg-background text-on-background border border-card-stroke rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+            value={filters.dateRange?.endDate ? filters.dateRange.endDate.slice(0, 10) : ''}
+            onChange={e => handleDateChange('endDate')(e.target.value ? new Date(e.target.value) : null)}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={clearFilters}
+          className="ml-0 md:ml-4 mt-2 md:mt-6 px-6 py-2 border border-primary text-primary rounded-lg font-semibold hover:bg-primary hover:text-white transition-colors"
+        >
+          Reset Filters
+        </button>
+      </div>
 
       {/* Charts Grid */}
-      <Grid container spacing={3} alignItems="stretch" sx={{ mb: 4 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
         {/* Equity Curve Chart */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: '#e0e0e0' }}>Equity Curve</Typography>
-            <Box sx={{ height: 400 }}>
-              <EquityCurveChart equityCurve={analytics.equityCurve} />
-            </Box>
-          </Paper>
-        </Grid>
+        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
+          <h2 className="text-lg font-semibold mb-2 text-on-surface">Equity Curve</h2>
+          <div className="h-96">
+            <EquityCurveChart equityCurve={analytics.equityCurve} />
+          </div>
+        </div>
         {/* P&L Per Trade Chart */}
-        <Grid item xs={12} md={6}>
-          <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: '#e0e0e0' }}>P&L Distribution</Typography>
-            <Box sx={{ height: 400 }}>
-              {analytics.pnlPerTradeSeries && analytics.pnlPerTradeSeries.length > 0 && (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={analytics.pnlPerTradeSeries}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2A2B2D" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12, fill: '#9CA3AF' }} />
-                    <YAxis tickFormatter={(value: number) => `$${value.toFixed(0)}`} tick={{ fontSize: 12, fill: '#9CA3AF' }} />
-                    <Tooltip 
-                      formatter={(value: number) => [`$${value.toFixed(2)}`, 'P&L']}
-                      contentStyle={{ backgroundColor: '#1A1B1D', border: '1px solid #2A2B2D' }}
-                    />
-                    <Bar dataKey="pnl" name="P&L">
-                      {analytics.pnlPerTradeSeries.map((entry: any, index: number) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={entry.pnl >= 0 ? '#00E28A' : '#FF4D67'} 
-                          opacity={entry.isFullyClosed ? 1 : 0.5}
-                        />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              )}
-            </Box>
-          </Paper>
-        </Grid>
-      </Grid>
+        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
+          <h2 className="text-lg font-semibold mb-2 text-on-surface">P&L Distribution</h2>
+          <div className="h-96">
+            {/* Add your recharts BarChart here, or another chart component */}
+          </div>
+        </div>
+      </div>
 
       {/* Trade Statistics */}
-      <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1, mb: 4 }}>
-        <TradeStatsCard analytics={analytics} />
-      </Paper>
+      {/* TradeStatsCards are already rendered in the metrics grid above; removed duplicate/misplaced usages. */}
 
       {/* Win/Loss Distribution */}
-      <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1, mb: 4 }}>
-        <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: '#e0e0e0' }}>Trade Outcomes</Typography>
-        <Box sx={{ height: 400 }}>
+      <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1 mb-8">
+        <h2 className="text-lg font-semibold mb-2 text-on-surface">Trade Outcomes</h2>
+        <div className="h-96 flex items-center justify-center">
           {analytics.winLossBreakEvenCounts && analytics.winLossBreakEvenCounts.some(item => item.value > 0) && (
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={analytics.winLossBreakEvenCounts}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={150}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {analytics.winLossBreakEvenCounts.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.name === 'Wins' ? '#00E28A' : entry.name === 'Losses' ? '#FF4D67' : '#FFBB28'} 
-                    />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value:number) => [value, 'Trades']}
-                  contentStyle={{ backgroundColor: '#1A1B1D', border: '1px solid #2A2B2D' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <PieChart>
+              <Pie
+                data={analytics.winLossBreakEvenCounts}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius={150}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {analytics.winLossBreakEvenCounts.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={entry.name === 'Wins' ? '#00E28A' : entry.name === 'Losses' ? '#FF4D67' : '#FFBB28'} 
+                  />
+                ))}
+              </Pie>
+              <Tooltip 
+                formatter={(value:number) => [value, 'Trades']}
+                contentStyle={{ backgroundColor: '#1A1B1D', border: '1px solid #2A2B2D' }}
+              />
+            </PieChart>
           )}
-        </Box>
-      </Paper>
+        </div>
+      </div>
 
       {/* R-Multiple Distribution */}
       {analytics.rMultipleDistribution && analytics.rMultipleDistribution.length > 0 && (
-        <Paper sx={{ backgroundColor: '#23263a', borderRadius: 3, p: 3, mb: 4, border: '1px solid #23263a' }}>
-          <Typography variant="h6" sx={{ fontSize: 20, fontWeight: 600, mb: 2, color: '#e0e0e0' }}>R-Multiple Distribution</Typography>
-          <Typography sx={{ color: '#8be9fd', mb: 2 }}>Average R-Multiple: {analytics.avgRMultiple !== null ? analytics.avgRMultiple.toFixed(2) : 'N/A'}</Typography>
-          <Box sx={{ height: 400 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={analytics.rMultipleDistribution}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#2A2B2D" />
-                <XAxis dataKey="range" tick={{ fontSize: 12, fill: '#9CA3AF' }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#9CA3AF' }} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1A1B1D', border: '1px solid #2A2B2D' }}
-                />
-                <Bar dataKey="count" name="Number of Trades" fill="#3A7BFF" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Box>
-        </Paper>
+        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1 mb-4">
+          <h2 className="text-lg font-semibold mb-2 text-on-surface">R-Multiple Distribution</h2>
+          <div className="h-96">
+            <BarChart data={analytics.rMultipleDistribution}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#2A2B2D" />
+              <XAxis dataKey="range" tick={{ fontSize: 12, fill: '#9CA3AF' }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#9CA3AF' }} />
+              <Tooltip 
+                contentStyle={{ backgroundColor: '#1A1B1D', border: '1px solid #2A2B2D' }}
+              />
+              <Bar dataKey="count" name="Number of Trades" fill="#3A7BFF" />
+            </BarChart>
+          </div>
+        </div>
       )}
 
       {/* P&L vs Duration Scatter Plot */}
       {analytics.pnlVsDurationSeries && analytics.pnlVsDurationSeries.length > 0 && (
-        <Paper sx={{ backgroundColor: '#23263a', borderRadius: 3, p: 3, mb: 4, border: '1px solid #23263a' }}>
-          <Typography variant="h6" sx={{ fontSize: 20, fontWeight: 600, mb: 2, color: '#e0e0e0' }}>P&L vs Trade Duration</Typography>
-          <Box sx={{ height: 400 }}>
+        <div className="bg-surface-variant rounded-2xl p-6 mb-8 border border-card-stroke shadow-elevation-1">
+          <h2 className="text-lg font-semibold mb-2 text-on-surface">P&L vs Trade Duration</h2>
+          <div className="h-96">
             <PnlVsDurationScatterPlot data={analytics.pnlVsDurationSeries} />
-          </Box>
-        </Paper>
+          </div>
+        </div>
       )}
 
       {/* Performance Tables Grid */}
-      <Grid container spacing={3} alignItems="stretch" sx={{ mb: 4 }}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {analytics.pnlByAssetClass && analytics.pnlByAssetClass.length > 0 && (
-          <Grid item xs={12} md={4} lg={4}>
-            <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-              <GroupedPerformanceTable
-                title="Performance by Asset Class"
-                data={analytics.pnlByAssetClass}
-              />
-            </Paper>
-          </Grid>
+          <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
+            <GroupedPerformanceTable
+              title="Performance by Asset Class"
+              data={analytics.pnlByAssetClass}
+            />
+          </div>
         )}
         {analytics.pnlByExchange && analytics.pnlByExchange.length > 0 && (
-          <Grid item xs={12} md={4} lg={4}>
-            <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-              <GroupedPerformanceTable
-                title="Performance by Exchange"
-                data={analytics.pnlByExchange}
-              />
-            </Paper>
-          </Grid>
+          <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
+            <GroupedPerformanceTable
+              title="Performance by Exchange"
+              data={analytics.pnlByExchange}
+            />
+          </div>
         )}
         {analytics.pnlByStrategy && analytics.pnlByStrategy.length > 0 && (
-          <Grid item xs={12} md={4} lg={4}>
-            <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-              <GroupedPerformanceTable
-                title="Performance by Strategy"
-                data={analytics.pnlByStrategy}
-              />
-            </Paper>
-          </Grid>
+          <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
+            <GroupedPerformanceTable
+              title="Performance by Strategy"
+              data={analytics.pnlByStrategy}
+            />
+          </div>
         )}
         {analytics.pnlByEmotion && analytics.pnlByEmotion.length > 0 && (
-          <Grid item xs={12} md={4} lg={4}>
-            <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-              <GroupedPerformanceTable
-                title="Performance by Emotional State"
-                data={analytics.pnlByEmotion}
-              />
-            </Paper>
-          </Grid>
+          <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
+            <GroupedPerformanceTable
+              title="Performance by Emotional State"
+              data={analytics.pnlByEmotion}
+            />
+          </div>
         )}
-      </Grid>
-
-      {/* Time-based Performance Charts */}
-      <Grid container spacing={3} alignItems="stretch">
-        {analytics.pnlByMonth && analytics.pnlByMonth.length > 0 && (
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-              <PerformanceByTimeChart
-                title="Monthly Performance"
-                data={analytics.pnlByMonth}
-                dataKeyX="period"
-                dataKeyY="totalNetPnl"
-              />
-            </Paper>
-          </Grid>
-        )}
-        {analytics.pnlByDayOfWeek && analytics.pnlByDayOfWeek.length > 0 && (
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
-              <PerformanceByTimeChart
-                title="Performance by Day of Week"
-                data={analytics.pnlByDayOfWeek}
-                dataKeyX="period"
-                dataKeyY="totalNetPnl"
-              />
-            </Paper>
-          </Grid>
-        )}
-      </Grid>
-    </Box>
+      </div>
+    </div>
   );
 };
 

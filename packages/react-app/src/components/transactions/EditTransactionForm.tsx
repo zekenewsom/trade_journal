@@ -56,13 +56,13 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
-      <div className="bg-gray-800 p-6 rounded-lg w-[90%] max-w-xl max-h-[90vh] overflow-y-auto shadow-lg">
-        <h2 className="text-white text-2xl font-bold mb-6">Edit Transaction</h2>
+      <div className="bg-surface p-6 rounded-2xl w-[90%] max-w-xl max-h-[90vh] overflow-y-auto shadow-elevation-2 border border-card-stroke">
+        <h2 className="text-on-surface text-2xl font-bold mb-6">Edit Transaction</h2>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="mb-4">
-            <label className="block mb-1 text-gray-200 font-medium">Quantity:</label>
+            <label className="block mb-1 text-on-surface font-medium">Quantity:</label>
             <input
-  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"              type="number"
+  className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"              type="number"
               name="quantity"
               value={formData.quantity}
               onChange={handleChange}
@@ -79,9 +79,9 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-gray-200 font-medium">Price:</label>
+            <label className="block mb-1 text-on-surface font-medium">Price:</label>
             <input
-  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"              type="number"
+  className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"              type="number"
               name="price"
               value={formData.price}
               onChange={handleChange}
@@ -98,9 +98,9 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-gray-200 font-medium">Date/Time:</label>
+            <label className="block mb-1 text-on-surface font-medium">Date/Time:</label>
             <input
-  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"              type="datetime-local"
+  className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"              type="datetime-local"
               name="datetime"
               value={formData.datetime}
               onChange={handleChange}
@@ -117,30 +117,30 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-gray-200 font-medium">Fees:</label>
+            <label className="block mb-1 text-on-surface font-medium">Fees:</label>
             <input
               type="number"
               name="fees"
               value={formData.fees}
               onChange={handleChange}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-gray-200 font-medium">Notes:</label>
+            <label className="block mb-1 text-on-surface font-medium">Notes:</label>
             <textarea
               name="notes"
               value={formData.notes}
               onChange={handleChange}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-gray-200 font-medium">Strategy:</label>
+            <label className="block mb-1 text-on-surface font-medium">Strategy:</label>
             <input
-  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"              type="number"
+  className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"              type="number"
               name="strategy_id"
               value={formData.strategy_id || ''}
               onChange={handleChange}
@@ -156,9 +156,9 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-gray-200 font-medium">Market Conditions:</label>
+            <label className="block mb-1 text-on-surface font-medium">Market Conditions:</label>
             <textarea
-  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"              name="market_conditions"
+  className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary"              name="market_conditions"
               value={formData.market_conditions || ''}
               onChange={handleChange}
               style={{
@@ -174,9 +174,9 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-gray-200 font-medium">Setup Description:</label>
+            <label className="block mb-1 text-on-surface font-medium">Setup Description:</label>
             <textarea
-  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"              name="setup_description"
+  className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary"              name="setup_description"
               value={formData.setup_description || ''}
               onChange={handleChange}
               style={{
@@ -192,9 +192,9 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-gray-200 font-medium">Reasoning:</label>
+            <label className="block mb-1 text-on-surface font-medium">Reasoning:</label>
             <textarea
-  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"              name="reasoning"
+  className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary"              name="reasoning"
               value={formData.reasoning || ''}
               onChange={handleChange}
               style={{
@@ -210,32 +210,32 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-gray-200 font-medium">Lessons Learned:</label>
+            <label className="block mb-1 text-on-surface font-medium">Lessons Learned:</label>
             <textarea
               name="lessons_learned"
               value={formData.lessons_learned || ''}
               onChange={handleChange}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           <div className="mb-4">
-            <label className="block mb-1 text-gray-200 font-medium">R-Multiple Initial Risk:</label>
+            <label className="block mb-1 text-on-surface font-medium">R-Multiple Initial Risk:</label>
             <input
               type="number"
               name="r_multiple_initial_risk"
               value={formData.r_multiple_initial_risk || ''}
               onChange={handleChange}
-              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
 
           {availableEmotions.length > 0 && (
             <div className="mb-4">
-              <label className="block mb-1 text-gray-200 font-medium">Emotions:</label>
+              <label className="block mb-1 text-on-surface font-medium">Emotions:</label>
               <div className="flex flex-wrap gap-3">
                 {availableEmotions.map(emotion => (
-                  <label key={emotion.emotion_id} className="flex items-center text-gray-200">
+                  <label key={emotion.emotion_id} className="flex items-center text-on-surface">
                     <input
                       type="checkbox"
                       checked={selectedEmotions.includes(emotion.emotion_id)}
@@ -252,13 +252,13 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
           <button
             type="button"
             onClick={onCancel}
-            className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors font-semibold"
+            className="py-2 px-4 bg-surface text-on-surface rounded hover:bg-surface/80 transition-colors font-semibold border border-card-stroke"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="py-2 px-4 bg-blue-400 text-black rounded hover:bg-blue-500 transition-colors font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+            className="py-2 px-4 bg-primary text-on-primary rounded hover:bg-primary/90 transition-colors font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
           >
             Save
           </button>

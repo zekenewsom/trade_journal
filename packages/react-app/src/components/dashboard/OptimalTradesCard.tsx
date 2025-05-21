@@ -1,6 +1,7 @@
 import { MetricCard } from '../ui/MetricCard';
 import CountUp from 'react-countup';
 import { AreaChart, Area, ResponsiveContainer, XAxis } from 'recharts';
+import { colors } from '../../styles/design-tokens';
 
 interface OptimalTradesCardProps {
   value: number;
@@ -31,7 +32,7 @@ export function OptimalTradesCard({
           $<CountUp end={value} separator="," decimals={2} preserveValue />
         </div>
         
-        <div className={`text-sm ${isNegative ? 'text-negative' : 'text-positive'}`}>
+        <div className="text-sm" style={{ color: isNegative ? colors.error : colors.success }}>
           {isNegative ? '' : '+'}
           {change}%
         </div>
@@ -41,20 +42,20 @@ export function OptimalTradesCard({
             <AreaChart data={mockData}>
               <defs>
                 <linearGradient id="optimalGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={isNegative ? "#FF4D67" : "#00E28A"} stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor={isNegative ? "#FF4D67" : "#00E28A"} stopOpacity={0}/>
+                  <stop offset="5%" stopColor={isNegative ? colors.error : colors.success} stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor={isNegative ? colors.error : colors.success} stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <XAxis 
                 dataKey="month" 
-                tick={{ fontSize: 10, fill: '#9ca3af' }}
+                tick={{ fontSize: 10, fill: colors.textSecondary }}
                 axisLine={false}
                 tickLine={false}
               />
               <Area 
                 type="monotone" 
                 dataKey="value" 
-                stroke={isNegative ? "#FF4D67" : "#00E28A"} 
+                stroke={isNegative ? colors.error : colors.success} 
                 fillOpacity={1}
                 fill="url(#optimalGradient)"
               />

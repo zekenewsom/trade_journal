@@ -1,59 +1,74 @@
 import { createTheme } from '@mui/material/styles';
+import { colors, typography, borderRadius, shadows } from './styles/design-tokens';
 
 export const darkTheme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#8be9fd', // Cyan
+      main: colors.primary,
+      contrastText: colors.onPrimary,
     },
     secondary: {
-      main: '#ff79c6', // Pink
+      main: colors.secondary,
+      contrastText: colors.onSecondary,
     },
     background: {
-      default: '#161a25', // Main background
-      paper: '#1e2230',   // Card background
+      default: colors.background,
+      paper: colors.surface,
+    },
+    surface: {
+      main: colors.surface,
+      contrastText: colors.onSurface,
     },
     text: {
-      primary: '#f8f8f2',  // Light text
-      secondary: '#bd93f9',// Purple-ish text
+      primary: colors.textPrimary,
+      secondary: colors.textSecondary,
     },
     success: {
-      main: '#50fa7b', // Green
+      main: colors.success,
+      contrastText: colors.onSuccess,
     },
     error: {
-      main: '#ff5555',   // Red
+      main: colors.error,
+      contrastText: colors.onError,
     },
     info: {
-      main: '#8be9fd',
+      main: colors.info,
+      contrastText: colors.onInfo,
     },
     warning: {
-      main: '#f1fa8c', // Yellow
-    }
+      main: colors.warning,
+      contrastText: colors.onWarning,
+    },
+    divider: colors.border,
   },
   typography: {
-    fontFamily: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-    h4: { fontWeight: 700, color: '#f8f8f2' },
-    h5: { fontWeight: 600, color: '#f8f8f2' },
-    h6: { color: '#50fa7b', fontWeight: 500, marginBottom: '1rem' }, // Section titles
-    subtitle1: { color: '#8be9fd' }, // Card titles
-    subtitle2: { color: '#bd93f9' }, // Card subtitles/descriptions
-    body1: { color: '#f8f8f2'},
-    caption: { color: '#6272a4'} // Dimmer text
+    fontFamily: typography.fontFamily.ui,
+    fontWeightRegular: typography.fontWeight.normal,
+    fontWeightMedium: typography.fontWeight.semiBold,
+    fontWeightBold: typography.fontWeight.bold,
+    h4: { fontWeight: typography.fontWeight.bold, color: colors.onBackground },
+    h5: { fontWeight: typography.fontWeight.semiBold, color: colors.onBackground },
+    h6: { color: colors.success, fontWeight: typography.fontWeight.normal, marginBottom: '1rem' },
+    subtitle1: { color: colors.primary },
+    subtitle2: { color: colors.textSecondary },
+    body1: { color: colors.onBackground },
+    caption: { color: colors.textSecondary },
   },
   components: {
     MuiPaper: {
       styleOverrides: {
         root: {
           backgroundImage: 'none', // Remove MUI's default gradient on Paper in dark mode
-          borderRadius: '8px',
-          boxShadow: '0px 4px 12px rgba(0,0,0,0.3)',
+          borderRadius: borderRadius['2xl'],
+          boxShadow: shadows.elevation2,
         },
       },
     },
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: '6px',
+          borderRadius: borderRadius.lg,
           textTransform: 'none',
         }
       }

@@ -11,6 +11,7 @@ import {
 import type { TooltipProps } from 'recharts';
 import { MetricCard } from '../ui/MetricCard';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
+import { colors } from '../../styles/design-tokens';
 
 interface ReturnScatterChartProps {
   data: Array<{
@@ -27,10 +28,10 @@ export function ReturnScatterChart({ data }: ReturnScatterChartProps) {
       const item = payload[0].payload;
       
       return (
-        <div className="bg-dark-600 p-2 border border-dark-400 rounded shadow-lg">
+        <div className="p-2 border rounded shadow-lg" style={{ background: colors.surfaceVariant, borderColor: colors.border }}>
           <p className="text-xs font-medium">{item.ticker}</p>
-          <p className="text-xs text-gray-400">Risk: {item.x.toFixed(2)}</p>
-          <p className={`text-xs ${item.y >= 0 ? 'text-positive' : 'text-negative'}`}>
+          <p className="text-xs" style={{ color: colors.textSecondary }}>Risk: {item.x.toFixed(2)}</p>
+          <p className="text-xs" style={{ color: item.y >= 0 ? colors.success : colors.error }}>
             Return: {item.y >= 0 ? '+' : ''}{item.y.toFixed(2)}%
           </p>
         </div>
@@ -42,13 +43,13 @@ export function ReturnScatterChart({ data }: ReturnScatterChartProps) {
   // Prepare data with fill colors
   const dataWithColors = data.map(item => ({
     ...item,
-    fill: item.y >= 0 ? '#00E28A' : '#FF4D67'
+    fill: item.y >= 0 ? colors.success : colors.error
   }));
 
   return (
     <MetricCard title="Return vs Risk Scatter" size="lg" className="col-span-6 row-span-2">
       <div className="h-64 relative">
-        <div className="absolute inset-0 flex items-center justify-between px-8 text-xs text-gray-400 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-between px-8 text-xs pointer-events-none" style={{ color: colors.textSecondary }}>
           <div className="text-center">
             <div>Lower risk</div>
             <div>Lower return</div>
@@ -63,7 +64,7 @@ export function ReturnScatterChart({ data }: ReturnScatterChartProps) {
           <ScatterChart
             margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
             <XAxis
               type="number"
               dataKey="x"
@@ -92,7 +93,7 @@ export function ReturnScatterChart({ data }: ReturnScatterChartProps) {
             <Scatter
               name="Trades"
               data={dataWithColors}
-              fill="#00E28A"
+              fill={colors.success}
             />
           </ScatterChart>
         </ResponsiveContainer>
