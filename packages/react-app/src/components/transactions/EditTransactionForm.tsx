@@ -55,33 +55,14 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0, 0, 0, 0.7)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000
-    }}>
-      <div style={{
-        backgroundColor: '#2a2f36',
-        padding: '20px',
-        borderRadius: '8px',
-        width: '90%',
-        maxWidth: '600px',
-        maxHeight: '90vh',
-        overflowY: 'auto'
-      }}>
-        <h2 style={{ color: '#fff', marginBottom: '20px' }}>Edit Transaction</h2>
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Quantity:</label>
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
+      <div className="bg-gray-800 p-6 rounded-lg w-[90%] max-w-xl max-h-[90vh] overflow-y-auto shadow-lg">
+        <h2 className="text-white text-2xl font-bold mb-6">Edit Transaction</h2>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="mb-4">
+            <label className="block mb-1 text-gray-200 font-medium">Quantity:</label>
             <input
-              type="number"
+  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"              type="number"
               name="quantity"
               value={formData.quantity}
               onChange={handleChange}
@@ -97,10 +78,10 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
             />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Price:</label>
+          <div className="mb-4">
+            <label className="block mb-1 text-gray-200 font-medium">Price:</label>
             <input
-              type="number"
+  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"              type="number"
               name="price"
               value={formData.price}
               onChange={handleChange}
@@ -116,10 +97,10 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
             />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Date/Time:</label>
+          <div className="mb-4">
+            <label className="block mb-1 text-gray-200 font-medium">Date/Time:</label>
             <input
-              type="datetime-local"
+  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"              type="datetime-local"
               name="datetime"
               value={formData.datetime}
               onChange={handleChange}
@@ -135,46 +116,31 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
             />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Fees:</label>
+          <div className="mb-4">
+            <label className="block mb-1 text-gray-200 font-medium">Fees:</label>
             <input
               type="number"
               name="fees"
               value={formData.fees}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
-                borderRadius: '4px',
-                color: '#fff'
-              }}
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Notes:</label>
+          <div className="mb-4">
+            <label className="block mb-1 text-gray-200 font-medium">Notes:</label>
             <textarea
               name="notes"
               value={formData.notes}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
-                borderRadius: '4px',
-                color: '#fff',
-                minHeight: '100px'
-              }}
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Strategy:</label>
+          <div className="mb-4">
+            <label className="block mb-1 text-gray-200 font-medium">Strategy:</label>
             <input
-              type="number"
+  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"              type="number"
               name="strategy_id"
               value={formData.strategy_id || ''}
               onChange={handleChange}
@@ -189,10 +155,10 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
             />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Market Conditions:</label>
+          <div className="mb-4">
+            <label className="block mb-1 text-gray-200 font-medium">Market Conditions:</label>
             <textarea
-              name="market_conditions"
+  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"              name="market_conditions"
               value={formData.market_conditions || ''}
               onChange={handleChange}
               style={{
@@ -207,10 +173,10 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
             />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Setup Description:</label>
+          <div className="mb-4">
+            <label className="block mb-1 text-gray-200 font-medium">Setup Description:</label>
             <textarea
-              name="setup_description"
+  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"              name="setup_description"
               value={formData.setup_description || ''}
               onChange={handleChange}
               style={{
@@ -225,10 +191,10 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
             />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Reasoning:</label>
+          <div className="mb-4">
+            <label className="block mb-1 text-gray-200 font-medium">Reasoning:</label>
             <textarea
-              name="reasoning"
+  className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"              name="reasoning"
               value={formData.reasoning || ''}
               onChange={handleChange}
               style={{
@@ -243,53 +209,38 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
             />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Lessons Learned:</label>
+          <div className="mb-4">
+            <label className="block mb-1 text-gray-200 font-medium">Lessons Learned:</label>
             <textarea
               name="lessons_learned"
               value={formData.lessons_learned || ''}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
-                borderRadius: '4px',
-                color: '#fff',
-                minHeight: '100px'
-              }}
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white min-h-[100px] focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          <div style={{ marginBottom: '15px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>R-Multiple Initial Risk:</label>
+          <div className="mb-4">
+            <label className="block mb-1 text-gray-200 font-medium">R-Multiple Initial Risk:</label>
             <input
               type="number"
               name="r_multiple_initial_risk"
               value={formData.r_multiple_initial_risk || ''}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
-                borderRadius: '4px',
-                color: '#fff'
-              }}
+              className="w-full p-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           {availableEmotions.length > 0 && (
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '5px', color: '#fff' }}>Emotions:</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+            <div className="mb-4">
+              <label className="block mb-1 text-gray-200 font-medium">Emotions:</label>
+              <div className="flex flex-wrap gap-3">
                 {availableEmotions.map(emotion => (
-                  <label key={emotion.emotion_id} style={{ display: 'flex', alignItems: 'center', color: '#fff' }}>
+                  <label key={emotion.emotion_id} className="flex items-center text-gray-200">
                     <input
                       type="checkbox"
                       checked={selectedEmotions.includes(emotion.emotion_id)}
                       onChange={() => handleEmotionChange(emotion.emotion_id)}
-                      style={{ marginRight: '5px' }}
+                      className="mr-2 accent-blue-500"
                     />
                     {emotion.emotion_name}
                   </label>
@@ -297,40 +248,25 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               </div>
             </div>
           )}
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '20px' }}>
-            <button
-              type="button"
-              onClick={onCancel}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#6c757d',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#007bff',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              Save
-            </button>
-          </div>
-        </form>
-      </div>
+        <div className="flex gap-3 mt-6 justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="py-2 px-4 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors font-semibold"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="py-2 px-4 bg-blue-400 text-black rounded hover:bg-blue-500 transition-colors font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            Save
+          </button>
+        </div>
+      </form>
     </div>
-  );
+  </div>
+);
 };
 
 export default EditTransactionForm;

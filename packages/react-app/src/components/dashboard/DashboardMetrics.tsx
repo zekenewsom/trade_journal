@@ -1,8 +1,9 @@
 // File: zekenewsom-trade_journal/packages/react-app/src/components/dashboard/DashboardMetrics.tsx
 // Modified for Stage 6 to use getAnalyticsData
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { AnalyticsData } from '../../types';
+import { useAppStore } from '../../stores/appStore';
 import { Box, Grid, Typography, CircularProgress, Alert, Paper, Button, Select, MenuItem, InputLabel, FormControl, Avatar, IconButton } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -22,94 +23,33 @@ import PnlHeatmapCalendar from './charts/PnlHeatmapCalendar';
 // import icons as desired from '@mui/icons-material' for InfoCard
 
 const DashboardMetrics: React.FC = () => {
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { analytics, isLoadingAnalytics, analyticsError, fetchAnalyticsData } = useAppStore();
   // Header filter state
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [selectedStrategy, setSelectedStrategy] = useState<number | ''>('');
 
-  // Simulate re-fetch on filter change (replace with real API call as needed)
   useEffect(() => {
-    const fetchAnalytics = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        if (window.electronAPI && window.electronAPI.getAnalyticsData) {
-          const filters: any = {
-            ...(startDate ? { startDate: startDate.toISOString() } : {}),
-            ...(endDate ? { endDate: endDate.toISOString() } : {}),
-            ...(selectedStrategy ? { strategy_id: selectedStrategy } : {})
-          };
-          const data = await window.electronAPI.getAnalyticsData(filters);
-          if (data == null) {
-            throw new Error('No analytics data returned from backend.');
-          }
-          if ('error' in data) {
-            throw new Error(data.error);
-          }
-          setAnalytics(data);
-        } else {
-          throw new Error('getAnalyticsData API not available.');
-        }
-      } catch (err) {
-        console.error('Error fetching dashboard analytics:', err);
-        setError((err as Error).message);
-        setAnalytics(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAnalytics();
+    fetchAnalyticsData({
+      ...(startDate ? { startDate: startDate.toISOString() } : {}),
+      ...(endDate ? { endDate: endDate.toISOString() } : {}),
+      ...(selectedStrategy ? { strategy_id: selectedStrategy } : {})
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [startDate, endDate, selectedStrategy]);
 
-  useEffect(() => {
-    const fetchAnalytics = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        if (window.electronAPI && window.electronAPI.getAnalyticsData) {
-          const data = await window.electronAPI.getAnalyticsData();
-          if (data == null) {
-            throw new Error('No analytics data returned from backend.');
-          }
-          if ('error' in data) {
-            throw new Error(data.error);
-          }
-          setAnalytics(data);
-        } else {
-          throw new Error('getAnalyticsData API not available.');
-        }
-      } catch (err) {
-        console.error('Error fetching dashboard analytics:', err);
-        setError((err as Error).message);
-        setAnalytics(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchAnalytics();
-  }, []);
-
-  if (isLoading)
+  if (isLoadingAnalytics)
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
         <CircularProgress />
       </Box>
     );
-  if (error)
+  if (analyticsError)
     return (
       <Alert severity="error" sx={{ m: 2 }}>
-        Error loading metrics: {error}
+        Error loading metrics: {analyticsError}
       </Alert>
     );
-  if (!analytics)
-    return <Typography sx={{ m: 2 }}>No analytics data available for dashboard.</Typography>;
-
-  // Main grid layout with placeholder cards for each section
-  if (error) return <p style={{ color: 'red' }}>Error loading metrics: {error}</p>;
   if (!analytics)
     return <Typography sx={{ m: 2 }}>No analytics data available for dashboard.</Typography>;
 

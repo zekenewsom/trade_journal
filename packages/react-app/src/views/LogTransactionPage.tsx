@@ -1,9 +1,10 @@
 // File: zekenewsom-trade_journal/packages/react-app/src/views/LogTransactionPage.tsx
 // New file for Stage 5
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import LogTransactionForm from '../components/transactions/LogTransactionForm';
 import type { LogTransactionFormData } from '../types';
+import { useAppStore } from '../stores/appStore';
 
 interface LogTransactionPageProps {
   onTransactionLogged: () => void;
@@ -20,22 +21,10 @@ const LogTransactionPage: React.FC<LogTransactionPageProps> = ({
   onCancel,
   initialValues 
 }) => {
-  const [availableEmotions, setAvailableEmotions] = useState([]);
-
-  useEffect(() => {
-    console.log('[DEBUG] LogTransactionPage mounted');
-    const fetchEmotions = async () => {
-      try {
-        const emotions = await window.electronAPI.getEmotions();
-        setAvailableEmotions(emotions);
-      } catch (err) {
-        console.error('Error fetching emotions:', err);
-      }
-    };
-    fetchEmotions();
-  }, []);
+  const { availableEmotions, refreshTrades } = useAppStore();
 
   const handleSubmit = async () => {
+    await refreshTrades();
     onTransactionLogged();
   };
 

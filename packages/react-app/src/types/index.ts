@@ -261,6 +261,9 @@ export interface AnalyticsData {
 }
 
 export interface ElectronAPIDefinition {
+  backupDatabase: () => Promise<{ success: boolean; message: string }>;
+  restoreDatabase: () => Promise<{ success: boolean; message: string }>;
+
   getAppVersion: () => Promise<string>;
   testDbConnection: () => Promise<{ status: 'ok' | 'error'; message: string } | string>;
   logTransaction: (data: LogTransactionPayload) => Promise<{ success: boolean; message: string; tradeId?: number; transactionId?: number; unrealized_pnl?: number; current_open_quantity?: number; average_open_price?: number }>;

@@ -7,6 +7,7 @@ const dbModule = require('./src/database/db');
 
 const userDataPath = app.getPath('userData');
 const dbPath = path.join(userDataPath, 'trade_journal.sqlite3');
+console.log('[ELECTRON MAIN] Using DB at:', dbPath);
 // ... (createWindow, app lifecycle events - same as your Stage 5)
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -42,7 +43,12 @@ function createWindow() {
     mainWindow.loadFile(path.join(__dirname, '../react-app/dist/index.html'));
   }
 }
-app.whenReady().then(() => { dbModule.initializeDatabase(dbPath); createWindow(); /* ... */ });
+app.whenReady().then(() => {
+  dbModule.initializeDatabase(dbPath);
+  console.log('[ELECTRON MAIN] Database initialized at:', dbPath);
+  createWindow();
+  // You can add further startup logic here
+});
 app.on('window-all-closed', () => { /* ... */ });
 
 // --- IPC Handlers ---

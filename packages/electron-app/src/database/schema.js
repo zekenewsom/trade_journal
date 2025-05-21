@@ -108,26 +108,13 @@ CREATE TABLE IF NOT EXISTS trade_attachments (
 );`;
 
 function createTables(db) {
-  console.log('Applying database schema (Stage 6 - mark price)...');
-  try {
-    // For dev, dropping ensures schema updates. In prod, use migrations.
-    // db.exec('DROP TABLE IF EXISTS transactions;'); // Be cautious with this
-    // db.exec('DROP TABLE IF EXISTS trades;'); // Be cautious with this
-
-    db.exec(accountsTable);
-    db.exec(strategiesTable);
-    db.exec(emotionsTable);
-    db.exec(tradesTable); // Updated
-    db.exec(tradesUpdatedAtTrigger);
-    db.exec(transactionsTable);
-    db.exec(transactionEmotionsTable);
-    db.exec(tradeEmotionsTable);
-    db.exec(tradeAttachmentsTable);
-    console.log('Database schema applied successfully (Stage 6 - mark price).');
-  } catch (error) {
-    console.error('Error applying database schema:', error);
-    throw error;
-  }
+  // Only ensure the migrations table exists (for legacy use, but migrationService now handles this)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version TEXT PRIMARY KEY NOT NULL,
+      applied_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
 }
 
 module.exports = { createTables };

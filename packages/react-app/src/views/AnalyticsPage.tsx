@@ -318,7 +318,7 @@ const AnalyticsPage: React.FC = () => {
       {/* Performance Tables Grid */}
       <Grid container spacing={3} alignItems="stretch" sx={{ mb: 4 }}>
         {analytics.pnlByAssetClass && analytics.pnlByAssetClass.length > 0 && (
-          <Grid item={true} xs={12} md={4} lg={4}>
+          <Grid item xs={12} md={4} lg={4}>
             <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
               <GroupedPerformanceTable
                 title="Performance by Asset Class"
@@ -328,7 +328,7 @@ const AnalyticsPage: React.FC = () => {
           </Grid>
         )}
         {analytics.pnlByExchange && analytics.pnlByExchange.length > 0 && (
-          <Grid item={true} xs={12} md={4} lg={4}>
+          <Grid item xs={12} md={4} lg={4}>
             <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
               <GroupedPerformanceTable
                 title="Performance by Exchange"
@@ -338,7 +338,7 @@ const AnalyticsPage: React.FC = () => {
           </Grid>
         )}
         {analytics.pnlByStrategy && analytics.pnlByStrategy.length > 0 && (
-          <Grid item={true} xs={12} md={4} lg={4}>
+          <Grid item xs={12} md={4} lg={4}>
             <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
               <GroupedPerformanceTable
                 title="Performance by Strategy"
@@ -348,7 +348,7 @@ const AnalyticsPage: React.FC = () => {
           </Grid>
         )}
         {analytics.pnlByEmotion && analytics.pnlByEmotion.length > 0 && (
-          <Grid item={true} xs={12} md={4} lg={4}>
+          <Grid item xs={12} md={4} lg={4}>
             <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
               <GroupedPerformanceTable
                 title="Performance by Emotional State"
@@ -360,7 +360,7 @@ const AnalyticsPage: React.FC = () => {
       </Grid>
 
       {/* Time-based Performance Charts */}
-      <Grid container={true} spacing={3} alignItems="stretch">
+      <Grid container spacing={3} alignItems="stretch">
         {analytics.pnlByMonth && analytics.pnlByMonth.length > 0 && (
           <Grid item xs={12} md={6}>
             <Paper sx={{ p: 3, backgroundColor: '#23263a', color: '#e0e0e0', borderRadius: 3, boxShadow: 1 }}>
