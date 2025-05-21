@@ -11,7 +11,6 @@ export function MaxDrawdownCard({
   value = -12.47,
   amountLost = 156483.48
 }: Partial<MaxDrawdownCardProps>) {
-  const theme = useTheme();
   // Drawdown is always shown as negative, so we need to ensure the value is negative
   const drawdownValue = value <= 0 ? value : -value;
   

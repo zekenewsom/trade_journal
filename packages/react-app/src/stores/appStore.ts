@@ -11,12 +11,15 @@ declare global {
   }
 }
 
-type View =
+export type View =
   | 'dashboard'
+  | 'portfolio'
+  | 'analyticsPage'
   | 'tradesList'
+  | 'watchlist'
+  | 'settings'
   | 'logTransactionForm'
-  | 'editTradeDetailsForm'
-  | 'analyticsPage';
+  | 'editTradeDetailsForm';
 
 interface AppViewParams {
   initialValues?: {

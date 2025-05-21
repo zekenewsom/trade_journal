@@ -6,6 +6,10 @@ import React from 'react';
 import type { DurationPerformanceData } from '../../types';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
+function useIsMobile() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 639px)').matches;
+}
 
 interface PnlVsDurationScatterPlotProps {
   data: DurationPerformanceData[];
@@ -17,6 +21,7 @@ interface FormattedDataPoint extends DurationPerformanceData {
 }
 
 const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props: PnlVsDurationScatterPlotProps) => {
+  const isMobile = useIsMobile();
 
   // Validate input data
   const { data } = props;
@@ -55,7 +60,7 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
   return (
     <div>
       <h4 className="mb-3 text-lg font-semibold text-on-surface">Net P&L vs. Trade Duration (Fully Closed Trades)</h4>
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={isMobile ? 240 : 400}>
         <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
           <CartesianGrid stroke="var(--color-card-stroke)" />
           <XAxis 
@@ -85,7 +90,7 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
               return value;
             }}
           />
-          <Legend />
+          {!isMobile && <Legend />}
           <Scatter 
             name="Trades" 
             data={formattedData} 

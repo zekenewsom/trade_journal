@@ -2,12 +2,17 @@ import React, { useMemo } from 'react';
 import { AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area } from 'recharts';
 import type { EquityCurvePoint } from '../../types';
 
+function useIsMobile() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 639px)').matches;
+}
 
 interface Props {
   equityCurve: EquityCurvePoint[];
 }
 
 const EquityCurveChart: React.FC<Props> = ({ equityCurve }: Props) => {
+  const isMobile = useIsMobile();
   const equityData = useMemo(() => {
     let peak = -Infinity;
     return equityCurve.map((point: EquityCurvePoint) => {
@@ -36,7 +41,7 @@ const EquityCurveChart: React.FC<Props> = ({ equityCurve }: Props) => {
       } as React.CSSProperties}
     >
       <h3 className="mb-4 text-xl font-semibold text-primary">Equity Curve & Drawdown</h3>
-      <ResponsiveContainer width="100%" height={400}>
+      <ResponsiveContainer width="100%" height={isMobile ? 240 : 400}>
         <AreaChart data={equityData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <defs>
             <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
@@ -53,6 +58,7 @@ const EquityCurveChart: React.FC<Props> = ({ equityCurve }: Props) => {
             dataKey="date" 
             tick={{ fontSize: 10, fill: 'var(--color-on-surface-variant)' }}
             tickFormatter={(value) => new Date(value).toLocaleDateString()}
+            interval={isMobile ? 'preserveStartEnd' : 0}
           />
           <YAxis 
             yAxisId="equity"
@@ -79,7 +85,7 @@ const EquityCurveChart: React.FC<Props> = ({ equityCurve }: Props) => {
               borderRadius: '8px'
             }}
           />
-          <Legend />
+          {!isMobile && <Legend />}
           <Area
             yAxisId="equity"
             type="monotone"
@@ -104,4 +110,4 @@ const EquityCurveChart: React.FC<Props> = ({ equityCurve }: Props) => {
   );
 };
 
-export default EquityCurveChart; 
+export default EquityCurveChart;

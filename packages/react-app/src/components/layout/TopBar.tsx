@@ -1,7 +1,11 @@
 import { Bell, Calendar, Search } from 'lucide-react';
 import { format } from 'date-fns';
 
-export function TopBar() {
+interface TopBarProps {
+  onMenuClick?: () => void;
+}
+
+export function TopBar({ onMenuClick }: TopBarProps) {
   const dateRange = {
     start: new Date(2023, 0, 1), // Jan 1, 2023
     end: new Date(2023, 4, 10)   // May 10, 2023
@@ -10,6 +14,14 @@ export function TopBar() {
   return (
     <header className="h-14 flex items-center justify-between px-4 bg-surface border-b border-card-stroke">
       <div className="flex items-center gap-4">
+        {/* Hamburger menu on mobile */}
+        <button
+          className="md:hidden mr-2 p-2 rounded focus:outline-none text-on-surface-variant hover:text-primary"
+          aria-label="Open sidebar"
+          onClick={onMenuClick}
+        >
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+        </button>
         <div className="flex items-center gap-2 text-xs text-on-surface-variant">
           <span>Date Range:</span>
           <div className="flex items-center gap-1.5 rounded-md px-2 py-1 bg-surface-variant">

@@ -9,6 +9,7 @@ import EditTradeDetailsPage from './views/EditTradeDetailsPage';
 import TradesListPage from './views/TradesListPage';
 import DashboardMetrics from './components/dashboard/DashboardMetrics';
 import AnalyticsPage from './views/AnalyticsPage';
+import { AppShell } from './components/layout/AppShell';
 // Types now imported in the store as needed
 
 function App() {
@@ -103,14 +104,9 @@ function App() {
   };
 
   return (
-    <div className="app-container p-5">
-      <nav className="mb-5 border-b border-card-stroke pb-2.5 flex gap-2.5">
-        <button onClick={() => navigateTo('dashboard')} disabled={currentView === 'dashboard'}>Dashboard</button>
-        <button onClick={() => navigateTo('tradesList')} disabled={currentView === 'tradesList'}>Trades List</button>
-        <button onClick={() => navigateTo('analyticsPage')} disabled={currentView === 'analyticsPage'}>Analytics</button>
-      </nav>
+    <AppShell>
       {renderView()}
-    </div>
+    </AppShell>
   );
 }
 

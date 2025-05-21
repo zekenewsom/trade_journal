@@ -18,7 +18,7 @@ const TradeMetadataForm: React.FC<TradeMetadataFormProps> = ({
   onEmotionChange
 }) => {
   return (
-    <form className="flex flex-col gap-4 p-4 bg-surface rounded-2xl text-on-surface">
+    <form className="flex flex-col gap-4 p-4 bg-surface rounded-2xl text-on-surface w-full">
 
       <div className="flex flex-col gap-1 text-left">
         <label className="block mb-1 text-accent text-sm font-medium">Strategy</label>

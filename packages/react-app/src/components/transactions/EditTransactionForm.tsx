@@ -59,7 +59,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
       <div className="bg-surface p-6 rounded-2xl w-[90%] max-w-xl max-h-[90vh] overflow-y-auto shadow-elevation-2 border border-card-stroke">
         <h2 className="text-on-surface text-2xl font-bold mb-6">Edit Transaction</h2>
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">
           <div className="mb-4">
             <label className="block mb-1 text-on-surface font-medium">Quantity:</label>
             <input
@@ -197,17 +197,17 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               </div>
             </div>
           )}
-        <div className="flex gap-3 mt-6 justify-end">
+        <div className="flex flex-col gap-2 w-full sm:flex-row sm:gap-3 sm:w-auto mt-6 justify-end">
           <button
             type="button"
             onClick={onCancel}
-            className="py-2 px-4 bg-surface text-on-surface rounded hover:bg-surface/80 transition-colors font-semibold border border-card-stroke"
+            className="py-2 px-4 bg-surface text-on-surface rounded hover:bg-surface/80 transition-colors font-semibold border border-card-stroke w-full sm:w-auto"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="py-2 px-4 bg-primary text-on-primary rounded hover:bg-primary/90 transition-colors font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+            className="py-2 px-4 bg-primary text-on-primary rounded hover:bg-primary/90 transition-colors font-semibold disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
           >
             Save
           </button>

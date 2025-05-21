@@ -2,11 +2,16 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Cell } from 'recharts';
 import { colors } from '/src/styles/design-tokens';
 
+function useIsMobile() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 639px)').matches;
+}
 interface MonthlyReturnsChartProps {
   data?: { value: number; count: number }[];
 }
 
 export function MonthlyReturnsChart({ data }: MonthlyReturnsChartProps = {}) {
+  const isMobile = useIsMobile();
   // Mock data if not provided - each bar represents an R-multiple value range
   const mockData = data || [
     { value: -3, count: 3 },
@@ -21,7 +26,7 @@ export function MonthlyReturnsChart({ data }: MonthlyReturnsChartProps = {}) {
   ];
 
   return (
-    <div className="h-[300px] w-full">
+    <div className={isMobile ? "h-[180px] w-full" : "h-[300px] w-full"}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={mockData} barGap={2}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-card-stroke)" vertical={false} />
@@ -31,6 +36,7 @@ export function MonthlyReturnsChart({ data }: MonthlyReturnsChartProps = {}) {
             axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
             tickFormatter={(value) => `${value}R`}
+            interval={isMobile ? 'preserveStartEnd' : 0}
           />
           <YAxis 
             tick={{ fill: colors.textSecondary, fontSize: 12 }}

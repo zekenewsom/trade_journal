@@ -1,12 +1,17 @@
 import React from 'react';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, ZAxis } from 'recharts';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, ZAxis, Legend } from 'recharts';
 import { colors } from '/src/styles/design-tokens';
 
+function useIsMobile() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 639px)').matches;
+}
 interface RiskScatterChartProps {
   data?: { risk: number; return: number; size: number; ticker: string }[];
 }
 
 export function RiskScatterChart({ data }: RiskScatterChartProps = {}) {
+  const isMobile = useIsMobile();
   // Mock data if not provided
   const mockData = data || [
     { risk: 1.2, return: 2.5, size: 30000, ticker: 'AAPL' },
@@ -25,7 +30,7 @@ export function RiskScatterChart({ data }: RiskScatterChartProps = {}) {
   const negativeData = mockData.filter(item => item.return < 0);
 
   return (
-    <div className="h-[300px] w-full">
+    <div className={isMobile ? "h-[180px] w-full" : "h-[300px] w-full"}>
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={colors.cardStroke} />
@@ -71,6 +76,7 @@ export function RiskScatterChart({ data }: RiskScatterChartProps = {}) {
             fill={colors.success}
             fillOpacity={0.7}
           />
+          {!isMobile && <Legend />}
           <Scatter 
             name="Negative Returns" 
             data={negativeData} 

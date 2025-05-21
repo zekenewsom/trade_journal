@@ -2,11 +2,16 @@ import React from 'react';
 import { colors } from '/src/styles/design-tokens';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 
+function useIsMobile() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 639px)').matches;
+}
 interface DrawdownCurveChartProps {
   data?: { date: string; value: number }[];
 }
 
 export function DrawdownCurveChart({ data }: DrawdownCurveChartProps = {}) {
+  const isMobile = useIsMobile();
   // Mock data if not provided
   const mockData = data || [
     { date: 'Jan 1', value: 0 },
@@ -21,7 +26,7 @@ export function DrawdownCurveChart({ data }: DrawdownCurveChartProps = {}) {
   ];
 
   return (
-    <div className="h-[300px] w-full">
+    <div className={isMobile ? "h-[180px] w-full" : "h-[300px] w-full"}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={mockData}>
           <defs>
@@ -36,6 +41,7 @@ export function DrawdownCurveChart({ data }: DrawdownCurveChartProps = {}) {
             tick={{ fill: colors.textSecondary, fontSize: 12 }}
             axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
+            interval={isMobile ? 'preserveStartEnd' : 0}
           />
           <YAxis 
             tick={{ fill: colors.textSecondary, fontSize: 12 }}

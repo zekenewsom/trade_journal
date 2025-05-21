@@ -83,10 +83,14 @@ const mockPnLCalendarData = {
   '2023-05-31': 0.5,
 };
 
+import Button from '@mui/material/Button';
+import { useAppStore } from '../../stores/appStore';
+
 export function Dashboard() {
   const [unrealizedPnl, setUnrealizedPnl] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const { navigateTo } = useAppStore();
 
   useEffect(() => {
     let intervalId: number | null = null;
@@ -126,9 +130,37 @@ export function Dashboard() {
   }, []);
 
   return (
-    <div className="grid grid-cols-12 gap-4">
-      {/* Top Row - Main Stat Cards */}
-      <div className="col-span-4"><NetBalanceCard /></div>
+    <>
+      {/* Dashboard Action Buttons */}
+      <div className="flex gap-2.5 justify-center mt-5 mb-8">
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{ borderRadius: (theme) => theme.shape.borderRadius, px: 3, py: 1.5, fontWeight: 600 }}
+          onClick={() => navigateTo('logTransactionForm', { navTimestamp: Date.now() })}
+        >
+          Log New Transaction
+        </Button>
+        <Button
+          variant="outlined"
+          color="primary"
+          sx={{ borderRadius: (theme) => theme.shape.borderRadius, px: 3, py: 1.5, fontWeight: 600 }}
+          onClick={() => navigateTo('tradesList')}
+        >
+          View All Trades
+        </Button>
+        <Button
+          variant="outlined"
+          color="secondary"
+          sx={{ borderRadius: (theme) => theme.shape.borderRadius, px: 3, py: 1.5, fontWeight: 600 }}
+          onClick={() => navigateTo('analyticsPage')}
+        >
+          View Analytics
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-4">
+        {/* Top Row - Main Stat Cards */}
+        <div className="col-span-4"><NetBalanceCard /></div>
       <div className="col-span-4">
         {loading ? (
           <MetricCard title="Unrealized P&L" size="sm" status="default" className="order-2">
@@ -169,5 +201,6 @@ export function Dashboard() {
       <div className="col-span-4"><MetricCard title="Return vs Risk Scatter"><ReturnScatterChart data={mockScatterData} /></MetricCard></div>
       <div className="col-span-4"><MetricCard title="30-Day P&L Heatmap Calendar"><PnLCalendar data={mockPnLCalendarData} /></MetricCard></div>
     </div>
+    </>
   );
-} 
+}

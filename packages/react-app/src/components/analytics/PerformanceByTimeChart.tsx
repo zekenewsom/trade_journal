@@ -5,6 +5,10 @@ import React from 'react';
 import type { TimePerformanceData } from '../../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
+function useIsMobile() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 639px)').matches;
+}
 
 interface Props {
   title: string;
@@ -14,6 +18,7 @@ interface Props {
 }
 
 const PerformanceByTimeChart: React.FC<Props> = ({ title, data, dataKeyX, dataKeyY }) => {
+  const isMobile = useIsMobile();
   if (!data || data.length === 0) {
     return (
       <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -25,13 +30,14 @@ const PerformanceByTimeChart: React.FC<Props> = ({ title, data, dataKeyX, dataKe
   return (
     <div>
       <h3 className="text-xl font-semibold mb-4 text-on-surface">{title}</h3>
-      <div className="h-[400px]">
+      <div className={isMobile ? "h-[240px]" : "h-[400px]"}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-card-stroke)" />
             <XAxis 
               dataKey={dataKeyX} 
               tick={{ fontSize: 12, fill: 'var(--color-on-surface-variant)' }}
+              interval={isMobile ? 'preserveStartEnd' : 0}
             />
             <YAxis 
               tickFormatter={(value) => `$${value.toFixed(0)}`}
