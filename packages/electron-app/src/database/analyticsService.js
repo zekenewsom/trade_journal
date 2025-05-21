@@ -8,19 +8,23 @@ async function calculateAnalyticsData(filters = {}) {
     const db = getDb();
 
     let whereClause = '';
-    const params = [];
+    const queryParams = {}; // Using named parameters for clarity
 
-    // Date Range Filter (targets close_datetime for closed, open_datetime for open)
     if (filters.dateRange?.startDate) {
-      whereClause += (params.length > 0 ? 'AND ' : 'WHERE ') + '( (t.status = "Closed" AND t.close_datetime >= @startDate) OR (t.status = "Open" AND t.open_datetime >= @startDate) ) ';
-      params.startDate = filters.dateRange.startDate;
+      whereClause += (Object.keys(queryParams).length > 0 ? 'AND ' : 'WHERE ') + 
+                     '( (t.status = "Closed" AND t.close_datetime >= @startDate) OR (t.status = "Open" AND t.open_datetime >= @startDate) ) ';
+      queryParams.startDate = filters.dateRange.startDate;
     }
     if (filters.dateRange?.endDate) {
-      whereClause += (params.length > 0 ? 'AND ' : 'WHERE ') + '( (t.status = "Closed" AND t.close_datetime <= @endDate) OR (t.status = "Open" AND t.open_datetime <= @endDate) ) ';
-      params.endDate = filters.dateRange.endDate;
+      whereClause += (Object.keys(queryParams).length > 0 ? 'AND ' : 'WHERE ') + 
+                     '( (t.status = "Closed" AND t.close_datetime <= @endDate) OR (t.status = "Open" AND t.open_datetime <= @endDate) ) ';
+      queryParams.endDate = filters.dateRange.endDate;
     }
-    // Add other filters like asset_class, strategy_id, etc.
-    // Example: if (filters.strategy_id) { whereClause += ...; params.strategy_id = filters.strategy_id }
+    // Example for other filters:
+    // if (filters.asset_class) {
+    //   whereClause += (Object.keys(queryParams).length > 0 ? 'AND ' : 'WHERE ') + 't.asset_class = @assetClass ';
+    //   queryParams.assetClass = filters.asset_class;
+    // }
 
     const tradesFromDb = db.prepare(`
       SELECT t.*, s.strategy_name
@@ -28,7 +32,7 @@ async function calculateAnalyticsData(filters = {}) {
       LEFT JOIN strategies s ON t.strategy_id = s.strategy_id
       ${whereClause}
       ORDER BY COALESCE(t.close_datetime, t.open_datetime, t.created_at) ASC
-    `).all(params); // Use named parameters if your better-sqlite3 version supports it well with dynamic queries
+    `).all(queryParams);
 
     console.log(`[ANALYTICS_SERVICE] Found ${tradesFromDb.length} trades matching filters`);
 
@@ -78,26 +82,29 @@ async function calculateAnalyticsData(filters = {}) {
 
     for (const trade of tradesFromDb) {
       const transactions = db.prepare('SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC').all(trade.trade_id);
+      // CORE CHANGE: Use tradeService for P&L details
       const pnlDetails = tradeService.calculateTradePnlFifoEnhanced(trade, transactions);
 
       if (pnlDetails.openQuantity > 0 && pnlDetails.unrealizedGrossPnlOnOpenPortion !== null) {
         analyticsData.totalUnrealizedPnl = (analyticsData.totalUnrealizedPnl || 0) + pnlDetails.unrealizedGrossPnlOnOpenPortion;
       }
       
-      // Add to P&L series for all trades with any realized component or that are fully closed
       if (pnlDetails.realizedNetPnl !== 0 || pnlDetails.isFullyClosed) {
         analyticsData.pnlPerTradeSeries.push({
             date: new Date(pnlDetails.relevantDate).getTime(),
-            pnl: pnlDetails.realizedNetPnl, // Net PNL for the realized portion
+            pnl: pnlDetails.realizedNetPnl,
             isFullyClosed: pnlDetails.isFullyClosed
         });
       }
 
       if (pnlDetails.isFullyClosed) {
         analyticsData.totalFullyClosedTrades++;
-        analyticsData.totalRealizedNetPnl += pnlDetails.realizedNetPnl; // Accumulate net from fully closed trades
+        // For fully closed trades, use the realizedNetPnl from pnlDetails, which considers fees for matched portions.
+        // trade.fees_total is the sum of all transaction fees for that trade.
+        analyticsData.totalRealizedNetPnl += pnlDetails.realizedNetPnl; 
         analyticsData.totalRealizedGrossPnl += pnlDetails.realizedGrossPnl;
-        analyticsData.totalFeesPaidOnClosedPortions += (trade.fees_total || 0); // Use the trade's total fees
+        analyticsData.totalFeesPaidOnClosedPortions += (trade.fees_total || 0);
+
 
         if (pnlDetails.outcome === 'Win') {
           analyticsData.numberOfWinningTrades++; sumWinningPnl += pnlDetails.realizedNetPnl; currentWinStreak++; currentLossStreak = 0;
@@ -105,13 +112,13 @@ async function calculateAnalyticsData(filters = {}) {
         } else if (pnlDetails.outcome === 'Loss') {
           analyticsData.numberOfLosingTrades++; sumLosingPnl += pnlDetails.realizedNetPnl; currentLossStreak++; currentWinStreak = 0;
           analyticsData.longestLossStreak = Math.max(analyticsData.longestLossStreak, currentLossStreak);
-        } else { // Break Even
+        } else { 
           analyticsData.numberOfBreakEvenTrades++; currentWinStreak = 0; currentLossStreak = 0;
         }
-        const winLossBreakEven = analyticsData.winLossBreakEvenCounts.find(
-  c => c.name === pnlDetails.outcome || (pnlDetails.outcome === 'Break Even' && c.name === 'Break Even')
-);
-if (winLossBreakEven) winLossBreakEven.value++;
+        const outcomeIndex = analyticsData.winLossBreakEvenCounts.findIndex(c => c.name.toLowerCase() === (pnlDetails.outcome?.toLowerCase() || 'break even'));
+        if (outcomeIndex > -1) {
+            analyticsData.winLossBreakEvenCounts[outcomeIndex].value++;
+        }
 
 
         if (pnlDetails.realizedNetPnl > (analyticsData.largestWinPnl || -Infinity)) analyticsData.largestWinPnl = pnlDetails.realizedNetPnl;
@@ -141,8 +148,35 @@ if (winLossBreakEven) winLossBreakEven.value++;
         monthData.totalNetPnl += pnlDetails.realizedNetPnl; monthData.tradeCount++;
         if (pnlDetails.outcome === 'Win') monthData.wins++; else if (pnlDetails.outcome === 'Loss') monthData.losses++; else monthData.breakEvens++;
         
-        // ... (similar logic for pnlByDayOfWeek, pnlByAssetClass, pnlByExchange, pnlByStrategy) ...
-        // P&L By Emotion (using trade_emotions)
+        // --- P&L By Day of Week ---
+        const dayKey = groupDate.toLocaleString('default', { weekday: 'long' });
+        let dayData = analyticsData.pnlByDayOfWeek.find(d => d.period === dayKey);
+        if (!dayData) { dayData = { period: dayKey, totalNetPnl: 0, tradeCount: 0, winRate: null, wins: 0, losses: 0, breakEvens: 0 }; analyticsData.pnlByDayOfWeek.push(dayData); }
+        dayData.totalNetPnl += pnlDetails.realizedNetPnl; dayData.tradeCount++;
+        if (pnlDetails.outcome === 'Win') dayData.wins++; else if (pnlDetails.outcome === 'Loss') dayData.losses++; else dayData.breakEvens++;
+        
+        // --- P&L By Asset Class ---
+        const assetClassKey = trade.asset_class || 'N/A';
+        let assetClassData = analyticsData.pnlByAssetClass.find(a => a.name === assetClassKey);
+        if (!assetClassData) { assetClassData = { name: assetClassKey, totalNetPnl: 0, tradeCount: 0, winRate: null, wins: 0, losses: 0, breakEvens: 0 }; analyticsData.pnlByAssetClass.push(assetClassData); }
+        assetClassData.totalNetPnl += pnlDetails.realizedNetPnl; assetClassData.tradeCount++;
+        if (pnlDetails.outcome === 'Win') assetClassData.wins++; else if (pnlDetails.outcome === 'Loss') assetClassData.losses++; else assetClassData.breakEvens++;
+
+        // --- P&L By Exchange ---
+        const exchangeKey = trade.exchange || 'N/A';
+        let exchangeData = analyticsData.pnlByExchange.find(e => e.name === exchangeKey);
+        if (!exchangeData) { exchangeData = { name: exchangeKey, totalNetPnl: 0, tradeCount: 0, winRate: null, wins: 0, losses: 0, breakEvens: 0 }; analyticsData.pnlByExchange.push(exchangeData); }
+        exchangeData.totalNetPnl += pnlDetails.realizedNetPnl; exchangeData.tradeCount++;
+        if (pnlDetails.outcome === 'Win') exchangeData.wins++; else if (pnlDetails.outcome === 'Loss') exchangeData.losses++; else exchangeData.breakEvens++;
+
+        // --- P&L By Strategy ---
+        const strategyName = trade.strategy_name || 'Unspecified';
+        let strategyData = analyticsData.pnlByStrategy.find(s => s.name === strategyName);
+        if (!strategyData) { strategyData = { name: strategyName, totalNetPnl: 0, tradeCount: 0, winRate: null, wins: 0, losses: 0, breakEvens: 0 }; analyticsData.pnlByStrategy.push(strategyData); }
+        strategyData.totalNetPnl += pnlDetails.realizedNetPnl; strategyData.tradeCount++;
+        if (pnlDetails.outcome === 'Win') strategyData.wins++; else if (pnlDetails.outcome === 'Loss') strategyData.losses++; else strategyData.breakEvens++;
+        
+        // --- P&L By Emotion (using trade_emotions) ---
         const tradeEmotions = db.prepare('SELECT e.emotion_name FROM emotions e JOIN trade_emotions te ON e.emotion_id = te.emotion_id WHERE te.trade_id = ?').all(trade.trade_id).map(e => e.emotion_name);
         tradeEmotions.forEach(emotionName => {
           let emotionGroupData = analyticsData.pnlByEmotion.find(e => e.name === emotionName);
@@ -152,11 +186,12 @@ if (winLossBreakEven) winLossBreakEven.value++;
         });
       }
     }
+
     analyticsData.rMultipleDistribution = Object.entries(rMultipleBuckets).map(([range, count]) => ({ range, count })).filter(item => item.count > 0 || item.range === "N/A");
     
     let cumulativePnlForEquity = 0;
     analyticsData.pnlPerTradeSeries.sort((a, b) => a.date - b.date).forEach(point => {
-        cumulativePnlForEquity += point.pnl; // Use the net P&L for realized part of the trade
+        cumulativePnlForEquity += point.pnl;
         analyticsData.equityCurve.push({ date: point.date, equity: cumulativePnlForEquity });
     });
 
@@ -167,9 +202,9 @@ if (winLossBreakEven) winLossBreakEven.value++;
       if (countRMultiples > 0) analyticsData.avgRMultiple = sumRMultiples / countRMultiples;
     }
     
-    const calculateWinRateForGroup = (group) => { if (group.tradeCount > 0 && group.wins !== undefined) group.winRate = (group.wins / group.tradeCount) * 100; };
-    [analyticsData.pnlByMonth, analyticsData.pnlByDayOfWeek, analyticsData.pnlByAssetClass, analyticsData.pnlByExchange, analyticsData.pnlByStrategy, analyticsData.pnlByEmotion].flat().forEach(calculateWinRateForGroup);
-    analyticsData.pnlByMonth.sort((a,b) => a.period.localeCompare(b.period));
+    const calculateWinRateForGroup = (group) => { if (group.tradeCount > 0 && typeof group.wins === 'number') group.winRate = (group.wins / group.tradeCount) * 100; };
+    [analyticsData.pnlByMonth, analyticsData.pnlByDayOfWeek, analyticsData.pnlByAssetClass, analyticsData.pnlByExchange, analyticsData.pnlByStrategy, analyticsData.pnlByEmotion].forEach(groupArray => groupArray.forEach(calculateWinRateForGroup));
+    analyticsData.pnlByMonth.sort((a,b) => a.period.localeCompare(b.period)); // Sort months chronologically
 
     let peakEquity = 0; let maxDrawdownRatio = 0;
     if (analyticsData.equityCurve.length > 0) {
@@ -186,6 +221,7 @@ if (winLossBreakEven) winLossBreakEven.value++;
     return analyticsData;
   } catch (error) {
     console.error('[ANALYTICS_SERVICE] Error calculating analytics data:', error);
+    // Return an object that matches the error structure expected by the frontend
     return { error: (error instanceof Error ? error.message : String(error)) || 'Failed to calculate analytics data' };
   }
 }
