@@ -3,13 +3,15 @@
 
 // Modularized: Connection and initialization logic moved to connection.js
 const connection = require('./connection');
+const { runMigrations } = require('./migrationService');
+const path = require('path');
+const fs = require('fs');
 
 // Re-export connection functions
 const { initializeDatabase, getDb, closeDatabase, seedInitialData } = connection;
 
 // Modularized: Trade management functions moved to tradeService.js
 const tradeService = require('./tradeService');
-
 
 
 // --- Read Operations for UI (Modified for Stage 6) ---
@@ -27,6 +29,7 @@ function fetchTradesForListView() {
       t.status, 
       t.open_datetime, 
       t.close_datetime, 
+      t.latest_trade, 
       t.fees_total, 
       t.strategy_id,
       s.strategy_name,

@@ -9,6 +9,21 @@ function _recalculateTradeState(trade_id) {
     'SELECT transaction_id, action, quantity, fees, datetime FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC'
   ).all(trade_id);
 
+  // Find the latest transaction datetime for all trades in this position
+  // First, get the current trade's position-defining fields
+  const tradeInfo = currentDb.prepare('SELECT instrument_ticker, asset_class, exchange, trade_direction FROM trades WHERE trade_id = ?').get(trade_id);
+  let latestTradeDatetime = null;
+  if (tradeInfo) {
+    const posTx = currentDb.prepare(`
+      SELECT MAX(datetime) as max_datetime FROM transactions
+      WHERE trade_id IN (
+        SELECT trade_id FROM trades
+        WHERE instrument_ticker = ? AND asset_class = ? AND exchange = ? AND trade_direction = ?
+      )
+    `).get(tradeInfo.instrument_ticker, tradeInfo.asset_class, tradeInfo.exchange, tradeInfo.trade_direction);
+    latestTradeDatetime = posTx && posTx.max_datetime ? posTx.max_datetime : null;
+  }
+
   if (allTransactions.length === 0) {
     console.warn(`Trade ID ${trade_id} has no transactions. Deleting parent trade and related data.`);
     currentDb.prepare('DELETE FROM trade_emotions WHERE trade_id = ?').run(trade_id);
@@ -59,6 +74,7 @@ function _recalculateTradeState(trade_id) {
       open_datetime = ?,
       close_datetime = ?,
       fees_total = ?,
+      latest_trade = ?,
       updated_at = CURRENT_TIMESTAMP
     WHERE trade_id = ?
   `);
@@ -68,6 +84,7 @@ function _recalculateTradeState(trade_id) {
     newOpenDatetime,
     newCloseDatetime,
     accumulated_fees,
+    latestTradeDatetime,
     trade_id
   );
 
@@ -105,26 +122,22 @@ function updateMarkToMarketPrice(tradeId, marketPrice) {
 function fetchTradesForListView() {
   console.log('[fetchTradesForListView CALLED]');
   const currentDb = getDb();
-  // Fetch all trades with strategy names
+  // For each position, select the trade with the most recent latest_trade value
   const trades = currentDb.prepare(
-    `SELECT 
-      t.trade_id, 
-      t.instrument_ticker, 
-      t.asset_class, 
-      t.exchange, 
-      t.trade_direction, 
-      t.status, 
-      t.open_datetime, 
-      t.close_datetime, 
-      t.fees_total, 
-      t.strategy_id,
-      s.strategy_name,
-      t.current_market_price, 
-      t.created_at, 
-      t.updated_at 
-    FROM trades t
-    LEFT JOIN strategies s ON t.strategy_id = s.strategy_id
-    ORDER BY COALESCE(t.open_datetime, t.created_at) DESC`
+    `SELECT t1.*,
+            s.strategy_name
+     FROM trades t1
+     LEFT JOIN strategies s ON t1.strategy_id = s.strategy_id
+     INNER JOIN (
+       SELECT instrument_ticker, asset_class, exchange, trade_direction, MAX(latest_trade) AS max_latest_trade
+       FROM trades
+       GROUP BY instrument_ticker, asset_class, exchange, trade_direction
+     ) t2 ON t1.instrument_ticker = t2.instrument_ticker
+           AND t1.asset_class = t2.asset_class
+           AND t1.exchange = t2.exchange
+           AND t1.trade_direction = t2.trade_direction
+           AND t1.latest_trade = t2.max_latest_trade
+     ORDER BY COALESCE(t1.open_datetime, t1.created_at) DESC`
   ).all();
 
   // For each trade, fetch transactions and calculate open qty & unrealized P&L

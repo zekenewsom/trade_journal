@@ -158,6 +158,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ isLoadingTrades: true, errorLoadingTrades: null });
     try {
       const trades = await window.electronAPI.getTrades();
+      console.log('[refreshTrades] Fetched trades:', trades);
       set({ trades: trades || [], isLoadingTrades: false });
     } catch (error) {
       set({ errorLoadingTrades: (error as Error).message, isLoadingTrades: false });

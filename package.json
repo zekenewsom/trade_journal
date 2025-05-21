@@ -1,14 +1,15 @@
 {
-    "name": "trade_journal_monorepo",
-    "private": true,
-    "scripts": {
-      "dev": "pnpm --filter electron-app start:dev & pnpm --filter react-app dev",
-      "start-electron": "pnpm --filter electron-app start",
-      "start-react": "pnpm --filter react-app dev",
-      "build-react": "pnpm --filter react-app build"
-    },
-    "devDependencies": {
-      "concurrently": "^8.2.2", 
-      "nodemon": "^3.1.0"
-    }
+  "name": "trade_journal_monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names \"VITE,ELECTRON\" -c \"cyan,magenta\" \"pnpm --filter react-app dev\" \"wait-on tcp:5173 && pnpm --filter electron-app start:dev\"",
+    "start-electron": "pnpm --filter electron-app start",
+    "start-react": "pnpm --filter react-app dev",
+    "build-react": "pnpm --filter react-app build"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.0",
+    "wait-on": "^8.0.3"
   }
+}

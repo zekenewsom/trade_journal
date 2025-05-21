@@ -73,6 +73,7 @@ const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade, onLogTrans
         style={{ marginBottom: '15px', padding: '8px', width: 'calc(100% - 20px)', maxWidth: '400px' }}
       />
 
+      {(() => { console.log('[TradesListPage] filteredTrades:', filteredTrades); return null; })()}
       {filteredTrades.length > 0 ? (
         <TradesTable
           trades={filteredTrades}

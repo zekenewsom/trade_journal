@@ -93,6 +93,7 @@ const TradesTable: React.FC<TradesTableProps> = ({ trades, onEdit, onDelete }) =
             <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap cursor-pointer" onClick={() => handleSort('status')}>Status{getSortIndicator('status')}</th>
             <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap cursor-pointer" onClick={() => handleSort('open_datetime')}>Opened{getSortIndicator('open_datetime')}</th>
             <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap cursor-pointer" onClick={() => handleSort('close_datetime')}>Closed{getSortIndicator('close_datetime')}</th>
+            <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap">Latest Trade</th>
             <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap cursor-pointer" onClick={() => handleSort('current_open_quantity')}>Open Qty{getSortIndicator('current_open_quantity')}</th>
             <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap cursor-pointer" onClick={() => handleSort('unrealized_pnl')}>Unrealized P&L{getSortIndicator('unrealized_pnl')}</th>
             <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap">Mark Price</th>
@@ -109,7 +110,12 @@ const TradesTable: React.FC<TradesTableProps> = ({ trades, onEdit, onDelete }) =
               <td className="px-3 py-2 border-b border-gray-700 text-left align-top">{trade.trade_direction}</td>
               <td className="px-3 py-2 border-b border-gray-700 text-left align-top">{trade.status}</td>
               <td className="px-3 py-2 border-b border-gray-700 text-left align-top">{trade.open_datetime ? new Date(trade.open_datetime).toLocaleString() : 'N/A'}</td>
-              <td className="px-3 py-2 border-b border-gray-700 text-left align-top">{trade.close_datetime ? new Date(trade.close_datetime).toLocaleString() : 'N/A'}</td>
+              <td className="px-3 py-2 border-b border-gray-700 text-center whitespace-nowrap">
+                {trade.close_datetime ? new Date(trade.close_datetime).toLocaleString() : '-'}
+              </td>
+              <td className="px-3 py-2 border-b border-gray-700 text-center whitespace-nowrap">
+                {trade.latest_trade ? new Date(trade.latest_trade).toLocaleString() : '-'}
+              </td>
               <td className="px-3 py-2 border-b border-gray-700 text-left align-top">{trade.status === 'Open' ? trade.current_open_quantity?.toFixed(4) || 'N/A' : '-'}</td>
               <td className="px-3 py-2 border-b border-gray-700 text-left align-top">
                 {trade.status === 'Open' && trade.unrealized_pnl !== null && trade.unrealized_pnl !== undefined
