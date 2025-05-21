@@ -12,5 +12,8 @@
     "electron-rebuild": "^3.2.9",
     "nodemon": "^3.1.0",
     "wait-on": "^8.0.3"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.6.0"
   }
 }
