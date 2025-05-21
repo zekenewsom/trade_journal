@@ -1,6 +1,4 @@
 // File: zekenewsom-trade_journal/packages/electron-app/preload.js
-// Modified for Stage 6: Add updateMarkPrice IPC
-
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -17,7 +15,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getEmotions: () => ipcRenderer.invoke('get-emotions'),
   getTradeEmotions: (tradeId) => ipcRenderer.invoke('get-trade-emotions', tradeId),
   saveTradeEmotions: (payload) => ipcRenderer.invoke('save-trade-emotions', payload),
-
-  // --- Stage 6: New IPC for mark-to-market ---
   updateMarkPrice: (payload) => ipcRenderer.invoke('update-mark-price', payload),
+  // Add any new IPC calls here if you add new handlers in main.js
 });

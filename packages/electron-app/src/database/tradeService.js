@@ -1,41 +1,41 @@
-// Trade management logic
+// packages/electron-app/src/database/tradeService.js
 const { getDb } = require('./connection');
 
-function _recalculateTradeState(trade_id) {
-  const currentDb = getDb();
-  console.log(`Recalculating state for trade ID: ${trade_id}`);
+// This function is internal to tradeService or called by transactionService.
+// If called by transactionService, it should be exported.
+// For now, let's make it internal and transactionService will call a higher-level trade update function.
+function _recalculateTradeState(trade_id, currentDbInstance) {
+  const db = currentDbInstance || getDb();
+  console.log(`[TRADE_SERVICE] Recalculating state for trade ID: ${trade_id}`);
 
-  const allTransactions = currentDb.prepare(
+  const allTransactions = db.prepare(
     'SELECT transaction_id, action, quantity, fees, datetime FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC'
   ).all(trade_id);
 
-  // Find the latest transaction datetime for all trades in this position
-  // First, get the current trade's position-defining fields
-  const tradeInfo = currentDb.prepare('SELECT instrument_ticker, asset_class, exchange, trade_direction FROM trades WHERE trade_id = ?').get(trade_id);
+  const tradeInfoForLatest = db.prepare('SELECT instrument_ticker, asset_class, exchange, trade_direction FROM trades WHERE trade_id = ?').get(trade_id);
   let latestTradeDatetime = null;
-  if (tradeInfo) {
-    const posTx = currentDb.prepare(`
-      SELECT MAX(datetime) as max_datetime FROM transactions
-      WHERE trade_id IN (
-        SELECT trade_id FROM trades
-        WHERE instrument_ticker = ? AND asset_class = ? AND exchange = ? AND trade_direction = ?
-      )
-    `).get(tradeInfo.instrument_ticker, tradeInfo.asset_class, tradeInfo.exchange, tradeInfo.trade_direction);
+  if (tradeInfoForLatest) {
+    const posTx = db.prepare(`
+      SELECT MAX(t.datetime) as max_datetime 
+      FROM transactions t
+      JOIN trades tr ON t.trade_id = tr.trade_id
+      WHERE tr.instrument_ticker = ? AND tr.asset_class = ? AND tr.exchange = ? AND tr.trade_direction = ?
+    `).get(tradeInfoForLatest.instrument_ticker, tradeInfoForLatest.asset_class, tradeInfoForLatest.exchange, tradeInfoForLatest.trade_direction);
     latestTradeDatetime = posTx && posTx.max_datetime ? posTx.max_datetime : null;
   }
-
+  
   if (allTransactions.length === 0) {
-    console.warn(`Trade ID ${trade_id} has no transactions. Deleting parent trade and related data.`);
-    currentDb.prepare('DELETE FROM trade_emotions WHERE trade_id = ?').run(trade_id);
-    currentDb.prepare('DELETE FROM trade_attachments WHERE trade_id = ?').run(trade_id);
-    currentDb.prepare('DELETE FROM trades WHERE trade_id = ?').run(trade_id);
-    return;
+    console.warn(`[TRADE_SERVICE] Trade ID ${trade_id} has no transactions. Deleting parent trade and related data.`);
+    db.prepare('DELETE FROM trade_emotions WHERE trade_id = ?').run(trade_id);
+    db.prepare('DELETE FROM trade_attachments WHERE trade_id = ?').run(trade_id);
+    db.prepare('DELETE FROM trades WHERE trade_id = ?').run(trade_id);
+    return { deleted: true };
   }
 
-  const tradeDetails = currentDb.prepare('SELECT trade_direction, open_datetime FROM trades WHERE trade_id = ?').get(trade_id);
+  const tradeDetails = db.prepare('SELECT trade_direction, open_datetime FROM trades WHERE trade_id = ?').get(trade_id);
   if (!tradeDetails) {
-    console.error(`Cannot recalculate state: Trade ID ${trade_id} not found (possibly already deleted).`);
-    return;
+    console.error(`[TRADE_SERVICE] Cannot recalculate state: Trade ID ${trade_id} not found.`);
+    return { error: `Trade ID ${trade_id} not found.` };
   }
   const positionDirection = tradeDetails.trade_direction;
 
@@ -50,7 +50,7 @@ function _recalculateTradeState(trade_id) {
     if (positionDirection === 'Long') {
       if (tx.action === 'Buy') total_entry_quantity += tx.quantity;
       else if (tx.action === 'Sell') total_exit_quantity += tx.quantity;
-    } else { // Short position
+    } else {
       if (tx.action === 'Sell') total_entry_quantity += tx.quantity;
       else if (tx.action === 'Buy') total_exit_quantity += tx.quantity;
     }
@@ -58,74 +58,131 @@ function _recalculateTradeState(trade_id) {
 
   let newStatus = 'Open';
   let newCloseDatetime = null;
-  // Use existing open_datetime if available, otherwise set from first transaction
   let newOpenDatetime = tradeDetails.open_datetime || first_tx_datetime;
 
-  // Trade is considered closed if exit quantity >= entry quantity (fully closed)
   if (total_exit_quantity >= total_entry_quantity && total_entry_quantity > 0) {
     newStatus = 'Closed';
     newCloseDatetime = last_tx_datetime;
   }
 
-  // Update the trade record with new status and calculated values
-  const updateTrade = currentDb.prepare(`
+  const updateTradeStmt = db.prepare(`
     UPDATE trades SET 
-      status = ?, 
-      open_datetime = ?,
-      close_datetime = ?,
-      fees_total = ?,
-      latest_trade = ?,
+      status = @status, 
+      open_datetime = @open_datetime,
+      close_datetime = @close_datetime,
+      fees_total = @fees_total,
+      latest_trade = @latest_trade, /* Added from migrations */
       updated_at = CURRENT_TIMESTAMP
-    WHERE trade_id = ?
+    WHERE trade_id = @trade_id
   `);
+  
+  updateTradeStmt.run({
+    status: newStatus,
+    open_datetime: newOpenDatetime,
+    close_datetime: newCloseDatetime,
+    fees_total: accumulated_fees,
+    latest_trade: latestTradeDatetime,
+    trade_id: trade_id
+  });
 
-  updateTrade.run(
-    newStatus,
-    newOpenDatetime,
-    newCloseDatetime,
-    accumulated_fees,
-    latestTradeDatetime,
-    trade_id
-  );
-
-  console.log(`Trade ID ${trade_id} state recalculated: Status=${newStatus}, Fees=${accumulated_fees}`);
-  return { status: newStatus, fees_total: accumulated_fees };
+  console.log(`[TRADE_SERVICE] Trade ID ${trade_id} state recalculated: Status=${newStatus}, Fees=${accumulated_fees}`);
+  return { status: newStatus, fees_total: accumulated_fees, deleted: false };
 }
 
-function updateMarkToMarketPrice(tradeId, marketPrice) {
-  const currentDb = getDb();
-  const stmt = currentDb.prepare(
-    "UPDATE trades SET current_market_price = ?, updated_at = CURRENT_TIMESTAMP WHERE trade_id = ? AND status = 'Open'"
-  );
-  const result = stmt.run(marketPrice, tradeId);
-  if (result.changes === 0) {
-    // Could be that the trade is not open, or ID not found
-    const tradeCheck = currentDb.prepare('SELECT status FROM trades WHERE trade_id = ?').get(tradeId);
-    if (!tradeCheck) throw new Error(`Trade ID ${tradeId} not found.`);
-    if (tradeCheck.status !== 'Open') throw new Error(`Trade ID ${tradeId} is not open.`);
-    throw new Error('Mark price update failed for unknown reasons.');
-  }
-  // After updating, recalculate and return latest P&L
-  const trade = currentDb.prepare('SELECT * FROM trades WHERE trade_id = ?').get(tradeId);
-  const transactions = currentDb.prepare('SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC').all(tradeId);
-  const pnl = calculateTradePnlFifoEnhanced(trade, transactions);
-  return {
-    success: true,
-    message: 'Mark price updated.',
-    trade_id: tradeId,
-    unrealized_pnl: pnl.unrealizedGrossPnlOnOpenPortion ?? null,
-    current_open_quantity: pnl.openQuantity ?? null,
-    average_open_price: pnl.averageOpenPrice ?? null
-  };
+function calculateTradePnlFifoEnhanced(trade, transactionsForThisTrade) {
+    // ... (Keep the exact P&L calculation logic from db.js source 382-409)
+    // This is the consolidated version based on latest zekenewsom-trade_journal(3).txt
+    let realizedGrossPnl = 0;
+    let feesAttributableToClosedPortion = 0;
+    let closedQuantityThisTrade = 0;
+    let totalValueForOpenEntries = 0;
+    let cumulativeEntryQuantityForOpen = 0;
+    let weightedAvgEntryPriceForOpenPortion = null;
+
+    const entries = transactionsForThisTrade
+        .filter(tx => (trade.trade_direction === 'Long' && tx.action === 'Buy') || (trade.trade_direction === 'Short' && tx.action === 'Sell'))
+        .map(tx => ({ ...tx, remainingQuantity: Math.abs(tx.quantity) }))
+        .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
+    const exits = transactionsForThisTrade
+        .filter(tx => (trade.trade_direction === 'Long' && tx.action === 'Sell') || (trade.trade_direction === 'Short' && tx.action === 'Buy'))
+        .map(tx => ({ ...tx, remainingQuantity: Math.abs(tx.quantity) }))
+        .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
+    const directionMultiplier = trade.trade_direction === 'Long' ? 1 : -1;
+    
+    for (const exit of exits) {
+        let exitQtyToMatch = exit.quantity;
+        feesAttributableToClosedPortion += (exit.fees || 0);
+        for (const entry of entries) {
+            if (entry.remainingQuantity === 0 || exitQtyToMatch === 0) continue;
+            const matchedQty = Math.min(exitQtyToMatch, entry.remainingQuantity);
+            const pnl = (exit.price - entry.price) * matchedQty * directionMultiplier;
+            realizedGrossPnl += pnl;
+            if (entry.quantity > 0) {
+                feesAttributableToClosedPortion += (entry.fees || 0) * (matchedQty / entry.quantity);
+            }
+            entry.remainingQuantity -= matchedQty;
+            exitQtyToMatch -= matchedQty;
+            closedQuantityThisTrade += matchedQty;
+            if (exitQtyToMatch === 0) break;
+        }
+    }
+    entries.forEach(entry => {
+        if(entry.remainingQuantity > 0){
+            totalValueForOpenEntries += entry.price * entry.remainingQuantity;
+            cumulativeEntryQuantityForOpen += entry.remainingQuantity;
+        }
+    });
+    if(cumulativeEntryQuantityForOpen > 0){
+        weightedAvgEntryPriceForOpenPortion = totalValueForOpenEntries / cumulativeEntryQuantityForOpen;
+    }
+    const realizedNetPnl = realizedGrossPnl - feesAttributableToClosedPortion;
+    const openQuantity = cumulativeEntryQuantityForOpen;
+    let unrealizedGrossPnlOnOpenPortion = null;
+    if (openQuantity > 0 && weightedAvgEntryPriceForOpenPortion !== null && trade.current_market_price !== null && trade.current_market_price !== undefined) {
+        unrealizedGrossPnlOnOpenPortion = (trade.current_market_price - weightedAvgEntryPriceForOpenPortion) * openQuantity * directionMultiplier;
+    }
+    let rMultipleActual = null;
+    if (trade.status === 'Closed' && trade.r_multiple_initial_risk && trade.r_multiple_initial_risk !== 0) {
+        const finalNetPnlForR = realizedGrossPnl - (trade.fees_total || 0); // Use trade.fees_total for fully closed PNL
+        rMultipleActual = finalNetPnlForR / trade.r_multiple_initial_risk;
+    }
+    let durationMs = null;
+    if (trade.status === 'Closed' && trade.open_datetime && trade.close_datetime) {
+        durationMs = new Date(trade.close_datetime).getTime() - new Date(trade.open_datetime).getTime();
+    }
+    let outcome = null;
+    if (trade.status === 'Closed') {
+        const finalNetPnlForOutcome = realizedGrossPnl - (trade.fees_total || 0);
+        if (finalNetPnlForOutcome > 0.000001) outcome = 'Win';
+        else if (finalNetPnlForOutcome < -0.000001) outcome = 'Loss';
+        else outcome = 'Break Even';
+    }
+    return {
+        trade_id: trade.trade_id,
+        realizedGrossPnl,
+        realizedNetPnl, // This is PNL for closed portions based on their specific entry/exit fees
+        feesAttributableToClosedPortion,
+        isFullyClosed: trade.status === 'Closed' && openQuantity === 0, // More precise check
+        closedQuantity: closedQuantityThisTrade,
+        openQuantity,
+        averageOpenPrice: weightedAvgEntryPriceForOpenPortion,
+        unrealizedGrossPnlOnOpenPortion,
+        rMultipleActual,
+        durationMs,
+        outcome,
+        relevantDate: trade.status === 'Closed' ? trade.close_datetime : trade.open_datetime || trade.created_at,
+        asset_class: trade.asset_class,
+        exchange: trade.exchange,
+        strategy_id: trade.strategy_id,
+    };
 }
+
 
 function fetchTradesForListView() {
-  console.log('[fetchTradesForListView CALLED]');
-  const currentDb = getDb();
-  // For each position, select the trade with the most recent latest_trade value
-  const trades = currentDb.prepare(
-    `SELECT t1.*,
-            s.strategy_name
+  console.log('[TRADE_SERVICE] fetchTradesForListView CALLED');
+  const db = getDb();
+  const trades = db.prepare(
+    `SELECT t1.*, s.strategy_name
      FROM trades t1
      LEFT JOIN strategies s ON t1.strategy_id = s.strategy_id
      INNER JOIN (
@@ -140,19 +197,9 @@ function fetchTradesForListView() {
      ORDER BY COALESCE(t1.open_datetime, t1.created_at) DESC`
   ).all();
 
-  // For each trade, fetch transactions and calculate open qty & unrealized P&L
   return trades.map(trade => {
-    const transactions = currentDb.prepare('SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC').all(trade.trade_id);
+    const transactions = db.prepare('SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC').all(trade.trade_id);
     const pnl = calculateTradePnlFifoEnhanced(trade, transactions);
-    console.log('[P&L MAP DEBUG]', {
-      trade_id: trade.trade_id,
-      status: trade.status,
-      current_market_price: trade.current_market_price,
-      openQuantity: pnl.openQuantity,
-      unrealizedGrossPnlOnOpenPortion: pnl.unrealizedGrossPnlOnOpenPortion,
-      averageOpenPrice: pnl.averageOpenPrice,
-      transactions
-    });
     return {
       ...trade,
       current_open_quantity: pnl.openQuantity ?? null,
@@ -163,202 +210,117 @@ function fetchTradesForListView() {
 }
 
 function fetchTradeWithTransactions(tradeId) {
-  const currentDb = getDb();
-  const trade = currentDb.prepare('SELECT * FROM trades WHERE trade_id = ?').get(tradeId);
+  console.log(`[TRADE_SERVICE] fetchTradeWithTransactions CALLED for ID: ${tradeId}`);
+  const db = getDb();
+  const trade = db.prepare('SELECT * FROM trades WHERE trade_id = ?').get(tradeId);
   if (!trade) return null;
 
-  const transactions = currentDb.prepare(
+  const transactions = db.prepare(
     'SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC'
   ).all(tradeId);
 
-  // Get emotions for each transaction
   const transactionsWithEmotions = transactions.map(transaction => {
-    const emotionIds = currentDb.prepare(
+    const emotionIds = db.prepare(
       'SELECT emotion_id FROM transaction_emotions WHERE transaction_id = ?'
     ).all(transaction.transaction_id).map(row => row.emotion_id);
-    
-    return {
-      ...transaction,
-      emotion_ids: emotionIds
-    };
+    return { ...transaction, emotion_ids: emotionIds };
   });
-
   return { ...trade, transactions: transactionsWithEmotions };
 }
 
 function updateTradeMetadata(payload) {
-  const currentDb = getDb();
+  console.log('[TRADE_SERVICE] updateTradeMetadata CALLED');
+  const db = getDb();
   try {
     const { trade_id, strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk } = payload;
-    const stmt = currentDb.prepare(`UPDATE trades SET strategy_id = @strategy_id, market_conditions = @market_conditions, setup_description = @setup_description, reasoning = @reasoning, lessons_learned = @lessons_learned, r_multiple_initial_risk = @r_multiple_initial_risk, updated_at = CURRENT_TIMESTAMP WHERE trade_id = @trade_id`);
+    const stmt = db.prepare(
+      `UPDATE trades SET 
+        strategy_id = @strategy_id, 
+        market_conditions = @market_conditions, 
+        setup_description = @setup_description, 
+        reasoning = @reasoning, 
+        lessons_learned = @lessons_learned, 
+        r_multiple_initial_risk = @r_multiple_initial_risk, 
+        updated_at = CURRENT_TIMESTAMP 
+      WHERE trade_id = @trade_id`
+    );
     const result = stmt.run({
       trade_id,
-      strategy_id: strategy_id || null,
-      market_conditions: market_conditions || null,
-      setup_description: setup_description || null,
-      reasoning: reasoning || null,
-      lessons_learned: lessons_learned || null,
-      r_multiple_initial_risk: r_multiple_initial_risk || null,
+      strategy_id: strategy_id === undefined ? null : strategy_id,
+      market_conditions: market_conditions === undefined ? null : market_conditions,
+      setup_description: setup_description === undefined ? null : setup_description,
+      reasoning: reasoning === undefined ? null : reasoning,
+      lessons_learned: lessons_learned === undefined ? null : lessons_learned,
+      r_multiple_initial_risk: (r_multiple_initial_risk === undefined || r_multiple_initial_risk === null || isNaN(parseFloat(r_multiple_initial_risk))) ? null : parseFloat(r_multiple_initial_risk)
     });
-    
     if (result.changes === 0) {
-      console.warn(`updateTradeMetadata: No trade metadata updated for ID ${trade_id}. Payload: ${JSON.stringify(payload)}`);
-      return { success: true, message: 'No changes made (fields may be unchanged or all optional).' };
+      return { success: true, message: 'No changes made to trade metadata.' };
     }
     return { success: true, message: 'Trade metadata updated successfully.' };
   } catch (error) {
-    console.error('Error updating trade metadata:', error);
-    return { success: false, message: error.message || 'Failed to update trade metadata.' };
+    console.error('[TRADE_SERVICE] Error updating trade metadata:', error);
+    return { success: false, message: (error instanceof Error ? error.message : String(error)) || 'Failed to update trade metadata.' };
   }
 }
 
 function deleteFullTradeAndTransactions(tradeId) {
-  const currentDb = getDb();
-  const transactFn = currentDb.transaction(() => {
-    currentDb.prepare('DELETE FROM trade_emotions WHERE trade_id = ?').run(tradeId);
-    currentDb.prepare('DELETE FROM trade_attachments WHERE trade_id = ?').run(tradeId);
-    // Transactions are deleted by CASCADE when 'trades' record is deleted
-    const result = currentDb.prepare('DELETE FROM trades WHERE trade_id = ?').run(tradeId);
-    if (result.changes === 0) throw new Error(`Delete failed: Trade ID ${tradeId} not found.`);
-  });
-  transactFn();
+  console.log(`[TRADE_SERVICE] deleteFullTradeAndTransactions CALLED for ID: ${tradeId}`);
+  const db = getDb();
+  try {
+    const transactFn = db.transaction(() => {
+      db.prepare('DELETE FROM trade_emotions WHERE trade_id = ?').run(tradeId);
+      db.prepare('DELETE FROM trade_attachments WHERE trade_id = ?').run(tradeId);
+      // transaction_emotions are deleted by CASCADE when transactions are deleted
+      // transactions are deleted by CASCADE when 'trades' record is deleted (due to schema `ON DELETE CASCADE`)
+      const result = db.prepare('DELETE FROM trades WHERE trade_id = ?').run(tradeId);
+      if (result.changes === 0) throw new Error(`Delete failed: Trade ID ${tradeId} not found or no changes made.`);
+    });
+    transactFn();
+    return { success: true, message: `Trade ID ${tradeId} and all associated data deleted.` };
+  } catch (error) {
+    console.error('[TRADE_SERVICE] Error deleting full trade:', error);
+    return { success: false, message: (error instanceof Error ? error.message : String(error)) || `Failed to delete trade ${tradeId}.` };
+  }
 }
 
-function calculateTradePnlFifoEnhanced(trade, transactionsForThisTrade) {
-    let realizedGrossPnl = 0;
-    let feesAttributableToClosedPortion = 0;
-    let closedQuantityThisTrade = 0;
-    let totalValueForOpenEntries = 0;
-    let cumulativeEntryQuantityForOpen = 0;
+function updateMarkToMarketPrice(tradeId, marketPrice) {
+  console.log(`[TRADE_SERVICE] updateMarkToMarketPrice CALLED for ID: ${tradeId}, Price: ${marketPrice}`);
+  const db = getDb();
+  const stmt = db.prepare(
+    "UPDATE trades SET current_market_price = ?, updated_at = CURRENT_TIMESTAMP WHERE trade_id = ? AND status = 'Open'"
+  );
+  const result = stmt.run(marketPrice, tradeId);
 
-    // --- Robust defaults ---
-    let weightedAvgEntryPriceForOpenPortion = null;
+  if (result.changes === 0) {
+    const tradeCheck = db.prepare('SELECT status FROM trades WHERE trade_id = ?').get(tradeId);
+    if (!tradeCheck) throw new Error(`Trade ID ${tradeId} not found.`);
+    if (tradeCheck.status !== 'Open') throw new Error(`Trade ID ${tradeId} is not open. Cannot set mark price.`);
+    // If no changes but trade is open, it might be the same price. Return current data.
+  }
 
-    const entries = transactionsForThisTrade
-        .filter(tx => (trade.trade_direction === 'Long' && tx.action === 'Buy') || (trade.trade_direction === 'Short' && tx.action === 'Sell'))
-        .map(tx => ({ ...tx, remainingQuantity: Math.abs(tx.quantity) }))
-        .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
-
-    const exits = transactionsForThisTrade
-        .filter(tx => (trade.trade_direction === 'Long' && tx.action === 'Sell') || (trade.trade_direction === 'Short' && tx.action === 'Buy'))
-        .map(tx => ({ ...tx, remainingQuantity: Math.abs(tx.quantity) }))
-        .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime());
-
-    const directionMultiplier = trade.trade_direction === 'Long' ? 1 : -1;
-    
-    let totalCostOfClosedEntries = 0;
-
-    for (const exit of exits) {
-        let exitQtyToMatch = exit.quantity;
-        feesAttributableToClosedPortion += (exit.fees || 0);
-
-        for (const entry of entries) {
-            if (entry.remainingQuantity === 0 || exitQtyToMatch === 0) continue;
-            const matchedQty = Math.min(exitQtyToMatch, entry.remainingQuantity);
-            
-            // For Long trades: P&L = (Sell Price - Buy Price) * Quantity
-            // For Short trades: P&L = (Sell Price - Buy Price) * Quantity * -1
-            const pnl = (exit.price - entry.price) * matchedQty * directionMultiplier;
-            realizedGrossPnl += pnl;
-
-            if (entry.quantity > 0) {
-                feesAttributableToClosedPortion += (entry.fees || 0) * (matchedQty / entry.quantity);
-            }
-            totalCostOfClosedEntries += entry.price * matchedQty;
-
-            entry.remainingQuantity -= matchedQty;
-            exitQtyToMatch -= matchedQty;
-            closedQuantityThisTrade += matchedQty;
-
-            if (exitQtyToMatch === 0) break;
-        }
-    }
-
-    // Calculate weighted average price for open portion
-    entries.forEach(entry => {
-        if(entry.remainingQuantity > 0){
-            totalValueForOpenEntries += entry.price * entry.remainingQuantity;
-            cumulativeEntryQuantityForOpen += entry.remainingQuantity;
-        }
-    });
-
-    if(cumulativeEntryQuantityForOpen > 0){
-        weightedAvgEntryPriceForOpenPortion = totalValueForOpenEntries / cumulativeEntryQuantityForOpen;
-    }
-
-    const realizedNetPnl = realizedGrossPnl - feesAttributableToClosedPortion;
-    const openQuantity = cumulativeEntryQuantityForOpen;
-
-    let unrealizedGrossPnlOnOpenPortion = null;
-    if (openQuantity > 0 && weightedAvgEntryPriceForOpenPortion !== null && trade.current_market_price !== null) {
-        unrealizedGrossPnlOnOpenPortion = (trade.current_market_price - weightedAvgEntryPriceForOpenPortion) * openQuantity * directionMultiplier;
-    }
-
-    // DEBUG LOGGING for P&L calculation
-    console.log('[P&L CALC DEBUG]', {
-        trade_id: trade.trade_id,
-        openQuantity,
-        weightedAvgEntryPriceForOpenPortion,
-        current_market_price: trade.current_market_price,
-        unrealizedGrossPnlOnOpenPortion,
-        realizedGrossPnl,
-        realizedNetPnl,
-        directionMultiplier,
-        entries: entries.map(e => ({ price: e.price, quantity: e.quantity, remaining: e.remainingQuantity })),
-        exits: exits.map(e => ({ price: e.price, quantity: e.quantity }))
-    });
-    
-    let rMultipleActual = null;
-    if (trade.status === 'Closed' && trade.r_multiple_initial_risk && trade.r_multiple_initial_risk !== 0) {
-        const finalNetPnl = realizedGrossPnl - (trade.fees_total || 0);
-        rMultipleActual = finalNetPnl / trade.r_multiple_initial_risk;
-    }
-
-    let durationMs = null;
-    if (trade.status === 'Closed' && trade.open_datetime && trade.close_datetime) {
-        durationMs = new Date(trade.close_datetime).getTime() - new Date(trade.open_datetime).getTime();
-    }
-    
-    let outcome = null;
-    if (trade.status === 'Closed') {
-        const finalNetPnlForOutcome = realizedGrossPnl - (trade.fees_total || 0);
-        console.log('[OUTCOME DEBUG]', {
-            trade_id: trade.trade_id,
-            finalNetPnlForOutcome,
-            realizedGrossPnl,
-            fees_total: trade.fees_total
-        });
-        if (finalNetPnlForOutcome > 0.000001) outcome = 'Win';
-        else if (finalNetPnlForOutcome < -0.000001) outcome = 'Loss';
-        else outcome = 'Break Even';
-    }
-
-    return {
-        trade_id: trade.trade_id,
-        realizedGrossPnl,
-        realizedNetPnl,
-        feesAttributableToClosedPortion,
-        isFullyClosed: trade.status === 'Closed',
-        closedQuantity: closedQuantityThisTrade,
-        openQuantity,
-        averageOpenPrice: weightedAvgEntryPriceForOpenPortion,
-        unrealizedGrossPnlOnOpenPortion,
-        rMultipleActual,
-        durationMs,
-        outcome,
-        relevantDate: trade.close_datetime || trade.open_datetime || trade.created_at,
-        asset_class: trade.asset_class,
-        exchange: trade.exchange,
-        strategy_id: trade.strategy_id,
-    };
+  const trade = db.prepare('SELECT * FROM trades WHERE trade_id = ?').get(tradeId);
+  if (!trade) throw new Error(`Trade ID ${tradeId} not found after attempting update.`);
+  
+  const transactions = db.prepare('SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC').all(tradeId);
+  const pnl = calculateTradePnlFifoEnhanced(trade, transactions);
+  
+  return {
+    success: true,
+    message: 'Mark price updated successfully.',
+    trade_id: tradeId,
+    unrealized_pnl: pnl.unrealizedGrossPnlOnOpenPortion,
+    current_open_quantity: pnl.openQuantity,
+    average_open_price: pnl.averageOpenPrice,
+  };
 }
+
 
 module.exports = {
-  _recalculateTradeState,
-  updateMarkToMarketPrice,
+  _recalculateTradeState, // Export if needed by transactionService
+  calculateTradePnlFifoEnhanced,
   fetchTradesForListView,
   fetchTradeWithTransactions,
   updateTradeMetadata,
   deleteFullTradeAndTransactions,
-  calculateTradePnlFifoEnhanced,
+  updateMarkToMarketPrice,
 };
