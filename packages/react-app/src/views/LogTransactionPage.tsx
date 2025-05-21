@@ -23,6 +23,7 @@ const LogTransactionPage: React.FC<LogTransactionPageProps> = ({
   const [availableEmotions, setAvailableEmotions] = useState([]);
 
   useEffect(() => {
+    console.log('[DEBUG] LogTransactionPage mounted');
     const fetchEmotions = async () => {
       try {
         const emotions = await window.electronAPI.getEmotions();
@@ -34,18 +35,8 @@ const LogTransactionPage: React.FC<LogTransactionPageProps> = ({
     fetchEmotions();
   }, []);
 
-  const handleSubmit = async (formData: LogTransactionFormData) => {
-    try {
-      const result = await window.electronAPI.logTransaction(formData);
-      if (result.success) {
-        onTransactionLogged();
-      } else {
-        alert(result.message || 'Failed to log transaction');
-      }
-    } catch (err) {
-      console.error('Error logging transaction:', err);
-      alert('Error logging transaction: ' + (err as Error).message);
-    }
+  const handleSubmit = async () => {
+    onTransactionLogged();
   };
 
   return (

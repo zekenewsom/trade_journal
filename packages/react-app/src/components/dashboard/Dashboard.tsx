@@ -1,6 +1,8 @@
 import { MetricCard } from '../ui/MetricCard';
 import { NetBalanceCard } from './NetBalanceCard';
-import { UnrealisedPnLCard } from './UnrealisedPnLCard';
+import { UnrealizedPnLCard } from './UnrealizedPnLCard';
+import { useEffect, useState } from 'react';
+
 import { BuyingPowerCard } from './BuyingPowerCard';
 import { SharpeRatioCard } from './SharpeRatioCard';
 import { SortinoRatioCard } from './SortinoRatioCard';
@@ -82,11 +84,63 @@ const mockPnLCalendarData = {
 };
 
 export function Dashboard() {
+  const [unrealizedPnl, setUnrealizedPnl] = useState<number | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout | null = null;
+    let isMounted = true;
+    async function fetchUnrealizedPnl() {
+      if (!isMounted) return;
+      setLoading(true);
+      setError(null);
+      try {
+        if (window.electronAPI?.getTrades) {
+          const trades = await window.electronAPI.getTrades();
+          const sum = trades.reduce((acc: number, t: any) => acc + (typeof t.unrealized_pnl === 'number' ? t.unrealized_pnl : 0), 0);
+          if (isMounted) setUnrealizedPnl(sum);
+        } else {
+          if (isMounted) setUnrealizedPnl(null);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to fetch trades');
+          setUnrealizedPnl(null);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    fetchUnrealizedPnl();
+    intervalId = setInterval(fetchUnrealizedPnl, 60000);
+    return () => {
+      isMounted = false;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, []);
+
   return (
     <div className="grid grid-cols-12 gap-4">
       {/* Top Row - Main Stat Cards */}
       <div className="col-span-4"><NetBalanceCard /></div>
-      <div className="col-span-4"><UnrealisedPnLCard /></div>
+      <div className="col-span-4">
+        {loading ? (
+          <MetricCard title="Unrealized P&L" size="sm" status="default" className="order-2">
+            <div className="flex flex-col items-center justify-center min-h-[64px]">
+              <span className="text-gray-400 text-lg">Loading...</span>
+            </div>
+          </MetricCard>
+        ) : error ? (
+          <MetricCard title="Unrealized P&L" size="sm" status="default" className="order-2">
+            <div className="flex flex-col items-center justify-center min-h-[64px]">
+              <span className="text-red-400 text-lg">Error</span>
+            </div>
+          </MetricCard>
+        ) : (
+          <UnrealizedPnLCard value={typeof unrealizedPnl === 'number' ? unrealizedPnl : 0} />
+        )}
+      </div>
       <div className="col-span-4"><BuyingPowerCard /></div>
 
       {/* Second Row - Performance Stat Cards */}

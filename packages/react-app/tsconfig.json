@@ -1,7 +1,14 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ]
+  "compilerOptions": {
+    "jsx": "react-jsx",          // <-- REQUIRED for React 17+ and MUI v5+
+    "esModuleInterop": true,     // <-- REQUIRED for compatibility with many packages
+    "allowSyntheticDefaultImports": true,
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "node",
+    "strict": true,
+    "skipLibCheck": false,       // <-- Set to false to catch type issues
+    // ... other options
+  },
+  // ... rest of your config
 }

@@ -57,6 +57,7 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
   }));
   const [errors, setErrors] = useState<Partial<Record<keyof LogTransactionFormData, string>>>({});
   const [submissionStatus, setSubmissionStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -89,9 +90,11 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
+    console.log('[DEBUG] LogTransactionForm handleSubmit', formData);
     e.preventDefault();
+    if (submitting) return; // Prevent double submission
     if (!validateForm()) return;
-
+    setSubmitting(true);
     try {
       const payload: LogTransactionPayload = {
         instrument_ticker: formData.instrument_ticker.toUpperCase().trim(),
@@ -116,13 +119,15 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
       if (result.success) {
         setSubmissionStatus({ message: 'Transaction logged successfully!', type: 'success' });
         setFormData(getInitialFormData()); // Reset form with current date/time
-        if (onSubmit) await onSubmit(formData);
+        if (onSubmit) await onSubmit();
       } else {
         setSubmissionStatus({ message: `Error: ${result.message}`, type: 'error' });
       }
     } catch (err) {
       console.error('Error logging transaction:', err);
       setSubmissionStatus({ message: `Error: ${(err as Error).message}`, type: 'error' });
+    } finally {
+      setSubmitting(false);
     }
   };
   
@@ -183,7 +188,9 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
        <div style={labelStyle}>Notes (Optional):
         <textarea name="notes" value={formData.notes} onChange={handleInputChange} style={{...inputStyle, minHeight: '60px' }} />
       </div>
-      <button type="submit" style={buttonStyle}>Log Transaction</button>
+      <button type="submit" style={buttonStyle} disabled={submitting}>
+        {submitting ? 'Logging…' : 'Log Transaction'}
+      </button>
       {submissionStatus && (
         <div style={{ padding: '10px', marginTop: '15px', borderRadius: '4px', backgroundColor: submissionStatus.type === 'success' ? '#4CAF50' : '#f44336', color: 'white', textAlign: 'center' }}>
           {submissionStatus.message}

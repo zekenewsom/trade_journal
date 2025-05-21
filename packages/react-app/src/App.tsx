@@ -28,6 +28,7 @@ interface AppState {
       asset_class: 'Stock' | 'Cryptocurrency';
       exchange: string;
     };
+    navTimestamp?: number;
   };
 }
 
@@ -93,11 +94,13 @@ function App() {
       case 'tradesList':
         return <TradesListPage 
           key={refreshTrigger} 
-          onEditTrade={(id) => navigateTo('editTradeDetailsForm', { initialValues: { instrument_ticker: '', asset_class: 'Stock', exchange: '' } })}
+          onEditTrade={(id) => setState(prev => ({ ...prev, editingTradeId: id, currentView: 'editTradeDetailsForm' }))}
           onLogTransaction={() => navigateTo('logTransactionForm')}
         />;
       case 'logTransactionForm':
+        console.log('[DEBUG] Rendering LogTransactionPage', state.currentViewParams);
         return <LogTransactionPage 
+          key={state.currentViewParams?.navTimestamp || Date.now()}
           onTransactionLogged={handleActionComplete} 
           onCancel={() => navigateTo('tradesList')}
           initialValues={state.currentViewParams?.initialValues}
@@ -109,17 +112,20 @@ function App() {
           onEditComplete={handleActionComplete} 
           onCancel={() => navigateTo('tradesList')}
           onLogTransaction={() => {
+            console.log('[DEBUG] onLogTransaction called from EditTradeDetailsPage');
             const trade = state.trades.find(t => t.trade_id === state.editingTradeId);
             if (trade) {
+              console.log('[DEBUG] Navigating to logTransactionForm with initialValues');
               navigateTo('logTransactionForm', {
                 initialValues: {
-                  instrument_ticker: trade.instrument_ticker,
-                  asset_class: trade.asset_class,
-                  exchange: trade.exchange
-                }
+                  instrument_ticker: trade.instrument_ticker ?? '',
+                  asset_class: (trade.asset_class ?? 'Stock'),
+                  exchange: trade.exchange ?? ''
+                },
+                navTimestamp: Date.now()
               });
             } else {
-              navigateTo('logTransactionForm');
+              navigateTo('logTransactionForm', { navTimestamp: Date.now() });
             }
           }}
         />;
