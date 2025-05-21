@@ -119,7 +119,7 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
       if (result.success) {
         setSubmissionStatus({ message: 'Transaction logged successfully!', type: 'success' });
         setFormData(getInitialFormData()); // Reset form with current date/time
-        if (onSubmit) await onSubmit();
+        if (onSubmit) await onSubmit(formData);
       } else {
         setSubmissionStatus({ message: `Error: ${result.message}`, type: 'error' });
       }
@@ -131,68 +131,72 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
     }
   };
   
-  const formStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '500px', margin: 'auto' };
-  const labelStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '5px', textAlign: 'left' };
-  const inputStyle: React.CSSProperties = { padding: '8px', border: '1px solid #555', borderRadius: '4px', backgroundColor: '#333', color: 'white' };
-  const errorStyle: React.CSSProperties = { color: 'red', fontSize: '0.9em', marginTop: '2px' };
-  const buttonStyle: React.CSSProperties = { padding: '10px 15px', backgroundColor: '#61dafb', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '1em' };
-
   return (
-    <form onSubmit={handleSubmit} style={formStyle} noValidate>
-      <div style={labelStyle}>Instrument/Ticker:
-        <input type="text" name="instrument_ticker" value={formData.instrument_ticker} onChange={handleInputChange} style={inputStyle} required/>
-        {errors.instrument_ticker && <span style={errorStyle}>{errors.instrument_ticker}</span>}
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-lg mx-auto bg-gray-800 p-6 rounded-lg shadow" noValidate>
+      <div className="flex flex-col gap-1 text-left">
+        <label htmlFor="instrument_ticker" className="font-medium">Instrument/Ticker:</label>
+        <input type="text" id="instrument_ticker" name="instrument_ticker" value={formData.instrument_ticker} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+        {errors.instrument_ticker && <span className="text-red-500 text-sm mt-1">{errors.instrument_ticker}</span>}
       </div>
-      <div style={labelStyle}>Asset Class:
+      <div className="flex flex-col gap-1 text-left">
+        <label htmlFor="asset_class" className="font-medium">Asset Class:</label>
         <select 
+          id="asset_class"
           name="asset_class" 
           value={formData.asset_class || ''} 
           onChange={handleInputChange} 
-          style={inputStyle} 
+          className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
         >
           <option value="">Select Asset Class</option>
           <option value="Stock">Stock</option>
           <option value="Cryptocurrency">Cryptocurrency</option>
         </select>
-        {errors.asset_class && <span style={errorStyle}>{errors.asset_class}</span>}
+        {errors.asset_class && <span className="text-red-500 text-sm mt-1">{errors.asset_class}</span>}
       </div>
-      <div style={labelStyle}>Exchange:
-        <input type="text" name="exchange" value={formData.exchange} onChange={handleInputChange} style={inputStyle} placeholder="e.g., NYSE, Binance" required/>
-        {errors.exchange && <span style={errorStyle}>{errors.exchange}</span>}
+      <div className="flex flex-col gap-1 text-left">
+        <label htmlFor="exchange" className="font-medium">Exchange:</label>
+        <input type="text" id="exchange" name="exchange" value={formData.exchange} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., NYSE, Binance" required />
+        {errors.exchange && <span className="text-red-500 text-sm mt-1">{errors.exchange}</span>}
       </div>
-      <div style={labelStyle}>Action:
-        <select name="action" value={formData.action} onChange={handleInputChange} style={inputStyle} required>
+      <div className="flex flex-col gap-1 text-left">
+        <label htmlFor="action" className="font-medium">Action:</label>
+        <select id="action" name="action" value={formData.action} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" required>
           <option value="">Select Action</option>
           <option value="Buy">Buy</option>
           <option value="Sell">Sell</option>
         </select>
-        {errors.action && <span style={errorStyle}>{errors.action}</span>}
+        {errors.action && <span className="text-red-500 text-sm mt-1">{errors.action}</span>}
       </div>
-      <div style={labelStyle}>Date/Time:
-        <input type="datetime-local" name="datetime" value={formData.datetime} onChange={handleInputChange} style={inputStyle} required/>
-        {errors.datetime && <span style={errorStyle}>{errors.datetime}</span>}
+      <div className="flex flex-col gap-1 text-left">
+        <label htmlFor="datetime" className="font-medium">Date/Time:</label>
+        <input type="datetime-local" id="datetime" name="datetime" value={formData.datetime} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+        {errors.datetime && <span className="text-red-500 text-sm mt-1">{errors.datetime}</span>}
       </div>
-      <div style={labelStyle}>Quantity:
-        <input type="number" step="any" min="0.00000001" name="quantity" value={formData.quantity} onChange={handleInputChange} style={inputStyle} required/>
-        {errors.quantity && <span style={errorStyle}>{errors.quantity}</span>}
+      <div className="flex flex-col gap-1 text-left">
+        <label htmlFor="quantity" className="font-medium">Quantity:</label>
+        <input type="number" step="any" min="0.00000001" id="quantity" name="quantity" value={formData.quantity} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+        {errors.quantity && <span className="text-red-500 text-sm mt-1">{errors.quantity}</span>}
       </div>
-      <div style={labelStyle}>Price:
-        <input type="number" step="any" min="0.00000001" name="price" value={formData.price} onChange={handleInputChange} style={inputStyle} required/>
-        {errors.price && <span style={errorStyle}>{errors.price}</span>}
+      <div className="flex flex-col gap-1 text-left">
+        <label htmlFor="price" className="font-medium">Price:</label>
+        <input type="number" step="any" min="0.00000001" id="price" name="price" value={formData.price} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+        {errors.price && <span className="text-red-500 text-sm mt-1">{errors.price}</span>}
       </div>
-      <div style={labelStyle}>Fees (for this transaction):
-        <input type="number" step="any" min="0" name="fees" value={formData.fees} onChange={handleInputChange} style={inputStyle} />
-        {errors.fees && <span style={errorStyle}>{errors.fees}</span>}
+      <div className="flex flex-col gap-1 text-left">
+        <label htmlFor="fees" className="font-medium">Fees (for this transaction):</label>
+        <input type="number" step="any" min="0" id="fees" name="fees" value={formData.fees} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        {errors.fees && <span className="text-red-500 text-sm mt-1">{errors.fees}</span>}
       </div>
-       <div style={labelStyle}>Notes (Optional):
-        <textarea name="notes" value={formData.notes} onChange={handleInputChange} style={{...inputStyle, minHeight: '60px' }} />
+       <div className="flex flex-col gap-1 text-left">
+        <label htmlFor="notes" className="font-medium">Notes (Optional):</label>
+        <textarea id="notes" name="notes" value={formData.notes} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full min-h-[60px] focus:outline-none focus:ring-2 focus:ring-blue-500" />
       </div>
-      <button type="submit" style={buttonStyle} disabled={submitting}>
+      <button type="submit" className="py-2 px-4 bg-blue-400 text-black rounded hover:bg-blue-500 transition-colors disabled:opacity-60 disabled:cursor-not-allowed font-semibold" disabled={submitting}>
         {submitting ? 'Logging…' : 'Log Transaction'}
       </button>
       {submissionStatus && (
-        <div style={{ padding: '10px', marginTop: '15px', borderRadius: '4px', backgroundColor: submissionStatus.type === 'success' ? '#4CAF50' : '#f44336', color: 'white', textAlign: 'center' }}>
+        <div className={`py-2 mt-4 rounded text-white text-center ${submissionStatus.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
           {submissionStatus.message}
         </div>
       )}
