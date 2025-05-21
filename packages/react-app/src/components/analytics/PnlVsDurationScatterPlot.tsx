@@ -2,6 +2,7 @@
 // New File for Stage 6
 
 import React from 'react';
+import { colors } from '/src/styles/design-tokens';
 
 import type { DurationPerformanceData } from '../../types';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -21,6 +22,11 @@ interface FormattedDataPoint extends DurationPerformanceData {
 }
 
 const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props: PnlVsDurationScatterPlotProps) => {
+  // DEBUG: Log the incoming data
+  React.useEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log('[PnLvsDuration] formattedData:', props.data);
+  }, [props.data]);
   const isMobile = useIsMobile();
 
   // Validate input data
@@ -30,6 +36,7 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
   }
 
   // Filter out invalid data points and format the data
+  // Add jitter to durationHours if it is exactly zero
   const formattedData = data
     .filter(item => 
       item != null && 
@@ -40,13 +47,15 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
       typeof item.trade_id === 'number' &&
       typeof item.instrument_ticker === 'string'
     )
-    .map(item => {
+    .map((item, i) => {
       const rMultipleText = item.rMultiple != null && !isNaN(item.rMultiple) 
         ? `${item.rMultiple.toFixed(2)}R` 
         : 'N/A R';
-      
+      // Add jitter if duration is zero
+      const jitter = item.durationHours === 0 ? (i * 0.05 + 0.01) : 0;
       return {
         ...item,
+        durationHours: item.durationHours + jitter,
         durationLabel: `${item.durationHours.toFixed(1)} hrs`,
         tooltipPayload: `ID ${item.trade_id} (${item.instrument_ticker}): ${item.netPnl > 0 ? '+' : ''}${item.netPnl.toFixed(2)} P&L, ${rMultipleText}`
       };
@@ -68,6 +77,7 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
             dataKey="durationHours" 
             name="Duration (Hours)" 
             unit="h" 
+            domain={[0, Math.max(...formattedData.map(d => d.durationHours), 1)]}
             tick={{ fontSize: 10, fill: 'var(--color-on-surface-variant)' }}
             label={{ value: "Duration (Hours)", position: "insideBottom", offset: -15, fill: 'var(--color-on-surface-variant)', fontSize: 10 }}
           />
@@ -91,21 +101,21 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
             }}
           />
           {!isMobile && <Legend />}
-          <Scatter 
-            name="Trades" 
-            data={formattedData} 
+          <Scatter
+            name="Trades"
+            data={formattedData}
             fillOpacity={0.7}
-          >
-            {formattedData.map((entry: FormattedDataPoint, index: number) => (
-              <circle
-                key={`point-${index}`}
-                cx={entry.durationHours}
-                cy={entry.netPnl}
-                r={5}
-                fill={entry.netPnl >= 0 ? 'var(--color-success)' : 'var(--color-error)'}
-              />
-            ))}
-          </Scatter>
+            shape={(props: any) => {
+              const { cx, cy, payload } = props as { cx?: number; cy?: number; payload?: any };
+              if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
+                // Return an invisible circle to satisfy type
+                return <circle cx={0} cy={0} r={0} fill="none" />;
+              }
+              // Use theme color constants for fill
+              const color = payload.netPnl >= 0 ? colors.success : colors.error;
+              return <circle cx={cx} cy={cy} r={6} fill={color} />;
+            }}
+          />
         </ScatterChart>
       </ResponsiveContainer>
     </div>

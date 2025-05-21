@@ -12,12 +12,12 @@ async function calculateAnalyticsData(filters = {}) {
 
     if (filters.dateRange?.startDate) {
       whereClause += (Object.keys(queryParams).length > 0 ? 'AND ' : 'WHERE ') + 
-                     '( (t.status = "Closed" AND t.close_datetime >= @startDate) OR (t.status = "Open" AND t.open_datetime >= @startDate) ) ';
+                     '( (t.close_datetime IS NOT NULL AND t.close_datetime >= @startDate) OR (t.close_datetime IS NULL AND t.open_datetime >= @startDate) ) ';
       queryParams.startDate = filters.dateRange.startDate;
     }
     if (filters.dateRange?.endDate) {
       whereClause += (Object.keys(queryParams).length > 0 ? 'AND ' : 'WHERE ') + 
-                     '( (t.status = "Closed" AND t.close_datetime <= @endDate) OR (t.status = "Open" AND t.open_datetime <= @endDate) ) ';
+                     '( (t.close_datetime IS NOT NULL AND t.close_datetime <= @endDate) OR (t.close_datetime IS NULL AND t.open_datetime <= @endDate) ) ';
       queryParams.endDate = filters.dateRange.endDate;
     }
     // Example for other filters:
