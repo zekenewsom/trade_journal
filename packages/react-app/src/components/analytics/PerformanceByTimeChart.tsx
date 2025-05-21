@@ -4,6 +4,7 @@
 import React from 'react';
 import type { TimePerformanceData } from '../../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import { colors } from '../../styles/design-tokens';
 
 interface Props {
   title: string;
@@ -15,7 +16,7 @@ interface Props {
 const PerformanceByTimeChart: React.FC<Props> = ({ title, data, dataKeyX, dataKeyY }) => {
   if (!data || data.length === 0) {
     return (
-      <div className="text-gray-400 text-sm">
+      <div className="text-sm" style={{ color: colors.textSecondary }}>
         No data available for {title}.
       </div>
     );
@@ -25,24 +26,24 @@ const PerformanceByTimeChart: React.FC<Props> = ({ title, data, dataKeyX, dataKe
 
   return (
     <div>
-      <h3 className="text-xl font-semibold mb-4 text-white">{title}</h3>
+      <h3 className="text-xl font-semibold mb-4" style={{ color: colors.onSurface }}>{title}</h3>
       <div className="h-[400px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#2A2B2D" />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.cardStroke} />
             <XAxis 
               dataKey={dataKeyX} 
-              tick={{ fontSize: 12, fill: '#9CA3AF' }}
+              tick={{ fontSize: 12, fill: colors.textSecondary }}
             />
             <YAxis 
               tickFormatter={(value) => `$${value.toFixed(0)}`}
-              tick={{ fontSize: 12, fill: '#9CA3AF' }}
+              tick={{ fontSize: 12, fill: colors.textSecondary }}
             />
             <Tooltip 
               formatter={(value: number) => [`$${value.toFixed(2)}`, 'P&L']}
               contentStyle={{ 
-                backgroundColor: '#1A1B1D',
-                border: '1px solid #2A2B2D',
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.cardStroke}`,
                 borderRadius: '0.375rem'
               }}
             />
@@ -50,7 +51,7 @@ const PerformanceByTimeChart: React.FC<Props> = ({ title, data, dataKeyX, dataKe
               {data.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`}
-                  fill={entry.totalNetPnl >= 0 ? '#00E28A' : '#FF4D67'}
+                  fill={entry.totalNetPnl >= 0 ? colors.success : colors.error}
                 />
               ))}
             </Bar>

@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import type { AnalyticsData } from '../../types';
 import { useAppStore } from '../../stores/appStore';
 import { Box, Grid, Typography, CircularProgress, Alert, Paper, Button, Select, MenuItem, InputLabel, FormControl, Avatar, IconButton } from '@mui/material';
+import { colors, borderRadius, shadows } from '../../styles/design-tokens';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -57,9 +58,9 @@ const DashboardMetrics: React.FC = () => {
   const formatCurrency = (value: number | null | undefined) => value === null || value === undefined ? 'N/A' : value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
   return (
-    <Box sx={{ flexGrow: 1, p: 3, backgroundColor: '#161a25', color: '#e0e0e0', minHeight: '100vh' }}>
+    <Box sx={{ flexGrow: 1, p: 3, backgroundColor: colors.background, color: colors.onBackground, minHeight: '100vh' }}>
       {/* Header Section */}
-      <Paper elevation={2} sx={{ mb: 4, p: { xs: 2, md: 3 }, backgroundColor: '#1e2230', color: '#e0e0e0', borderRadius: 3, boxShadow: 3, overflow: 'hidden' }}>
+      <Paper elevation={2} sx={{ mb: 4, p: { xs: 2, md: 3 }, backgroundColor: colors.surface, color: colors.onSurface, borderRadius: borderRadius['2xl'], boxShadow: shadows.elevation2, overflow: 'hidden' }}>
         <Grid container columns={12} spacing={2} alignItems="center" justifyContent="space-between" wrap="wrap">
           {/* Filters Section */}
           <Grid size={{ xs: 12, md: 7 }}>
@@ -70,7 +71,7 @@ const DashboardMetrics: React.FC = () => {
                     label="Start Date"
                     value={startDate}
                     onChange={setStartDate}
-                    slotProps={{ textField: { size: 'small', sx: { width: '100%', background: '#23263a', input: { color: '#e0e0e0' } } } }}
+                    slotProps={{ textField: { size: 'small', sx: { width: '100%', background: colors.surfaceVariant, input: { color: colors.onSurface } } } }}
                   />
                 </LocalizationProvider>
               </Grid>
@@ -80,19 +81,19 @@ const DashboardMetrics: React.FC = () => {
                     label="End Date"
                     value={endDate}
                     onChange={setEndDate}
-                    slotProps={{ textField: { size: 'small', sx: { width: '100%', background: '#23263a', input: { color: '#e0e0e0' } } } }}
+                    slotProps={{ textField: { size: 'small', sx: { width: '100%', background: colors.surfaceVariant, input: { color: colors.onSurface } } } }}
                   />
                 </LocalizationProvider>
               </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                <FormControl size="small" sx={{ width: '100%', background: '#23263a' }}>
-                  <InputLabel id="strategy-label" sx={{ color: '#8be9fd' }}>Strategy</InputLabel>
+                <FormControl size="small" sx={{ width: '100%', background: colors.surfaceVariant }}>
+                  <InputLabel id="strategy-label" sx={{ color: colors.onSurface }}>Strategy</InputLabel>
                   <Select
                     labelId="strategy-label"
                     value={selectedStrategy}
                     label="Strategy"
                     onChange={e => setSelectedStrategy(e.target.value as number)}
-                    sx={{ color: '#e0e0e0', '.MuiSelect-icon': { color: '#8be9fd' } }}
+                    sx={{ color: colors.onSurface, '.MuiSelect-icon': { color: colors.accent } }}
                   >
                     <MenuItem value="">All Strategies</MenuItem>
                     {analytics?.availableStrategies?.map((s) => (
@@ -107,20 +108,20 @@ const DashboardMetrics: React.FC = () => {
           <Grid size={{ xs: 12, md: 5 }}>
             <Grid container spacing={1} alignItems="center" justifyContent={{ xs: 'flex-start', md: 'flex-end' }} wrap="wrap">
               <Grid>
-                <Button startIcon={<SearchIcon />} variant="outlined" color="primary" sx={{ borderColor: '#3A7BFF', color: '#8be9fd', borderRadius: 2, px: 2, minWidth: 120 }}>Search Trades</Button>
+                <Button startIcon={<SearchIcon />} variant="outlined" color="primary" sx={{ borderColor: colors.primary, color: colors.accent, borderRadius: borderRadius.lg, px: 2, minWidth: 120 }}>Search Trades</Button>
               </Grid>
               <Grid>
-                <Button startIcon={<AddIcon />} variant="contained" color="primary" sx={{ background: '#3A7BFF', borderRadius: 2, px: 2, minWidth: 120 }} onClick={() => {/* Navigation to logTransactionForm should be implemented if route/callback is available */}}>Add Trade</Button>
+                <Button startIcon={<AddIcon />} variant="contained" color="primary" sx={{ background: colors.primary, borderRadius: borderRadius.lg, px: 2, minWidth: 120 }} onClick={() => {/* Navigation to logTransactionForm should be implemented if route/callback is available */}}>Add Trade</Button>
               </Grid>
               <Grid>
-                <Button startIcon={<FileDownloadIcon />} variant="outlined" sx={{ borderColor: '#3A7BFF', color: '#8be9fd', borderRadius: 2, px: 2, minWidth: 110 }}>Export</Button>
+                <Button startIcon={<FileDownloadIcon />} variant="outlined" sx={{ borderColor: colors.primary, color: colors.accent, borderRadius: borderRadius.lg, px: 2, minWidth: 110 }}>Export</Button>
               </Grid>
               <Grid>
-                <Button startIcon={<BackupIcon />} variant="outlined" sx={{ borderColor: '#3A7BFF', color: '#8be9fd', borderRadius: 2, px: 2, minWidth: 120 }}>Backup Now</Button>
+                <Button startIcon={<BackupIcon />} variant="outlined" sx={{ borderColor: colors.primary, color: colors.accent, borderRadius: borderRadius.lg, px: 2, minWidth: 120 }}>Backup Now</Button>
               </Grid>
               <Grid>
                 <IconButton sx={{ ml: 1 }}>
-                  <Avatar sx={{ bgcolor: '#23263a', color: '#8be9fd', width: 36, height: 36, borderRadius: 2 }}>
+                  <Avatar sx={{ bgcolor: colors.surfaceVariant, color: colors.accent, width: 36, height: 36, borderRadius: borderRadius.lg }}>
                     <PersonIcon />
                   </Avatar>
                 </IconButton>
@@ -205,11 +206,11 @@ const DashboardMetrics: React.FC = () => {
 
         {/* Section 4: Charts */}
         <Grid size={{ xs: 12 }}>
-          <Typography variant="h6" sx={{ mb: 2, mt: 2, color: '#50fa7b' }}>CHARTS</Typography>
+          <Typography variant="h6" sx={{ mb: 2, mt: 2, color: colors.success }}>CHARTS</Typography>
         </Grid>
         <Grid size={{ xs: 12, md: 8 }}>
-          <Paper sx={{ p: 2, backgroundColor: '#1e2230', color: '#e0e0e0', height: '400px' }}>
-            <Typography variant="subtitle2" sx={{ color: '#8be9fd', textAlign:'center', mb:1 }}>
+          <Paper sx={{ p: 2, backgroundColor: colors.surface, color: colors.onSurface, height: '400px', borderRadius: borderRadius.lg }}>
+            <Typography variant="subtitle2" sx={{ color: colors.accent, textAlign:'center', mb:1 }}>
               Cumulative Equity Curve
             </Typography>
             {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
@@ -222,8 +223,8 @@ const DashboardMetrics: React.FC = () => {
         <Grid size={{ xs: 12, md: 4 }}>
           <Grid container direction="column" spacing={3}>
             <Grid size={{ xs: 12 }}>
-              <Paper sx={{ p: 1, backgroundColor: '#1e2230', color: '#e0e0e0', height: '188px' }}>
-                <Typography variant="subtitle2" sx={{ color: '#8be9fd', textAlign:'center', mb:1 }}>Drawdown Curve</Typography>
+              <Paper sx={{ p: 1, backgroundColor: colors.surface, color: colors.onSurface, height: '188px' }}>
+                <Typography variant="subtitle2" sx={{ color: colors.accent, textAlign:'center', mb:1 }}>Drawdown Curve</Typography>
                 {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
                   <DashboardDrawdownChart equityCurveData={analytics?.equityCurve} />
                 ) : (
@@ -232,8 +233,8 @@ const DashboardMetrics: React.FC = () => {
               </Paper>
             </Grid>
             <Grid size={{ xs: 12 }}>
-              <Paper sx={{ p: 1, backgroundColor: '#1e2230', color: '#e0e0e0', height: '188px' }}>
-                <Typography variant="subtitle2" sx={{ color: '#8be9fd', textAlign:'center', mb:1 }}>R-Multiple Histogram</Typography>
+              <Paper sx={{ p: 1, backgroundColor: colors.surface, color: colors.onSurface, height: '188px' }}>
+                <Typography variant="subtitle2" sx={{ color: colors.accent, textAlign:'center', mb:1 }}>R-Multiple Histogram</Typography>
                 {analytics?.rMultipleDistribution && analytics?.rMultipleDistribution.length > 0 ? (
                   <DashboardRMultipleHistogram data={analytics?.rMultipleDistribution} />
                 ) : (

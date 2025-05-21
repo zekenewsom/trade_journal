@@ -4,6 +4,7 @@
 import React from 'react';
 import type { DurationPerformanceData } from '../../types';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { colors } from '../../styles/design-tokens';
 
 interface PnlVsDurationScatterPlotProps {
   data: DurationPerformanceData[];
@@ -50,17 +51,17 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = ({ dat
 
   return (
     <div>
-      <h4>Net P&L vs. Trade Duration (Fully Closed Trades)</h4>
+      <h4 style={{ color: colors.onSurface }}>Net P&L vs. Trade Duration (Fully Closed Trades)</h4>
       <ResponsiveContainer width="100%" height={400}>
         <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-          <CartesianGrid stroke="#555"/>
+          <CartesianGrid stroke={colors.cardStroke}/>
           <XAxis 
             type="number" 
             dataKey="durationHours" 
             name="Duration (Hours)" 
             unit="h" 
-            tick={{ fontSize: 10, fill: '#ccc' }}
-            label={{ value: "Duration (Hours)", position: "insideBottom", offset: -15, fill:'#ccc', fontSize: 10 }}
+            tick={{ fontSize: 10, fill: colors.textSecondary }}
+            label={{ value: "Duration (Hours)", position: "insideBottom", offset: -15, fill: colors.textSecondary, fontSize: 10 }}
           />
           <YAxis 
             type="number" 
@@ -68,8 +69,8 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = ({ dat
             name="Net P&L" 
             unit="$" 
             tickFormatter={(value) => `$${value.toFixed(0)}`}
-            tick={{ fontSize: 10, fill: '#ccc' }}
-            label={{ value: "Net P&L ($)", angle: -90, position: "insideLeft", fill:'#ccc', fontSize: 10 }}
+            tick={{ fontSize: 10, fill: colors.textSecondary }}
+            label={{ value: "Net P&L ($)", angle: -90, position: "insideLeft", fill: colors.textSecondary, fontSize: 10 }}
           />
           {/* ZAxis can be used for bubble size if we have another metric like volume */}
           {/* <ZAxis dataKey="rMultiple" range={[10, 500]} name="R-Multiple" unit="R"/> */}
@@ -87,11 +88,11 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = ({ dat
                         ? `${data.rMultiple.toFixed(2)}R`
                         : 'N/A R';
                     return (
-                        <div className="custom-tooltip" style={{backgroundColor: 'rgba(40,44,52,0.9)', padding: '10px', borderRadius: '5px', border: '1px solid #555'}}>
-                            <p style={{margin:0, color: '#61dafb'}}>{`Trade ID: ${data.trade_id} (${data.instrument_ticker})`}</p>
-                            <p style={{margin:0}}>{`Duration: ${data.durationHours.toFixed(1)} hrs`}</p>
-                            <p style={{margin:0, color: data.netPnl >= 0 ? '#4CAF50' : '#f44336'}}>{`Net P&L: ${data.netPnl.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`}</p>
-                            <p style={{margin:0}}>{`R-Multiple: ${rMultipleText}`}</p>
+                        <div className="custom-tooltip" style={{backgroundColor: 'rgba(35,38,58,0.92)', padding: '10px', borderRadius: '5px', border: `1px solid ${colors.cardStroke}`}}>
+                            <p style={{margin:0, color: colors.accent}}>{`Trade ID: ${data.trade_id} (${data.instrument_ticker})`}</p>
+                            <p style={{margin:0, color: colors.onSurface}}>{`Duration: ${data.durationHours.toFixed(1)} hrs`}</p>
+                            <p style={{margin:0, color: data.netPnl >= 0 ? colors.success : colors.error}}>{`Net P&L: ${data.netPnl.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`}</p>
+                            <p style={{margin:0, color: colors.onSurface}}>{`R-Multiple: ${rMultipleText}`}</p>
                         </div>
                     );
                 }
@@ -110,7 +111,7 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = ({ dat
                 cx={entry.durationHours}
                 cy={entry.netPnl}
                 r={5}
-                fill={entry.netPnl >= 0 ? "#4CAF50" : "#f44336"}
+                fill={entry.netPnl >= 0 ? colors.success : colors.error}
               />
             ))}
           </Scatter>

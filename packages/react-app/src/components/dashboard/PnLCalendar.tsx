@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { MetricCard } from '../ui/MetricCard';
+import { colors } from '../../styles/design-tokens';
 
 interface PnLCalendarProps {
   data: Record<string, number>; // Day string -> PnL value
@@ -15,15 +16,15 @@ export function PnLCalendar({ data }: PnLCalendarProps) {
   
   // Get color class based on value
   const getColorClass = (value: number) => {
-    if (value === 0) return 'bg-dark-500';
-    
+    if (value === 0) return { background: colors.surface };
+
     const intensity = Math.min(Math.abs(value) / (value > 0 ? maxGain : maxLoss), 1);
-    const alphaHex = Math.round(intensity * 255).toString(16).padStart(2, '0');
-    
+    const alpha = intensity * 0.8; // Use 80% max opacity for color
+
     if (value > 0) {
-      return `bg-[#00E28A${alphaHex}]`;
+      return { background: colors.success, opacity: alpha };
     } else {
-      return `bg-[#FF4D67${alphaHex}]`;
+      return { background: colors.error, opacity: alpha };
     }
   };
   
@@ -32,7 +33,7 @@ export function PnLCalendar({ data }: PnLCalendarProps) {
       <div className="grid grid-cols-7 gap-1">
         {/* Day headers */}
         {days.map(day => (
-          <div key={day} className="text-center text-xs text-gray-400">
+          <div key={day} className="text-center text-xs" style={{ color: colors.textSecondary }}>
             {day}
           </div>
         ))}
@@ -41,10 +42,11 @@ export function PnLCalendar({ data }: PnLCalendarProps) {
         {Object.entries(data).map(([day, value]) => (
           <div 
             key={day}
-            className={`h-12 rounded flex flex-col items-center justify-center ${getColorClass(value)}`}
+            className="h-12 rounded flex flex-col items-center justify-center"
+            style={getColorClass(value)}
           >
-            <div className="text-xs font-medium">{day.split('-')[2]}</div>
-            <div className={`text-xs ${value > 0 ? 'text-positive' : value < 0 ? 'text-negative' : 'text-gray-400'}`}>
+            <div className="text-xs" style={{ color: colors.textSecondary }}>{day.split('-')[2]}</div>
+            <div className="text-xs" style={{ color: value > 0 ? colors.success : value < 0 ? colors.error : colors.textSecondary }}>
               {value > 0 ? '+' : value < 0 ? '-' : ''}${Math.abs(value).toFixed(1)}k
             </div>
           </div>

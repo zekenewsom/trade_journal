@@ -1,5 +1,6 @@
 import React from 'react';
 import type { AnalyticsData } from '../../types';
+import { colors } from '../../styles/design-tokens';
 
 interface Props {
   analytics: AnalyticsData;
@@ -44,12 +45,31 @@ const TradeStatsCard: React.FC<Props> = ({ analytics }) => {
 
   return (
     <div>
-      <h3 className="text-xl font-semibold mb-4 text-white">Trade Statistics</h3>
+      <h3 className="text-xl font-semibold mb-4" style={{ color: colors.onSurface }}>Trade Statistics</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats.map((stat, index) => (
-          <div key={index} className="bg-gray-900 rounded-lg p-4 border border-gray-800">
-            <p className="text-gray-400 text-sm font-medium mb-1">{stat.label}</p>
-            <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
+          <div
+            key={index}
+            className="rounded-lg p-4 border"
+            style={{
+              background: colors.surface,
+              borderColor: colors.cardStroke
+            }}
+          >
+            <p className="text-sm font-medium mb-1" style={{ color: colors.textSecondary }}>{stat.label}</p>
+            <p
+              className="text-xl font-bold"
+              style={{
+                color:
+                  stat.color === 'text-positive'
+                    ? colors.success
+                    : stat.color === 'text-negative'
+                    ? colors.error
+                    : colors.primary
+              }}
+            >
+              {stat.value}
+            </p>
           </div>
         ))}
       </div>

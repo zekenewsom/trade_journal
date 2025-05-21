@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import type { TooltipProps } from 'recharts';
 import { MetricCard } from '../ui/MetricCard';
+import { colors } from '../../styles/design-tokens';
 import { format } from 'date-fns';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 
@@ -23,9 +24,9 @@ export function DrawdownChart({ data }: DrawdownChartProps) {
   const renderTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-dark-600 p-2 border border-dark-400 rounded shadow-lg">
-          <p className="text-xs text-gray-400">{format(new Date(label), 'MMM d, yyyy')}</p>
-          <p className="text-sm font-medium text-negative">{payload[0].value}%</p>
+        <div style={{ background: colors.surface, border: `1px solid ${colors.cardStroke}` }} className="p-2 rounded shadow-lg">
+          <p className="text-xs" style={{ color: colors.textSecondary }}>{format(new Date(label), 'MMM d, yyyy')}</p>
+          <p className="text-sm font-medium" style={{ color: colors.error }}>{payload[0].value}%</p>
         </div>
       );
     }
@@ -40,7 +41,7 @@ export function DrawdownChart({ data }: DrawdownChartProps) {
             data={data}
             margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.cardStroke} />
             <XAxis
               dataKey="date"
               axisLine={false}
@@ -58,14 +59,14 @@ export function DrawdownChart({ data }: DrawdownChartProps) {
             <Tooltip content={renderTooltip} />
             <defs>
               <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#FF4D67" stopOpacity={0.1} />
-                <stop offset="95%" stopColor="#FF4D67" stopOpacity={0.01} />
+                <stop offset="5%" stopColor={colors.error} stopOpacity={0.1} />
+                <stop offset="95%" stopColor={colors.error} stopOpacity={0.01} />
               </linearGradient>
             </defs>
             <Area
               type="monotone"
               dataKey="value"
-              stroke="#FF4D67"
+              stroke={colors.error}
               strokeWidth={2}
               fill="url(#drawdownGradient)"
             />

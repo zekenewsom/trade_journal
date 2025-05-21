@@ -1,5 +1,6 @@
 import { MetricCard } from '../ui/MetricCard';
 import CountUp from 'react-countup';
+import { colors } from '../../styles/design-tokens';
 
 interface ProfitFactorCardProps {
   value: number;
@@ -21,20 +22,22 @@ export function ProfitFactorCard({
         </div>
         
         <div className="flex items-center justify-between mt-1 mb-1">
-          <div className="text-xs text-gray-400">Poor</div>
-          <div className="text-xs text-gray-400">Good</div>
+          <div className="text-xs" style={{ color: colors.textSecondary }}>Poor</div>
+          <div className="text-xs" style={{ color: colors.textSecondary }}>Good</div>
         </div>
         
-        <div className="w-full h-1 bg-dark-700 rounded-full">
+        <div className="w-full h-1 rounded-full" style={{ background: colors.cardStroke }}>
           <div 
-            className={
-              status === 'good' 
-                ? 'bg-positive' 
+            style={{ 
+              width: `${ratio}%`, 
+              height: '100%', 
+              borderRadius: '9999px', 
+              background: status === 'good' 
+                ? colors.success 
                 : status === 'moderate' 
-                  ? 'bg-warning' 
-                  : 'bg-negative'
-            }
-            style={{ width: `${ratio}%`, height: '100%', borderRadius: '9999px' }}
+                  ? colors.warning 
+                  : colors.error 
+            }}
           />
         </div>
       </div>

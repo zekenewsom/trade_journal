@@ -1,5 +1,6 @@
 import { MetricCard } from '../ui/MetricCard';
 import CountUp from 'react-countup';
+import { colors } from '../../styles/design-tokens';
 
 interface BuyingPowerCardProps {
   value: number;
@@ -18,22 +19,22 @@ export function BuyingPowerCard({
         </div>
         
         <div className="flex items-center justify-between mt-4">
-          <div className="text-xs text-gray-400">
+          <div className="text-xs" style={{ color: colors.textSecondary }}>
             <span className="mr-1">Allocation:</span>
-            <span className="font-medium text-white">{allocation}%</span>
+            <span className="font-medium" style={{ color: colors.onSurface }}>{allocation}%</span>
           </div>
           
-          <div className="text-xs text-gray-400">
+          <div className="text-xs" style={{ color: colors.textSecondary }}>
             <span className="mr-1">Free:</span>
-            <span className="font-medium text-white">{100 - allocation}%</span>
+            <span className="font-medium" style={{ color: colors.onSurface }}>{100 - allocation}%</span>
           </div>
         </div>
         
         <div className="mt-1">
-          <div className="w-full bg-dark-800 h-1.5 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: colors.cardStroke }}>
             <div 
-              className="h-full bg-primary"
-              style={{ width: `${allocation}%` }}
+              className="h-full"
+              style={{ width: `${allocation}%`, background: colors.primary }}
             />
           </div>
         </div>

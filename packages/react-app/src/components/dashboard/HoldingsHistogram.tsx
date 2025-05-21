@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import type { TooltipProps } from 'recharts';
 import { MetricCard } from '../ui/MetricCard';
+import { colors } from '../../styles/design-tokens';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 
 interface HoldingsHistogramProps {
@@ -25,9 +26,9 @@ export function HoldingsHistogram({ data }: HoldingsHistogramProps) {
       const isPositive = Number(label) >= 0;
       
       return (
-        <div className="bg-dark-600 p-2 border border-dark-400 rounded shadow-lg">
-          <p className="text-xs text-gray-400">{`R-Multiple: ${label}R`}</p>
-          <p className={`text-sm font-medium ${isPositive ? 'text-positive' : 'text-negative'}`}>
+        <div style={{ background: colors.surface, border: `1px solid ${colors.cardStroke}` }} className="p-2 rounded shadow-lg">
+          <p className="text-xs" style={{ color: colors.textSecondary }}>{`R-Multiple: ${label}R`}</p>
+          <p className="text-sm font-medium" style={{ color: isPositive ? colors.success : colors.error }}>
             {payload[0].value} trades
           </p>
         </div>
@@ -45,7 +46,7 @@ export function HoldingsHistogram({ data }: HoldingsHistogramProps) {
             margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
             barGap={0}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.cardStroke} vertical={false} />
             <XAxis
               dataKey="r"
               axisLine={false}
@@ -65,7 +66,7 @@ export function HoldingsHistogram({ data }: HoldingsHistogramProps) {
               radius={[2, 2, 0, 0]}
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={Number(entry.r) >= 0 ? '#00E28A' : '#FF4D67'} />
+                <Cell key={`cell-${index}`} fill={Number(entry.r) >= 0 ? colors.success : colors.error} />
               ))}
             </Bar>
           </BarChart>

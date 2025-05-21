@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import type { TooltipProps } from 'recharts';
 import { MetricCard } from '../ui/MetricCard';
+import { colors } from '../../styles/design-tokens';
 import { format } from 'date-fns';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 
@@ -23,9 +24,9 @@ export function CumulativeEquityChart({ data }: CumulativeEquityChartProps) {
   const renderTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-dark-600 p-2 border border-dark-400 rounded shadow-lg">
-          <p className="text-xs text-gray-400">{format(new Date(label), 'MMM d, yyyy')}</p>
-          <p className="text-sm font-medium">${payload[0].value?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</p>
+        <div style={{ background: colors.surface, border: `1px solid ${colors.cardStroke}` }} className="p-2 rounded shadow-lg">
+          <p className="text-xs" style={{ color: colors.textSecondary }}>{format(new Date(label), 'MMM d, yyyy')}</p>
+          <p className="text-sm font-medium" style={{ color: colors.onSurface }}>${payload[0].value?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}</p>
         </div>
       );
     }
@@ -40,27 +41,27 @@ export function CumulativeEquityChart({ data }: CumulativeEquityChartProps) {
             data={data}
             margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" />
+            <CartesianGrid strokeDasharray="3 3" stroke={colors.cardStroke} />
             <XAxis 
               dataKey="date" 
               axisLine={false}
               tickLine={false}
               tickFormatter={(value) => format(new Date(value), 'MMM')}
-              tick={{ fontSize: 10, fill: '#9ca3af' }}
+              tick={{ fontSize: 10, fill: colors.textSecondary }}
             />
             <YAxis 
               axisLine={false}
               tickLine={false}
               tickFormatter={(value) => `$${(value/1000).toFixed(0)}k`}
-              tick={{ fontSize: 10, fill: '#9ca3af' }}
+              tick={{ fontSize: 10, fill: colors.textSecondary }}
             />
             <Tooltip content={renderTooltip} />
             <Line 
               type="monotone" 
               dataKey="value" 
-              stroke="#3A7BFF" 
+              stroke={colors.primary} 
               strokeWidth={2} 
-              activeDot={{ r: 6, fill: '#3A7BFF', stroke: '#131417', strokeWidth: 2 }}
+              activeDot={{ r: 6, fill: colors.primary, stroke: colors.surface, strokeWidth: 2 }}
               dot={false}
             />
           </LineChart>

@@ -132,11 +132,11 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
   };
   
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-lg mx-auto bg-gray-800 p-6 rounded-lg shadow" noValidate>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-lg mx-auto bg-surface p-6 rounded-2xl shadow-elevation-2 border border-card-stroke" noValidate>
       <div className="flex flex-col gap-1 text-left">
         <label htmlFor="instrument_ticker" className="font-medium">Instrument/Ticker:</label>
-        <input type="text" id="instrument_ticker" name="instrument_ticker" value={formData.instrument_ticker} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-        {errors.instrument_ticker && <span className="text-red-500 text-sm mt-1">{errors.instrument_ticker}</span>}
+        <input type="text" id="instrument_ticker" name="instrument_ticker" value={formData.instrument_ticker} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" required />
+        {errors.instrument_ticker && <span className="text-error text-sm mt-1">{errors.instrument_ticker}</span>}
       </div>
       <div className="flex flex-col gap-1 text-left">
         <label htmlFor="asset_class" className="font-medium">Asset Class:</label>
@@ -144,59 +144,58 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
           id="asset_class"
           name="asset_class" 
           value={formData.asset_class || ''} 
-          onChange={handleInputChange} 
-          className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          onChange={handleInputChange}          className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary"
           required
         >
           <option value="">Select Asset Class</option>
           <option value="Stock">Stock</option>
           <option value="Cryptocurrency">Cryptocurrency</option>
         </select>
-        {errors.asset_class && <span className="text-red-500 text-sm mt-1">{errors.asset_class}</span>}
+        {errors.asset_class && <span className="text-error text-sm mt-1">{errors.asset_class}</span>}
       </div>
       <div className="flex flex-col gap-1 text-left">
         <label htmlFor="exchange" className="font-medium">Exchange:</label>
-        <input type="text" id="exchange" name="exchange" value={formData.exchange} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., NYSE, Binance" required />
-        {errors.exchange && <span className="text-red-500 text-sm mt-1">{errors.exchange}</span>}
+        <input type="text" id="exchange" name="exchange" value={formData.exchange} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., NYSE, Binance" required />
+        {errors.exchange && <span className="text-error text-sm mt-1">{errors.exchange}</span>}
       </div>
       <div className="flex flex-col gap-1 text-left">
         <label htmlFor="action" className="font-medium">Action:</label>
-        <select id="action" name="action" value={formData.action} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        <select id="action" name="action" value={formData.action} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" required>
           <option value="">Select Action</option>
           <option value="Buy">Buy</option>
           <option value="Sell">Sell</option>
         </select>
-        {errors.action && <span className="text-red-500 text-sm mt-1">{errors.action}</span>}
+        {errors.action && <span className="text-error text-sm mt-1">{errors.action}</span>}
       </div>
       <div className="flex flex-col gap-1 text-left">
         <label htmlFor="datetime" className="font-medium">Date/Time:</label>
-        <input type="datetime-local" id="datetime" name="datetime" value={formData.datetime} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-        {errors.datetime && <span className="text-red-500 text-sm mt-1">{errors.datetime}</span>}
+        <input type="datetime-local" id="datetime" name="datetime" value={formData.datetime} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" required />
+        {errors.datetime && <span className="text-error text-sm mt-1">{errors.datetime}</span>}
       </div>
       <div className="flex flex-col gap-1 text-left">
         <label htmlFor="quantity" className="font-medium">Quantity:</label>
-        <input type="number" step="any" min="0.00000001" id="quantity" name="quantity" value={formData.quantity} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-        {errors.quantity && <span className="text-red-500 text-sm mt-1">{errors.quantity}</span>}
+        <input type="number" step="any" min="0.00000001" id="quantity" name="quantity" value={formData.quantity} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" required />
+        {errors.quantity && <span className="text-error text-sm mt-1">{errors.quantity}</span>}
       </div>
       <div className="flex flex-col gap-1 text-left">
         <label htmlFor="price" className="font-medium">Price:</label>
-        <input type="number" step="any" min="0.00000001" id="price" name="price" value={formData.price} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-        {errors.price && <span className="text-red-500 text-sm mt-1">{errors.price}</span>}
+        <input type="number" step="any" min="0.00000001" id="price" name="price" value={formData.price} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" required />
+        {errors.price && <span className="text-error text-sm mt-1">{errors.price}</span>}
       </div>
       <div className="flex flex-col gap-1 text-left">
         <label htmlFor="fees" className="font-medium">Fees (for this transaction):</label>
-        <input type="number" step="any" min="0" id="fees" name="fees" value={formData.fees} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full focus:outline-none focus:ring-2 focus:ring-blue-500" />
-        {errors.fees && <span className="text-red-500 text-sm mt-1">{errors.fees}</span>}
+        <input type="number" step="any" min="0" id="fees" name="fees" value={formData.fees} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" />
+        {errors.fees && <span className="text-error text-sm mt-1">{errors.fees}</span>}
       </div>
        <div className="flex flex-col gap-1 text-left">
         <label htmlFor="notes" className="font-medium">Notes (Optional):</label>
-        <textarea id="notes" name="notes" value={formData.notes} onChange={handleInputChange} className="p-2 border border-gray-600 rounded bg-gray-700 text-white w-full min-h-[60px] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        <textarea id="notes" name="notes" value={formData.notes} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full min-h-[60px] focus:outline-none focus:ring-2 focus:ring-primary" />
       </div>
-      <button type="submit" className="py-2 px-4 bg-blue-400 text-black rounded hover:bg-blue-500 transition-colors disabled:opacity-60 disabled:cursor-not-allowed font-semibold" disabled={submitting}>
+      <button type="submit" className="py-2 px-4 bg-primary text-on-primary rounded hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed font-semibold" disabled={submitting}>
         {submitting ? 'Logging…' : 'Log Transaction'}
       </button>
       {submissionStatus && (
-        <div className={`py-2 mt-4 rounded text-white text-center ${submissionStatus.type === 'success' ? 'bg-green-600' : 'bg-red-600'}`}>
+        <div className={`py-2 mt-4 rounded text-on-primary text-center ${submissionStatus.type === 'success' ? 'bg-success' : 'bg-error'}`}>
           {submissionStatus.message}
         </div>
       )}
