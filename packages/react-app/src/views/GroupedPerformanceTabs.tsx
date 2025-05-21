@@ -33,7 +33,7 @@ export default function GroupedPerformanceTabs({ analytics }: Props) {
     <Box sx={{ width: '100%', bgcolor: 'var(--color-surface)', borderRadius: 2, boxShadow: 1, p: 2 }}>
       <Tabs
         value={tab}
-        onChange={(_, newValue) => setTab(newValue)}
+        onChange={(_event: React.SyntheticEvent, newValue: number) => setTab(newValue)}
         variant="scrollable"
         scrollButtons="auto"
         sx={{ mb: 2 }}
