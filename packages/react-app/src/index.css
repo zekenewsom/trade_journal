@@ -1,5 +1,7 @@
-/* File: trade_journal/packages/react-app/src/index.css */
-/* Basic global styles - will be replaced/enhanced by Tailwind later */
+
+@import './fonts.css';
+
+/* Basic dark mode and global styles */
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
@@ -7,11 +9,27 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #282c34; /* Simple dark background for now */
-  color: white;
+  background-color: #161a25; /* Match theme background.default */
+  color: #f8f8f2; /* Match theme text.primary */
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* Ensure Roboto Mono is applied to numerals as needed */
+.font-roboto-mono {
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* Custom scrollbar styling for a dark theme (optional but good for consistency) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #1A1B1D; /* card-stroke or similar dark */
+}
+::-webkit-scrollbar-thumb {
+  background: #3A7BFF; /* primary-action */
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #5c8eff; /* slightly lighter primary-action */
 }

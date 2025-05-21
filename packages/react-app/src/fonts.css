@@ -1,0 +1,41 @@
+/* Font declarations for local usage instead of Google Fonts */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Inter Regular'), local('Inter-Regular'),
+       url('/fonts/Inter-Regular.woff2') format('woff2');
+  font-display: swap;
+}
+
+
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  src: local('Inter SemiBold'), local('Inter-SemiBold'),
+       url('/fonts/Inter-SemiBold.woff2') format('woff2');
+  font-display: swap;
+}
+
+
+
+@font-face {
+  font-family: 'Roboto Mono';
+  font-style: normal;
+  font-weight: 400;
+  src: local('Roboto Mono Regular'), local('RobotoMono-Regular'),
+       url('/fonts/RobotoMono-Regular.ttf') format('truetype');
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Roboto Mono';
+  font-style: normal;
+  font-weight: 600;
+  src: local('Roboto Mono SemiBold'), local('RobotoMono-SemiBold'),
+       url('/fonts/RobotoMono-SemiBold.ttf') format('truetype');
+  font-display: swap;
+}
