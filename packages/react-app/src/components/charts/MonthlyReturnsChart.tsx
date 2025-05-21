@@ -1,4 +1,6 @@
+import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Cell } from 'recharts';
+import { colors } from '/src/styles/design-tokens';
 
 interface MonthlyReturnsChartProps {
   data?: { value: number; count: number }[];
@@ -25,20 +27,20 @@ export function MonthlyReturnsChart({ data }: MonthlyReturnsChartProps = {}) {
           <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" vertical={false} />
           <XAxis 
             dataKey="value" 
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
-            axisLine={{ stroke: '#1A1B1D' }}
+            tick={{ fill: colors.textSecondary, fontSize: 12 }}
+            axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
             tickFormatter={(value) => `${value}R`}
           />
           <YAxis 
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
-            axisLine={{ stroke: '#1A1B1D' }}
+            tick={{ fill: colors.textSecondary, fontSize: 12 }}
+            axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
             tickFormatter={(value) => value}
-            label={{ value: 'Frequency', angle: -90, position: 'insideLeft', fill: '#9ca3af', fontSize: 12 }}
+            label={{ value: 'Frequency', angle: -90, position: 'insideLeft', fill: colors.textSecondary, fontSize: 12 }}
           />
           <Tooltip 
-            contentStyle={{ backgroundColor: '#0E0F11', borderColor: '#1A1B1D' }}
+            contentStyle={{ backgroundColor: colors.background, borderColor: colors.cardStroke }}
             formatter={(value: number) => [value, 'Trades']}
             labelFormatter={(label) => `R-Multiple: ${label}`}
           />
@@ -46,7 +48,7 @@ export function MonthlyReturnsChart({ data }: MonthlyReturnsChartProps = {}) {
             {mockData.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 
-                fill={entry.value < 0 ? '#FF4D67' : entry.value === 0 ? '#FFB547' : '#00E28A'} 
+                fill={entry.value < 0 ? colors.error : entry.value === 0 ? colors.warning : colors.success} 
               />
             ))}
           </Bar>

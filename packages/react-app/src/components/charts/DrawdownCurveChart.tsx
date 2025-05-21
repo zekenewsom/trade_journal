@@ -1,3 +1,5 @@
+import React from 'react';
+import { colors } from '/src/styles/design-tokens';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface DrawdownCurveChartProps {
@@ -31,20 +33,20 @@ export function DrawdownCurveChart({ data }: DrawdownCurveChartProps = {}) {
           <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" />
           <XAxis 
             dataKey="date" 
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
-            axisLine={{ stroke: '#1A1B1D' }}
+            tick={{ fill: colors.textSecondary, fontSize: 12 }}
+            axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
           />
           <YAxis 
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
-            axisLine={{ stroke: '#1A1B1D' }}
+            tick={{ fill: colors.textSecondary, fontSize: 12 }}
+            axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
             tickFormatter={(value) => `${value}%`}
             domain={['dataMin', 0]}
           />
           <Tooltip 
-            contentStyle={{ backgroundColor: '#0E0F11', borderColor: '#1A1B1D' }}
-            itemStyle={{ color: '#FF4D67' }}
+            contentStyle={{ backgroundColor: colors.background, borderColor: colors.cardStroke }}
+            itemStyle={{ color: colors.error }}
             formatter={(value: number) => [`${value}%`, 'Drawdown']}
             labelFormatter={(label) => `Date: ${label}`}
           />

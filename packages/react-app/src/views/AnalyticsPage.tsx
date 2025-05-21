@@ -2,10 +2,11 @@
 // New file for Stage 6
 
 import React, { useState, useEffect } from 'react';
-import type { AnalyticsData, AnalyticsFilters } from '../types';
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { colors } from '/src/styles/design-tokens';
+import type { AnalyticsData, AnalyticsFilters, TradeListView } from '../types';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import PnlVsDurationScatterPlot from '../components/analytics/PnlVsDurationScatterPlot';
-import PerformanceByTimeChart from '../components/analytics/PerformanceByTimeChart';
+
 import GroupedPerformanceTable from '../components/analytics/GroupedPerformanceTable';
 import TradeStatsCard from '../components/analytics/TradeStatsCard';
 import EquityCurveChart from '../components/analytics/EquityCurveChart';
@@ -14,7 +15,7 @@ import { getAnalyticsData } from '../api/analytics';
 
 
 
-const AnalyticsPage: React.FC = () => {
+const AnalyticsPage: React.FC = (): React.ReactElement | null => {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,35 +33,39 @@ const AnalyticsPage: React.FC = () => {
       try {
         if (window.electronAPI?.getTrades) {
           const trades = await window.electronAPI.getTrades();
-          const sum = trades.reduce((acc: number, t: any) => acc + (typeof t.unrealized_pnl === 'number' ? t.unrealized_pnl : 0), 0);
+          const sum = trades.reduce((acc: number, t: TradeListView) => {
+  if (t && typeof t.unrealized_pnl === 'number') {
+    return acc + t.unrealized_pnl;
+  }
+  return acc;
+}, 0);
           setUnrealizedPnl(sum);
         }
-      } catch (err) {
+      } catch {
         setUnrealizedPnl(null);
       }
     }
     fetchUnrealizedPnl();
   }, []);
 
-  const fetchAnalyticsData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getAnalyticsData(filters);
-      setAnalytics(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch analytics data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchAnalyticsData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getAnalyticsData(filters);
+        setAnalytics(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch analytics data');
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchAnalyticsData();
   }, [filters]);
 
   const handleDateChange = (field: 'startDate' | 'endDate') => (date: Date | null) => {
-    setFilters(prev => ({
+    setFilters((prev: AnalyticsFilters) => ({
       ...prev,
       dateRange: {
         startDate: field === 'startDate' ? (date ? date.toISOString() : null) : prev.dateRange?.startDate ?? null,
@@ -143,20 +148,6 @@ const AnalyticsPage: React.FC = () => {
       <div className="mb-8">
         <TradeStatsCard analytics={analytics} />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
-          <div className="text-accent text-sm font-medium mb-1">Win Rate</div>
-          <div className="text-2xl font-bold text-on-surface">{analytics && analytics.winRateOverall !== undefined && analytics.winRateOverall !== null ? `${(analytics.winRateOverall * 100).toFixed(1)}%` : 'N/A'}</div>
-        </div>
-        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
-          <div className="text-accent text-sm font-medium mb-1">Max Drawdown</div>
-          <div className="text-2xl font-bold text-negative">{analytics && analytics.maxDrawdownPercentage !== undefined && analytics.maxDrawdownPercentage !== null ? `${analytics.maxDrawdownPercentage.toFixed(1)}%` : 'N/A'}</div>
-        </div>
-        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
-          <div className="text-accent text-sm font-medium mb-1">Total Trades</div>
-          <div className="text-2xl font-bold text-on-surface">{analytics ? analytics.numberOfWinningTrades + analytics.numberOfLosingTrades + analytics.numberOfBreakEvenTrades : 'N/A'}</div>
-        </div>
-      </div>
 
       {/* Date Range Filter */}
       <div className="flex flex-col md:flex-row items-center gap-4 bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1 mb-8">
@@ -188,88 +179,6 @@ const AnalyticsPage: React.FC = () => {
           Reset Filters
         </button>
       </div>
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        {/* Equity Curve Chart */}
-        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
-          <h2 className="text-lg font-semibold mb-2 text-on-surface">Equity Curve</h2>
-          <div className="h-96">
-            <EquityCurveChart equityCurve={analytics.equityCurve} />
-          </div>
-        </div>
-        {/* P&L Per Trade Chart */}
-        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1">
-          <h2 className="text-lg font-semibold mb-2 text-on-surface">P&L Distribution</h2>
-          <div className="h-96">
-            {/* Add your recharts BarChart here, or another chart component */}
-          </div>
-        </div>
-      </div>
-
-      {/* Trade Statistics */}
-      {/* TradeStatsCards are already rendered in the metrics grid above; removed duplicate/misplaced usages. */}
-
-      {/* Win/Loss Distribution */}
-      <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1 mb-8">
-        <h2 className="text-lg font-semibold mb-2 text-on-surface">Trade Outcomes</h2>
-        <div className="h-96 flex items-center justify-center">
-          {analytics.winLossBreakEvenCounts && analytics.winLossBreakEvenCounts.some(item => item.value > 0) && (
-            <PieChart>
-              <Pie
-                data={analytics.winLossBreakEvenCounts}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={150}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {analytics.winLossBreakEvenCounts.map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={entry.name === 'Wins' ? '#00E28A' : entry.name === 'Losses' ? '#FF4D67' : '#FFBB28'} 
-                  />
-                ))}
-              </Pie>
-              <Tooltip 
-                formatter={(value:number) => [value, 'Trades']}
-                contentStyle={{ backgroundColor: '#1A1B1D', border: '1px solid #2A2B2D' }}
-              />
-            </PieChart>
-          )}
-        </div>
-      </div>
-
-      {/* R-Multiple Distribution */}
-      {analytics.rMultipleDistribution && analytics.rMultipleDistribution.length > 0 && (
-        <div className="bg-surface-variant rounded-2xl p-6 border border-card-stroke shadow-elevation-1 mb-4">
-          <h2 className="text-lg font-semibold mb-2 text-on-surface">R-Multiple Distribution</h2>
-          <div className="h-96">
-            <BarChart data={analytics.rMultipleDistribution}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2A2B2D" />
-              <XAxis dataKey="range" tick={{ fontSize: 12, fill: '#9CA3AF' }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: '#9CA3AF' }} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1A1B1D', border: '1px solid #2A2B2D' }}
-              />
-              <Bar dataKey="count" name="Number of Trades" fill="#3A7BFF" />
-            </BarChart>
-          </div>
-        </div>
-      )}
-
-      {/* P&L vs Duration Scatter Plot */}
-      {analytics.pnlVsDurationSeries && analytics.pnlVsDurationSeries.length > 0 && (
-        <div className="bg-surface-variant rounded-2xl p-6 mb-8 border border-card-stroke shadow-elevation-1">
-          <h2 className="text-lg font-semibold mb-2 text-on-surface">P&L vs Trade Duration</h2>
-          <div className="h-96">
-            <PnlVsDurationScatterPlot data={analytics.pnlVsDurationSeries} />
-          </div>
-        </div>
-      )}
-
       {/* Performance Tables Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {analytics.pnlByAssetClass && analytics.pnlByAssetClass.length > 0 && (

@@ -89,7 +89,7 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let intervalId: NodeJS.Timeout | null = null;
+    let intervalId: number | null = null;
     let isMounted = true;
     async function fetchUnrealizedPnl() {
       if (!isMounted) return;
@@ -98,7 +98,12 @@ export function Dashboard() {
       try {
         if (window.electronAPI?.getTrades) {
           const trades = await window.electronAPI.getTrades();
-          const sum = trades.reduce((acc: number, t: any) => acc + (typeof t.unrealized_pnl === 'number' ? t.unrealized_pnl : 0), 0);
+          const sum = trades.reduce((acc: number, t: unknown) => {
+            if (t && typeof t === 'object' && 'unrealized_pnl' in t && typeof (t as { unrealized_pnl?: number }).unrealized_pnl === 'number') {
+              return acc + (t as { unrealized_pnl: number }).unrealized_pnl;
+            }
+            return acc;
+          }, 0);
           if (isMounted) setUnrealizedPnl(sum);
         } else {
           if (isMounted) setUnrealizedPnl(null);

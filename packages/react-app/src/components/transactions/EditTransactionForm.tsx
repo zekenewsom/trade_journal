@@ -1,7 +1,8 @@
 // File: zekenewsom-trade_journal/packages/react-app/src/components/transactions/EditTransactionForm.tsx
 // New file for Stage 5 - A small form for editing a single transaction (e.g., in a modal)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { colors } from '/src/styles/design-tokens';
 import type { EditTransactionFormData, EmotionRecord } from '../../types';
 
 interface EditTransactionFormProps {
@@ -69,10 +70,10 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               style={{
                 width: '100%',
                 padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.cardStroke}`,
                 borderRadius: '4px',
-                color: '#fff'
+                color: colors.onSurface
               }}
               required
             />
@@ -88,10 +89,10 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               style={{
                 width: '100%',
                 padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.cardStroke}`,
                 borderRadius: '4px',
-                color: '#fff'
+                color: colors.onSurface
               }}
               required
             />
@@ -107,10 +108,10 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               style={{
                 width: '100%',
                 padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.cardStroke}`,
                 borderRadius: '4px',
-                color: '#fff'
+                color: colors.onSurface
               }}
               required
             />
@@ -147,10 +148,10 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               style={{
                 width: '100%',
                 padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.cardStroke}`,
                 borderRadius: '4px',
-                color: '#fff'
+                color: colors.onSurface
               }}
             />
           </div>
@@ -164,10 +165,10 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               style={{
                 width: '100%',
                 padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.cardStroke}`,
                 borderRadius: '4px',
-                color: '#fff',
+                color: colors.onSurface,
                 minHeight: '100px'
               }}
             />
@@ -182,10 +183,10 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               style={{
                 width: '100%',
                 padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.cardStroke}`,
                 borderRadius: '4px',
-                color: '#fff',
+                color: colors.onSurface,
                 minHeight: '100px'
               }}
             />
@@ -200,10 +201,10 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               style={{
                 width: '100%',
                 padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
+                backgroundColor: colors.surface,
+                border: `1px solid ${colors.cardStroke}`,
                 borderRadius: '4px',
-                color: '#fff',
+                color: colors.onSurface,
                 minHeight: '100px'
               }}
             />

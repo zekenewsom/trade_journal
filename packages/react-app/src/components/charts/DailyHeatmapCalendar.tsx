@@ -8,7 +8,7 @@ const generateMockData = () => {
   
   // Generate 5 weeks of data (35 days)
   for (let week = 0; week < 5; week++) {
-    const weekData = days.map(day => {
+    const weekData = days.map((day: string) => {
       // Random value between -3 and +3
       const value = (Math.random() * 6 - 3).toFixed(1);
       return {
@@ -23,7 +23,7 @@ const generateMockData = () => {
 };
 
 interface DailyHeatmapCalendarProps {
-  data?: any[][];
+  data?: { day: string; value: number }[][];
 }
 
 export function DailyHeatmapCalendar({ data }: DailyHeatmapCalendarProps = {}) {
@@ -35,17 +35,16 @@ export function DailyHeatmapCalendar({ data }: DailyHeatmapCalendarProps = {}) {
     const h = hex.replace('#', '');
     const bigint = parseInt(h, 16);
     const r = (bigint >> 16) & 255;
-    const g = (bigint >> 8) & 255;
     const b = bigint & 255;
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    return `rgba(${r}, ${b}, ${r}, ${alpha})`;
   }
 
   const getColor = (value: number) => {
-    if (value > 0) {
+    if (typeof value === 'number' && value > 0) {
       // Positive value - green gradient
       const intensity = Math.min(value / 3, 1);
       return hexToRgba(colors.success, intensity);
-    } else if (value < 0) {
+    } else if (typeof value === 'number' && value < 0) {
       // Negative value - red gradient
       const intensity = Math.min(Math.abs(value) / 3, 1);
       return hexToRgba(colors.error, intensity);

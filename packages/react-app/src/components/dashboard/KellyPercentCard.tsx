@@ -1,6 +1,6 @@
 import { MetricCard } from '../ui/MetricCard';
 import CountUp from 'react-countup';
-import { colors } from '../../styles/design-tokens';
+
 
 interface KellyPercentCardProps {
   value: number;
@@ -21,16 +21,16 @@ export function KellyPercentCard({
           <CountUp end={value} decimals={1} preserveValue suffix="%" />
         </div>
         
-        <div className="w-full h-1 rounded-full mt-2" style={{ background: colors.cardStroke }}>
+        <div className="w-full h-1 rounded-full mt-2 bg-gray-200 dark:bg-gray-700">
           <div 
-            className=""
-            style={{ width: `${ratio}%`, height: '100%', borderRadius: '9999px', background: colors.primary }}
+            className="bg-blue-600 dark:bg-blue-400 rounded-full"
+            style={{ width: `${ratio}%`, height: '100%' }}
           />
         </div>
         
         <div className="flex items-center justify-between mt-1">
-          <div className="text-xs" style={{ color: colors.textSecondary }}>Conservative</div>
-          <div className="text-xs" style={{ color: colors.textSecondary }}>Aggressive</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Conservative</div>
+          <div className="text-xs text-gray-500 dark:text-gray-400">Aggressive</div>
         </div>
       </div>
     </MetricCard>

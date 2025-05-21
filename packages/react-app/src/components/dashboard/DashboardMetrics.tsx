@@ -2,10 +2,9 @@
 // Modified for Stage 6 to use getAnalyticsData
 
 import React, { useEffect, useState } from 'react';
-import type { AnalyticsData } from '../../types';
 import { useAppStore } from '../../stores/appStore';
 import { Box, Grid, Typography, CircularProgress, Alert, Paper, Button, Select, MenuItem, InputLabel, FormControl, Avatar, IconButton } from '@mui/material';
-import { colors, borderRadius, shadows } from '../../styles/design-tokens';
+
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -41,26 +40,26 @@ const DashboardMetrics: React.FC = () => {
 
   if (isLoadingAnalytics)
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh" className="flex justify-center items-center h-screen">
         <CircularProgress />
       </Box>
     );
   if (analyticsError)
     return (
-      <Alert severity="error" sx={{ m: 2 }}>
+      <Alert severity="error" className="m-2" sx={{ borderColor: 'error.main', color: 'error.main' }}>
         Error loading metrics: {analyticsError}
       </Alert>
     );
   if (!analytics)
-    return <Typography sx={{ m: 2 }}>No analytics data available for dashboard.</Typography>;
+    return <Typography className="m-2">No analytics data available for dashboard.</Typography>;
 
   // Helpers for formatting
   const formatCurrency = (value: number | null | undefined) => value === null || value === undefined ? 'N/A' : value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
   return (
-    <Box sx={{ flexGrow: 1, p: 3, backgroundColor: colors.background, color: colors.onBackground, minHeight: '100vh' }}>
+    <Box className="flex-grow p-6 min-h-screen" sx={theme => ({ backgroundColor: theme.palette.background.default, color: theme.palette.text.primary })}>
       {/* Header Section */}
-      <Paper elevation={2} sx={{ mb: 4, p: { xs: 2, md: 3 }, backgroundColor: colors.surface, color: colors.onSurface, borderRadius: borderRadius['2xl'], boxShadow: shadows.elevation2, overflow: 'hidden' }}>
+      <Paper elevation={2} className="mb-8 p-4 md:p-6 overflow-hidden" sx={theme => ({ backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary, borderRadius: theme.shape.borderRadius * 2, boxShadow: theme.shadows[2] })}>
         <Grid container columns={12} spacing={2} alignItems="center" justifyContent="space-between" wrap="wrap">
           {/* Filters Section */}
           <Grid size={{ xs: 12, md: 7 }}>
@@ -71,7 +70,7 @@ const DashboardMetrics: React.FC = () => {
                     label="Start Date"
                     value={startDate}
                     onChange={setStartDate}
-                    slotProps={{ textField: { size: 'small', sx: { width: '100%', background: colors.surfaceVariant, input: { color: colors.onSurface } } } }}
+                    slotProps={{ textField: { size: 'small', sx: theme => ({ width: '100%', background: theme.palette.background.paper, input: { color: theme.palette.text.primary } }) } }}
                   />
                 </LocalizationProvider>
               </Grid>
@@ -81,19 +80,19 @@ const DashboardMetrics: React.FC = () => {
                     label="End Date"
                     value={endDate}
                     onChange={setEndDate}
-                    slotProps={{ textField: { size: 'small', sx: { width: '100%', background: colors.surfaceVariant, input: { color: colors.onSurface } } } }}
+                    slotProps={{ textField: { size: 'small', sx: theme => ({ width: '100%', background: theme.palette.background.paper, input: { color: theme.palette.text.primary } }) } }}
                   />
                 </LocalizationProvider>
               </Grid>
               <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                <FormControl size="small" sx={{ width: '100%', background: colors.surfaceVariant }}>
-                  <InputLabel id="strategy-label" sx={{ color: colors.onSurface }}>Strategy</InputLabel>
+                <FormControl size="small" sx={theme => ({ width: '100%', background: theme.palette.background.paper })}>
+                  <InputLabel id="strategy-label" sx={theme => ({ color: theme.palette.text.primary })}>Strategy</InputLabel>
                   <Select
                     labelId="strategy-label"
                     value={selectedStrategy}
                     label="Strategy"
                     onChange={e => setSelectedStrategy(e.target.value as number)}
-                    sx={{ color: colors.onSurface, '.MuiSelect-icon': { color: colors.accent } }}
+                    sx={theme => ({ color: theme.palette.text.primary, '.MuiSelect-icon': { color: theme.palette.secondary.main } })}
                   >
                     <MenuItem value="">All Strategies</MenuItem>
                     {analytics?.availableStrategies?.map((s) => (
@@ -108,20 +107,20 @@ const DashboardMetrics: React.FC = () => {
           <Grid size={{ xs: 12, md: 5 }}>
             <Grid container spacing={1} alignItems="center" justifyContent={{ xs: 'flex-start', md: 'flex-end' }} wrap="wrap">
               <Grid>
-                <Button startIcon={<SearchIcon />} variant="outlined" color="primary" sx={{ borderColor: colors.primary, color: colors.accent, borderRadius: borderRadius.lg, px: 2, minWidth: 120 }}>Search Trades</Button>
+                <Button startIcon={<SearchIcon />} variant="outlined" color="primary" sx={theme => ({ borderColor: theme.palette.primary.main, color: theme.palette.secondary.main, borderRadius: theme.shape.borderRadius, px: 2, minWidth: 120 })}>Search Trades</Button>
               </Grid>
               <Grid>
-                <Button startIcon={<AddIcon />} variant="contained" color="primary" sx={{ background: colors.primary, borderRadius: borderRadius.lg, px: 2, minWidth: 120 }} onClick={() => {/* Navigation to logTransactionForm should be implemented if route/callback is available */}}>Add Trade</Button>
+                <Button startIcon={<AddIcon />} variant="contained" color="primary" sx={theme => ({ background: theme.palette.primary.main, borderRadius: theme.shape.borderRadius, px: 2, minWidth: 120 })} onClick={() => {/* Navigation to logTransactionForm should be implemented if route/callback is available */}}>Add Trade</Button>
               </Grid>
               <Grid>
-                <Button startIcon={<FileDownloadIcon />} variant="outlined" sx={{ borderColor: colors.primary, color: colors.accent, borderRadius: borderRadius.lg, px: 2, minWidth: 110 }}>Export</Button>
+                <Button startIcon={<FileDownloadIcon />} variant="outlined" sx={theme => ({ borderColor: theme.palette.primary.main, color: theme.palette.secondary.main, borderRadius: theme.shape.borderRadius, px: 2, minWidth: 110 })}>Export</Button>
               </Grid>
               <Grid>
-                <Button startIcon={<BackupIcon />} variant="outlined" sx={{ borderColor: colors.primary, color: colors.accent, borderRadius: borderRadius.lg, px: 2, minWidth: 120 }}>Backup Now</Button>
+                <Button startIcon={<BackupIcon />} variant="outlined" sx={theme => ({ borderColor: theme.palette.primary.main, color: theme.palette.secondary.main, borderRadius: theme.shape.borderRadius, px: 2, minWidth: 120 })}>Backup Now</Button>
               </Grid>
               <Grid>
                 <IconButton sx={{ ml: 1 }}>
-                  <Avatar sx={{ bgcolor: colors.surfaceVariant, color: colors.accent, width: 36, height: 36, borderRadius: borderRadius.lg }}>
+                  <Avatar sx={theme => ({ bgcolor: theme.palette.background.paper, color: theme.palette.secondary.main, width: 36, height: 36, borderRadius: theme.shape.borderRadius })}>
                     <PersonIcon />
                   </Avatar>
                 </IconButton>
@@ -188,7 +187,7 @@ const DashboardMetrics: React.FC = () => {
             <InfoCard title="Ulcer Index" value={'N/A'} />
           </Grid>
           <Grid size={{ xs: 12, md: 3 }}>
-            <InfoCard title="Current Drawdown" value={'N/A'} valueColor="#f44336" />
+            <InfoCard title="Current Drawdown" value={'N/A'} valueColor="error" />
           </Grid>
           <Grid size={{ xs: 12, md: 3 }}>
             <InfoCard
@@ -196,7 +195,7 @@ const DashboardMetrics: React.FC = () => {
               value={analytics?.maxDrawdownPercentage ? `-${analytics.maxDrawdownPercentage.toFixed(2)}%` : 'N/A'}
               description={analytics?.maxDrawdownPercentage ? `${formatCurrency((analytics?.totalRealizedNetPnl || 0) * (analytics?.maxDrawdownPercentage / 100))}` : 'N/A'}
               progress={analytics?.maxDrawdownPercentage || 0}
-              valueColor="#f44336"
+              valueColor="error"
             />
           </Grid>
           <Grid size={{ xs: 12, md: 3 }}>
@@ -206,11 +205,11 @@ const DashboardMetrics: React.FC = () => {
 
         {/* Section 4: Charts */}
         <Grid size={{ xs: 12 }}>
-          <Typography variant="h6" sx={{ mb: 2, mt: 2, color: colors.success }}>CHARTS</Typography>
+          <Typography variant="h6" className="mb-2 mt-2" sx={theme => ({ color: theme.palette.success.main })}>CHARTS</Typography>
         </Grid>
         <Grid size={{ xs: 12, md: 8 }}>
-          <Paper sx={{ p: 2, backgroundColor: colors.surface, color: colors.onSurface, height: '400px', borderRadius: borderRadius.lg }}>
-            <Typography variant="subtitle2" sx={{ color: colors.accent, textAlign:'center', mb:1 }}>
+          <Paper className="h-[400px]" sx={theme => ({ p: 2, backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary, borderRadius: theme.shape.borderRadius })}>
+            <Typography variant="subtitle2" className="text-center mb-1" sx={theme => ({ color: theme.palette.secondary.main })}>
               Cumulative Equity Curve
             </Typography>
             {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
@@ -223,8 +222,8 @@ const DashboardMetrics: React.FC = () => {
         <Grid size={{ xs: 12, md: 4 }}>
           <Grid container direction="column" spacing={3}>
             <Grid size={{ xs: 12 }}>
-              <Paper sx={{ p: 1, backgroundColor: colors.surface, color: colors.onSurface, height: '188px' }}>
-                <Typography variant="subtitle2" sx={{ color: colors.accent, textAlign:'center', mb:1 }}>Drawdown Curve</Typography>
+              <Paper className="h-[188px]" sx={theme => ({ p: 1, backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary })}>
+                <Typography variant="subtitle2" className="text-center mb-1" sx={theme => ({ color: theme.palette.secondary.main })}>Drawdown Curve</Typography>
                 {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
                   <DashboardDrawdownChart equityCurveData={analytics?.equityCurve} />
                 ) : (
@@ -233,8 +232,8 @@ const DashboardMetrics: React.FC = () => {
               </Paper>
             </Grid>
             <Grid size={{ xs: 12 }}>
-              <Paper sx={{ p: 1, backgroundColor: colors.surface, color: colors.onSurface, height: '188px' }}>
-                <Typography variant="subtitle2" sx={{ color: colors.accent, textAlign:'center', mb:1 }}>R-Multiple Histogram</Typography>
+              <Paper className="h-[188px]" sx={theme => ({ p: 1, backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary })}>
+                <Typography variant="subtitle2" className="text-center mb-1" sx={theme => ({ color: theme.palette.secondary.main })}>R-Multiple Histogram</Typography>
                 {analytics?.rMultipleDistribution && analytics?.rMultipleDistribution.length > 0 ? (
                   <DashboardRMultipleHistogram data={analytics?.rMultipleDistribution} />
                 ) : (

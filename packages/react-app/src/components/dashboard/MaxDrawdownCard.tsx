@@ -1,6 +1,6 @@
 import { MetricCard } from '../ui/MetricCard';
 import CountUp from 'react-countup';
-import { colors } from '../../styles/design-tokens';
+
 
 interface MaxDrawdownCardProps {
   value: number;
@@ -17,19 +17,18 @@ export function MaxDrawdownCard({
   return (
     <MetricCard title="Max Historical Drawdown" status="bad">
       <div className="flex flex-col">
-        <div className="text-2xl font-semibold font-mono" style={{ color: colors.error }}>
+        <div className="text-2xl font-semibold font-mono text-red-500">
           <CountUp end={drawdownValue} decimals={2} preserveValue suffix="%" />
         </div>
         
-        <div className="text-sm mt-1" style={{ color: colors.textSecondary }}>
-          <span style={{ color: colors.error }}>${Math.abs(amountLost).toLocaleString()}</span> lost
+        <div className="text-sm mt-1 text-gray-500 dark:text-gray-400">
+          <span className="text-red-500">${Math.abs(amountLost).toLocaleString()}</span> lost
         </div>
         
-        <div className="w-full h-1.5 rounded-full overflow-hidden mt-2" style={{ background: colors.cardStroke }}>
+        <div className="w-full h-1.5 rounded-full overflow-hidden mt-2 bg-gray-200 dark:bg-gray-700">
           <div 
-            className="h-full"
-            // Assuming -25% is a full bar, scale accordingly
-            style={{ width: `${Math.min(Math.abs(drawdownValue) / 25 * 100, 100)}%`, background: colors.error }}
+            className="h-full bg-red-500"
+            style={{ width: `${Math.min(Math.abs(drawdownValue) / 25 * 100, 100)}%` }}
           />
         </div>
       </div>

@@ -2,19 +2,19 @@
 // Modified for Stage 6: Add Emotion Tagging UI
 
 import React, { useState, useEffect } from 'react';
-import type { EditTradeDetailsFormData, TransactionRecord, UpdateTransactionPayload, EditTransactionFormData, Trade } from '../types';
+
+import type { EditTransactionFormData, TransactionRecord, UpdateTransactionPayload, Trade } from '../types';
 import EditTransactionForm from '../components/transactions/EditTransactionForm';
 import { useAppStore } from '../stores/appStore';
 
 interface EditTradeDetailsPageProps {
   tradeId: number;
-  onEditComplete: () => void;
   onCancel: () => void;
   onLogTransaction: () => void;
 }
 
-const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, onEditComplete, onCancel, onLogTransaction }) => {
-  const { availableEmotions, isLoadingInitialData, errorLoadingInitialData, refreshTrades } = useAppStore();
+const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, onCancel, onLogTransaction }) => {
+  const { availableEmotions, isLoadingInitialData, errorLoadingInitialData } = useAppStore();
   const [editingTransaction, setEditingTransaction] = useState<EditTransactionFormData | null>(null);
   const [fullTrade, setFullTrade] = useState<Trade | null>(null);
   // Mark-to-market state
@@ -26,24 +26,7 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
   } | null>(null);
   const [markPriceInput, setMarkPriceInput] = useState<string>('');
 
-  // Add style definitions
-  const tableHeaderStyle: React.CSSProperties = {
-    padding: '8px',
-    textAlign: 'left',
-    borderBottom: '1px solid #444',
-    backgroundColor: '#2a2f36',
-    color: '#fff'
-  };
-
-  const tableCellStyle: React.CSSProperties = {
-    padding: '8px',
-    borderBottom: '1px solid #333',
-    color: '#fff'
-  };
-
-  
-
-    // Fetch full trade details (with transactions) on mount or when tradeId changes
+  // Fetch full trade details (with transactions) on mount or when tradeId changes
   useEffect(() => {
     (async () => {
       const trade = await window.electronAPI.getTradeWithTransactions(tradeId);
@@ -130,8 +113,6 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
       alert('Error updating transaction: ' + (err as Error).message);
     }
   };
-
-  // Styles removed: now using Tailwind CSS classes
 
   if (isLoadingInitialData) return <p className="text-gray-300">Loading trade details...</p>;
   if (errorLoadingInitialData) return <p className="text-red-500">{errorLoadingInitialData}</p>;
@@ -273,7 +254,6 @@ const EditTradeDetailsPage: React.FC<EditTradeDetailsPageProps> = ({ tradeId, on
                         const buyTransactions = fullTrade.transactions.filter((tx: TransactionRecord) => tx.action === 'Buy');
                         const totalBuyQty = buyTransactions.reduce((sum: number, tx: TransactionRecord) => sum + tx.quantity, 0);
                         const weightedSum = buyTransactions.reduce((sum: number, tx: TransactionRecord) => sum + (tx.price * tx.quantity), 0);
-                        const totalQty = fullTrade.transactions.reduce((sum: number, tx: TransactionRecord) => sum + tx.quantity, 0);
                         return totalBuyQty > 0 ? (weightedSum / totalBuyQty).toFixed(4) : '0.0000';
                       })()}
                     </td>

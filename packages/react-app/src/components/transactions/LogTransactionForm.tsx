@@ -2,12 +2,10 @@
 // New file for Stage 5
 
 import React, { useState } from 'react';
-import type { LogTransactionFormData, LogTransactionPayload, EmotionRecord } from '../../types';
+import type { LogTransactionFormData, LogTransactionPayload } from '../../types';
 
 interface LogTransactionFormProps {
   onSubmit: (formData: LogTransactionFormData) => Promise<void>;
-  onCancel: () => void;
-  availableEmotions: EmotionRecord[];
   initialValues?: {
     instrument_ticker: string;
     asset_class: 'Stock' | 'Cryptocurrency';
@@ -45,8 +43,7 @@ const getInitialFormData = (): LogTransactionFormData => {
 
 const LogTransactionForm: React.FC<LogTransactionFormProps> = ({ 
   onSubmit, 
-  onCancel,
-  availableEmotions,
+  
   initialValues 
 }) => {
   const [formData, setFormData] = useState<LogTransactionFormData>(() => ({

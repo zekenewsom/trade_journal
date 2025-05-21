@@ -11,7 +11,7 @@ interface TradesListPageProps {
 }
 
 const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade, onLogTransaction }) => {
-  const { trades, refreshTrades, isLoadingTrades, errorLoadingTrades, deleteFullTradeInStore } = useAppStore();
+  const { trades, isLoadingTrades, errorLoadingTrades, deleteFullTradeInStore } = useAppStore();
   const [filterText, setFilterText] = useState('');
 
   const handleDeleteFullTrade = async (tradeId: number) => {
@@ -26,13 +26,6 @@ const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade, onLogTrans
       } catch (err) { alert(`Failed to delete trade: ${(err as Error).message}`); }
     }
   };
-
-  if (isLoadingTrades) {
-    return <p>Loading trades...</p>;
-  }
-  if (errorLoadingTrades) {
-    return <p style={{ color: 'red' }}>Error loading trades: {errorLoadingTrades}</p>;
-  }
 
   const filteredTrades = useMemo(() => {
     if (!filterText.trim()) return trades;

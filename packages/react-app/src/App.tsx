@@ -2,6 +2,7 @@
 // Modified for Stage 6: Add navigation to AnalyticsPage, update ElectronAPI type if needed
 
 import { useEffect } from 'react';
+import { colors } from '/src/styles/design-tokens';
 import { useAppStore } from './stores/appStore';
 import LogTransactionPage from './views/LogTransactionPage';
 import EditTradeDetailsPage from './views/EditTradeDetailsPage';
@@ -109,7 +110,7 @@ function App() {
 
   return (
     <div className="app-container" style={{ padding: '20px' }}>
-      <nav style={{ marginBottom: '20px', borderBottom: '1px solid #444', paddingBottom: '10px', display: 'flex', gap: '10px' }}>
+      <nav style={{ marginBottom: '20px', borderBottom: `1px solid ${colors.cardStroke}`, paddingBottom: '10px', display: 'flex', gap: '10px' }}>
         <button onClick={() => navigateTo('dashboard')} disabled={currentView === 'dashboard'}>Dashboard</button>
         <button onClick={() => navigateTo('tradesList')} disabled={currentView === 'tradesList'}>Trades List</button>
         <button onClick={() => navigateTo('analyticsPage')} disabled={currentView === 'analyticsPage'}>Analytics</button>
