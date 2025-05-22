@@ -172,19 +172,19 @@ const DashboardMetrics: React.FC = () => {
         </Grid>
 
         {/* Row 3: Expectancy & Other Risk Metrics */}
-        <Grid item xs={12} sm={6} md={4} lg={2.4}>
+        <Grid item xs={12} sm={6} md={4} lg={3}>
           <EnhancedMetricCard title="Expectancy $/Trade" value={analytics.avgWinPnlOverall && analytics.winRateOverall && analytics.avgLossPnlOverall ? formatCurrency((analytics.avgWinPnlOverall * analytics.winRateOverall) - (Math.abs(analytics.avgLossPnlOverall) * (1 - analytics.winRateOverall))) : "N/A"} descriptionText="Strong" />
         </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2.4}>
+        <Grid item xs={12} sm={6} md={4} lg={3}>
           <EnhancedMetricCard title="Ulcer Index" value="N/A" descriptionText="Moderate" />
         </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={2.4}>
+        <Grid item xs={12} sm={6} md={4} lg={3}>
           <EnhancedMetricCard title="Current Drawdown" value={"N/A"} descriptionText="0%" changeColor="error" />
         </Grid>
-        <Grid item xs={12} sm={6} md={6} lg={2.4}>
+        <Grid item xs={12} sm={6} md={6} lg={3}>
           <EnhancedMetricCard title="Max Historical Drawdown" value={formatPercentage(analytics.maxDrawdownPercentage ? -analytics.maxDrawdownPercentage : 0)} descriptionText={formatCurrency(analytics.maxDrawdownPercentage && analytics.totalRealizedNetPnl ? -(analytics.totalRealizedNetPnl * (analytics.maxDrawdownPercentage/100)) : 0)} changeColor="error" />
         </Grid>
-        <Grid item xs={12} sm={12} md={6} lg={2.4}>
+        <Grid item xs={12} sm={12} md={6} lg={3}>
           <EnhancedMetricCard title="1-Day 95% VaR" value={"N/A"} descriptionText="2.00% of equity" />
         </Grid>
 

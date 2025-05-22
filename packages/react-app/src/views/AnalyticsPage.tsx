@@ -155,19 +155,19 @@ const AnalyticsPage: React.FC = (): React.ReactElement => {
              {/* Replace with multiple EnhancedMetricCard or keep/restyle TradeStatsCard */}
              {/* Example using EnhancedMetricCard for key stats */}
             <Grid container spacing={2.5}>
-                <Grid item xs={12} sm={6} md={4} lg={2.4}>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
                     <EnhancedMetricCard title="Total Net P&L" value={formatCurrency(analytics.totalRealizedNetPnl)} changeColor={analytics.totalRealizedNetPnl >= 0 ? 'success' : 'error'} />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4} lg={2.4}>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
                     <EnhancedMetricCard title="Win Rate" value={formatPercentage(analytics.winRateOverall ? analytics.winRateOverall * 100 : 0)} />
                 </Grid>
-                <Grid item xs={12} sm={6} md={4} lg={2.4}>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
                     <EnhancedMetricCard title="Avg Win" value={formatCurrency(analytics.avgWinPnlOverall)} />
                 </Grid>
-                <Grid item xs={12} sm={6} md={6} lg={2.4}>
+                <Grid item xs={12} sm={6} md={6} lg={3}>
                     <EnhancedMetricCard title="Avg Loss" value={formatCurrency(analytics.avgLossPnlOverall)} changeColor="error"/>
                 </Grid>
-                 <Grid item xs={12} sm={12} md={6} lg={2.4}>
+                 <Grid item xs={12} sm={12} md={6} lg={3}>
                     <EnhancedMetricCard title="Avg R-Multiple" value={formatNumber(analytics.avgRMultiple)} />
                 </Grid>
             </Grid>
@@ -176,46 +176,49 @@ const AnalyticsPage: React.FC = (): React.ReactElement => {
           </Grid>
 
           {/* Equity Curve & Drawdown */}
-          <Grid item xs={12} lg={7} sx={{ height: {xs: 350, lg: 450} }}>
-            {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
-                 <EnhancedMetricCard title="Cumulative Equity Curve" value="" minHeight="100%">
-                    <Box sx={{flexGrow: 1, height: 'calc(100% - 40px)'}}>
-                        <EquityCurveChart equityCurve={analytics.equityCurve} />
-                    </Box>
-                </EnhancedMetricCard>
-            ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No Equity Data</Typography></Paper>}
-          </Grid>
-          <Grid item xs={12} lg={5} sx={{ height: {xs: 300, lg: 450} }}>
-             {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
-                 <EnhancedMetricCard title="Drawdown Curve" value="" minHeight="100%">
-                    <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
-                        {/* Using the generic DrawdownCurveChart, assuming it's styled */}
-                        <DrawdownCurveChart data={analytics.equityCurve.map(p => ({ date: p.date.toString(), value: ((p.equity / (analytics.equityCurve.reduce((max, cp) => cp.equity > max ? cp.equity : max, 0) || 1)) -1) * 100 }))} />
-                    </Box>
-                </EnhancedMetricCard>
-            ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No Drawdown Data</Typography></Paper> }
-          </Grid>
+          <Grid container spacing={2.5}>
+  <Grid item xs={12} lg={7} sx={{ height: {xs: 350, lg: 450} }}>
+    {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
+      <EnhancedMetricCard title="Cumulative Equity Curve" value="" minHeight="100%">
+        <Box sx={{flexGrow: 1, height: 'calc(100% - 40px)'}}>
+          <EquityCurveChart equityCurve={analytics.equityCurve} />
+        </Box>
+      </EnhancedMetricCard>
+    ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No Equity Data</Typography></Paper> }
+  </Grid>
+  <Grid item xs={12} lg={5} sx={{ height: {xs: 300, lg: 450} }}>
+    {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
+      <EnhancedMetricCard title="Drawdown Curve" value="" minHeight="100%">
+        <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
+          {/* Using the generic DrawdownCurveChart, assuming it's styled */}
+          <DrawdownCurveChart data={analytics.equityCurve.map(p => ({ date: p.date.toString(), value: ((p.equity / (analytics.equityCurve.reduce((max, cp) => cp.equity > max ? cp.equity : max, 0) || 1)) -1) * 100 }))} />
+        </Box>
+      </EnhancedMetricCard>
+    ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No Drawdown Data</Typography></Paper> }
+  </Grid>
+</Grid>
 
-          {/* P&L vs Duration & R-Multiple Histogram */}
-          <Grid item xs={12} md={7} sx={{ height: 350 }}>
-             {analytics.pnlVsDurationSeries && analytics.pnlVsDurationSeries.length > 0 ? (
-                <EnhancedMetricCard title="Net P&L vs Trade Duration" value="" minHeight="100%">
-                     <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
-                        <PnlVsDurationScatterPlot data={analytics.pnlVsDurationSeries} />
-                     </Box>
-                </EnhancedMetricCard>
-            ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No P&L vs Duration Data</Typography></Paper> }
-          </Grid>
-           <Grid item xs={12} md={5} sx={{ height: 350 }}>
-            {analytics.rMultipleDistribution && analytics.rMultipleDistribution.length > 0 ? (
-                <EnhancedMetricCard title="R-Multiple Distribution" value="" minHeight="100%">
-                    <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
-                        {/* Using the generic MonthlyReturnsChart for R-Multiples, assuming styled */}
-                        <MonthlyReturnsChart data={analytics.rMultipleDistribution.map(d => ({ value: parseFloat(d.range.replace('R','')), count: d.count, range: d.range }))} />
-                    </Box>
-                </EnhancedMetricCard>
-            ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No R-Multiple Data</Typography></Paper> }
-          </Grid>
+{/* P&L vs Duration & R-Multiple Histogram */}
+<Grid item xs={12} sx={{ height: 450 }}>
+  {analytics.pnlVsDurationSeries && analytics.pnlVsDurationSeries.length > 0 ? (
+    <EnhancedMetricCard title="Net P&L vs Trade Duration" value="" minHeight="100%">
+      <Box sx={{flexGrow: 1, height: 'calc(100%)'}}>
+        <PnlVsDurationScatterPlot data={analytics.pnlVsDurationSeries} />
+      </Box>
+    </EnhancedMetricCard>
+  ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No P&L vs Duration Data</Typography></Paper> }
+</Grid>
+<Grid item xs={12} sx={{ height: 450 }}>
+  {analytics.rMultipleDistribution && analytics.rMultipleDistribution.length > 0 ? (
+    <EnhancedMetricCard title="R-Multiple Distribution" value="" minHeight="100%">
+      <Box sx={{flexGrow: 1, height: 'calc(100%)'}}>
+        {/* Using the generic MonthlyReturnsChart for R-Multiples, assuming styled */}
+        <MonthlyReturnsChart data={analytics.rMultipleDistribution.map(d => ({ value: parseFloat(d.range.replace('R','')), count: d.count, range: d.range }))} />
+      </Box>
+    </EnhancedMetricCard>
+  ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No R-Multiple Data</Typography></Paper> }
+</Grid>
+
 
           {/* Grouped Performance Tables */}
           <Grid item xs={12}>

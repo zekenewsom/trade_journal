@@ -63,7 +63,7 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
 
   return (
     <div>
-      <h4 className="mb-3 text-lg font-semibold text-on-surface">Net P&L vs. Trade Duration (Fully Closed Trades)</h4>
+      
       <ResponsiveContainer width="100%" height={isMobile ? 240 : 400}>
         <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
           <CartesianGrid stroke="var(--color-card-stroke)" />
