@@ -1,101 +1,156 @@
+// packages/react-app/src/components/charts/DailyHeatmapCalendar.tsx
 import React from 'react';
-import { colors } from '../../styles/design-tokens';
+import { Box, Typography } from '@mui/material';
+import { colors, typography, borderRadius as br, spacing } from '../../styles/design-tokens';
+import { alpha } from '@mui/material/styles';
+import Tooltip from '@mui/material/Tooltip';
+import { formatCurrency } from '../dashboard/DashboardMetrics';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addDays, subDays } from 'date-fns';
 
-// Mock data for the 30-day heatmap
-const generateMockData = () => {
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const mockData = [];
+// Helper to generate days for a specific month, including padding for weeks
+const getMonthDaysForCalendar = (dateInMonth: Date) => {
+  const firstDay = startOfMonth(dateInMonth);
+  const lastDay = endOfMonth(dateInMonth);
   
-  // Generate 5 weeks of data (35 days)
-  for (let week = 0; week < 5; week++) {
-    const weekData = days.map((day: string) => {
-      // Random value between -3 and +3
-      const value = (Math.random() * 6 - 3).toFixed(1);
-      return {
-        day,
-        value: parseFloat(value)
-      };
-    });
-    mockData.push(weekData);
+  // Sunday is 0, Monday is 1 ... Saturday is 6
+  // We want Monday as the start of the week in display (index 0)
+  const startOffset = (getDay(firstDay) + 6) % 7; // 0 for Mon, 1 for Tue ... 6 for Sun
+
+  const days = [];
+  // Add padding days from previous month
+  for (let i = 0; i < startOffset; i++) {
+    days.push({ date: subDays(firstDay, startOffset - i), isCurrentMonth: false, pnl: 0 });
   }
   
-  return mockData;
+  eachDayOfInterval({ start: firstDay, end: lastDay }).forEach(day => {
+    days.push({ date: day, isCurrentMonth: true, pnl: 0 }); // PNL will be filled later
+  });
+
+  let endOffset = 6 - ((getDay(lastDay) + 6) % 7);
+   // Ensure full 5 or 6 weeks are displayed
+  const totalCells = days.length;
+  const requiredCellsToFillWeek = (7 - (totalCells % 7)) % 7;
+  endOffset = requiredCellsToFillWeek;
+
+  for (let i = 1; i <= endOffset; i++) {
+    days.push({ date: addDays(lastDay, i), isCurrentMonth: false, pnl: 0 });
+  }
+  return days;
 };
 
-interface DailyHeatmapCalendarProps {
-  data?: { day: string; value: number }[][];
+
+interface HeatmapDataPoint {
+  date: string; // YYYY-MM-DD
+  pnl: number;
 }
 
-export function DailyHeatmapCalendar({ data }: DailyHeatmapCalendarProps = {}) {
-  const heatmapData = data || generateMockData();
-  
-  // Function to get the color based on value
-  // Utility to convert hex color to rgba
-  function hexToRgba(hex: string, alpha: number) {
-    const h = hex.replace('#', '');
-    const bigint = parseInt(h, 16);
-    const r = (bigint >> 16) & 255;
-    const b = bigint & 255;
-    return `rgba(${r}, ${b}, ${r}, ${alpha})`;
-  }
+interface DailyHeatmapCalendarProps {
+  data: HeatmapDataPoint[]; // PNL data for specific dates
+  targetMonth?: Date; // Month to display, defaults to current
+  height?: number | string;
+}
 
-  const getColor = (value: number) => {
-    if (typeof value === 'number' && value > 0) {
-      // Positive value - green gradient
-      const intensity = Math.min(value / 3, 1);
-      return hexToRgba(colors.success, intensity);
-    } else if (typeof value === 'number' && value < 0) {
-      // Negative value - red gradient
-      const intensity = Math.min(Math.abs(value) / 3, 1);
-      return hexToRgba(colors.error, intensity);
-    }
-    // Zero or close to zero - neutral
-    return hexToRgba(colors.cardStroke, 0.2);
+export function DailyHeatmapCalendar({ data, targetMonth = new Date(), height = '100%' }: DailyHeatmapCalendarProps) {
+  const monthDays = getMonthDaysForCalendar(targetMonth);
+  const pnlLookup = new Map(data.map(d => [d.date, d.pnl]));
+
+  const calendarData = monthDays.map(dayObj => ({
+    ...dayObj,
+    pnl: pnlLookup.get(format(dayObj.date, 'yyyy-MM-dd')) ?? 0,
+  }));
+
+  const getCellColor = (pnl: number, isCurrentMonth: boolean) => {
+    if (!isCurrentMonth) return alpha(colors.surfaceVariant, 0.3);
+    if (pnl === 0) return colors.surfaceVariant; // Neutral for zero P&L
+    
+    const absolutePnl = Math.abs(pnl);
+    // Determine max PNL for scaling (can be passed as prop or calculated from data)
+    const maxPnlValue = Math.max(...data.map(d => Math.abs(d.pnl)), 1); // Avoid division by zero
+    let intensity = Math.min(absolutePnl / maxPnlValue, 1) * 0.8 + 0.2; // Min 20% opacity, max 100%
+    intensity = Math.max(0.2, Math.min(intensity, 1)); // Clamp between 0.2 and 1
+
+    if (pnl > 0) return alpha(colors.secondary, intensity);
+    if (pnl < 0) return alpha(colors.error, intensity);
+    return colors.surfaceVariant;
   };
 
-  
+  const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
   return (
-    <div className="h-full w-full flex flex-col">
-      <div className="grid grid-cols-7 mb-2">
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
-          <div key={day} className="text-center text-xs" style={{ color: colors.textSecondary }}>
+    <Box sx={{ height, display: 'flex', flexDirection: 'column' }}>
+      <Box display="grid" gridTemplateColumns="repeat(7, 1fr)" gap={spacing['0.5']} mb={spacing['1']}>
+        {weekDays.map(day => (
+          <Typography key={day} variant="caption" align="center" sx={{ color: colors.textSecondary, fontSize: typography.fontSize.xxs }}>
             {day}
-          </div>
+          </Typography>
         ))}
-      </div>
-      
-      <div className="flex-1 grid grid-rows-5 gap-1">
-        {heatmapData.map((week, weekIndex) => (
-          <div key={`week-${weekIndex}`} className="grid grid-cols-7 gap-1">
-            {week.map((day, dayIndex) => (
-              <div 
-                key={`day-${weekIndex}-${dayIndex}`} 
-                className="rounded-sm relative hover:ring-1 hover:z-10 transition-all"
-                style={{ 
-                  backgroundColor: getColor(day.value),
+      </Box>
+      <Box
+        display="grid"
+        gridTemplateColumns="repeat(7, 1fr)"
+        gap={spacing['0.5']}
+        flexGrow={1}
+      >
+        {calendarData.map(({ date, pnl, isCurrentMonth }, index) => (
+          <Tooltip 
+            key={index} 
+            title={isCurrentMonth ? `${format(date, 'MMM d')}: ${formatCurrency(pnl, true)}` : format(date, 'MMM d')}
+            placement="top"
+            arrow
+          >
+            <Box
+              sx={{
+                backgroundColor: getCellColor(pnl, isCurrentMonth),
+                borderRadius: br.sm,
+                aspectRatio: '1 / 1', // Makes cells square by default
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: spacing['0.5'],
+                opacity: isCurrentMonth ? 1 : 0.5,
+                cursor: isCurrentMonth ? 'default' : 'not-allowed',
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: typography.fontSize.xxs,
+                  color: isCurrentMonth ? (Math.abs(pnl) > 0.5 * Math.max(...data.map(d => Math.abs(d.pnl))) ? colors.onPrimary : colors.textSecondary) : alpha(colors.textSecondary, 0.7),
+                  fontWeight: isCurrentMonth ? typography.fontWeight.medium : typography.fontWeight.normal,
+                  lineHeight: 1.2
                 }}
               >
-                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-medium">
-                  {day.value > 0 && '+'}
-                  {day.value}%
-                </div>
-              </div>
-            ))}
-          </div>
+                {format(date, 'd')}
+              </Typography>
+              {isCurrentMonth && pnl !== 0 && (
+                 <Typography
+                    variant="caption"
+                    sx={{
+                        fontSize: '0.6rem', // even smaller for pnl
+                        color: pnl > 0 ? colors.secondary : colors.error,
+                        fontWeight: typography.fontWeight.semiBold,
+                        lineHeight: 1,
+                        mt: '2px'
+                    }}
+                  >
+                    {pnl > 0 ? '+' : ''}{Math.abs(pnl) < 1000 ? pnl.toFixed(0) : `${(pnl/1000).toFixed(1)}k`}
+                  </Typography>
+              )}
+            </Box>
+          </Tooltip>
         ))}
-      </div>
-      
-      <div className="mt-3 flex justify-center items-center gap-1">
-        <div className="text-xs mr-1" style={{ color: colors.textSecondary }}>Loss</div>
-        <div className="w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.error, 0.3) }}></div>
-        <div className="w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.error, 0.6) }}></div>
-        <div className="w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.error, 0.9) }}></div>
-        <div className="mx-1 w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.cardStroke, 0.7) }}></div>
-        <div className="w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.success, 0.3) }}></div>
-        <div className="w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.success, 0.6) }}></div>
-        <div className="w-3 h-3 rounded-sm" style={{ background: hexToRgba(colors.success, 0.9) }}></div>
-        <div className="text-xs ml-1" style={{ color: colors.textSecondary }}>Gain</div>
-      </div>
-    </div>
+      </Box>
+       {/* Legend (Optional) */}
+        <Box display="flex" justifyContent="center" alignItems="center" gap={spacing['1']} mt={spacing['1.5']}>
+            <Typography variant="caption" sx={{color: colors.textSecondary, fontSize: typography.fontSize.xxs}}>Less</Typography>
+            <Box sx={{width: 12, height: 12, borderRadius: '2px', bgcolor: alpha(colors.error, 0.3)}} />
+            <Box sx={{width: 12, height: 12, borderRadius: '2px', bgcolor: alpha(colors.error, 0.7)}} />
+            <Box sx={{width: 12, height: 12, borderRadius: '2px', bgcolor: colors.surfaceVariant}} />
+            <Box sx={{width: 12, height: 12, borderRadius: '2px', bgcolor: alpha(colors.secondary, 0.3)}} />
+            <Box sx={{width: 12, height: 12, borderRadius: '2px', bgcolor: alpha(colors.secondary, 0.7)}} />
+            <Typography variant="caption" sx={{color: colors.textSecondary, fontSize: typography.fontSize.xxs}}>More</Typography>
+        </Box>
+    </Box>
   );
-} 
+}

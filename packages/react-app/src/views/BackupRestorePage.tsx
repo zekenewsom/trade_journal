@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './BackupPage.css'; // We'll create this later if needed
 
+import { useAppStore } from '../stores/appStore';
+
 const BackupRestorePage = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
@@ -18,13 +20,28 @@ const BackupRestorePage = () => {
     }
   };
   
+  const fetchTrades = useAppStore(state => state.refreshTrades);
+  const fetchAnalytics = useAppStore(state => state.fetchAnalyticsData);
+
   const handleRestore = async () => {
     try {
       if (window.confirm('Are you sure you want to restore from backup? This will replace your current data.')) {
         setLoading('restore');
         setMessage(null);
         const result = await window.electronAPI.restoreDatabase();
-        setMessage(result.success ? 'Database restored successfully!' : `Restore failed: ${result.message}`);
+        if (result.success) {
+          // Re-fetch trades and analytics, then show success
+          if (fetchTrades && fetchAnalytics) {
+            await fetchTrades();
+            await fetchAnalytics();
+            setMessage('Database restored successfully! (Data reloaded)');
+          } else {
+            // Fallback: reload window if Zustand store is unavailable
+            window.location.reload();
+          }
+        } else {
+          setMessage(`Restore failed: ${result.message}`);
+        }
       }
     } catch (error) {
       setMessage(`Error: ${error instanceof Error ? error.message : String(error)}`);
@@ -32,6 +49,7 @@ const BackupRestorePage = () => {
       setLoading(null);
     }
   };
+
   
   const handleExportCSV = async () => {
     try {

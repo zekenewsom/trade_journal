@@ -168,47 +168,7 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
         <input type="datetime-local" id="datetime" name="datetime" value={formData.datetime} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" required />
         {errors.datetime && <span className="text-error text-sm mt-1">{errors.datetime}</span>}
       </div>
-      <div className="flex flex-col gap-1 text-left">
-        <label htmlFor="quantity" className="font-medium">Quantity:</label>
-        <input type="number" step="any" min="0.00000001" id="quantity" name="quantity" value={formData.quantity} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" required />
-        {errors.quantity && <span className="text-error text-sm mt-1">{errors.quantity}</span>}
-      </div>
-      <div className="flex flex-col gap-1 text-left">
-        </div>
-        <div className="flex flex-col gap-1 text-left">
-          <label htmlFor="asset_class" className="font-medium">Asset Class:</label>
-          <select 
-            id="asset_class"
-            name="asset_class" 
-            value={formData.asset_class || ''} 
-            onChange={handleInputChange}          className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary"
-            required
-          >
-            <option value="">Select Asset Class</option>
-            <option value="Stock">Stock</option>
-            <option value="Cryptocurrency">Cryptocurrency</option>
-          </select>
-          {errors.asset_class && <span className="text-error text-sm mt-1">{errors.asset_class}</span>}
-        </div>
-        <div className="flex flex-col gap-1 text-left">
-          <label htmlFor="exchange" className="font-medium">Exchange:</label>
-          <input type="text" id="exchange" name="exchange" value={formData.exchange} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., NYSE, Binance" required />
-          {errors.exchange && <span className="text-error text-sm mt-1">{errors.exchange}</span>}
-        </div>
-        <div className="flex flex-col gap-1 text-left">
-          <label htmlFor="action" className="font-medium">Action:</label>
-          <select id="action" name="action" value={formData.action} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" required>
-            <option value="">Select Action</option>
-            <option value="Buy">Buy</option>
-            <option value="Sell">Sell</option>
-          </select>
-          {errors.action && <span className="text-error text-sm mt-1">{errors.action}</span>}
-        </div>
-        <div className="flex flex-col gap-1 text-left">
-          <label htmlFor="datetime" className="font-medium">Date/Time:</label>
-          <input type="datetime-local" id="datetime" name="datetime" value={formData.datetime} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" required />
-          {errors.datetime && <span className="text-error text-sm mt-1">{errors.datetime}</span>}
-        </div>
+      
         <div className="flex flex-col gap-1 text-left">
           <label htmlFor="quantity" className="font-medium">Quantity:</label>
           <input type="number" step="any" min="0.00000001" id="quantity" name="quantity" value={formData.quantity} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" required />

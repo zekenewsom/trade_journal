@@ -1,114 +1,139 @@
 // packages/react-app/src/styles/design-tokens.ts
 
 export const colors = {
-  // Semantic colors
-  background: '#0E0F11', // main app background
-  surface: '#18191B', // card, modal, raised surfaces
-  surfaceVariant: '#23263a', // lighter surface for inputs and variants
-  onBackground: '#FFFFFF', // text on background
-  onSurface: '#E0E0E6', // text on surface
-  primary: '#3A7BFF', // primary action/button
-  onPrimary: '#FFFFFF', // text/icon on primary
-  secondary: '#00E28A', // secondary accent
-  onSecondary: '#0E0F11',
-  accent: '#3A7BFF', // blue accent, mapped to info
-  error: '#FF4D67',
+  // Semantic Colors based on the target design
+  background: '#0D1117', // Very dark, almost black, slightly blueish (GitHub dark-like)
+  surface: '#161B22',   // Cards, modals - a lighter dark gray/blue
+  surfaceVariant: '#21262D', // Slightly lighter surface for input fields, hover states
+  onBackground: '#C9D1D9', // Main text on dark background (light gray)
+  onSurface: '#E6EDF3',   // Main text on card surfaces (slightly brighter light gray)
+  textPrimary: '#E6EDF3',
+  textSecondary: '#8B949E', // Secondary text (medium gray)
+
+  primary: '#58A6FF',     // Bright blue for primary actions, highlights, and charts
+  onPrimary: '#FFFFFF',   // Text/icons on primary color
+
+  secondary: '#3FB950',   // Green for positive P&L, success states
+  onSecondary: '#FFFFFF', // Text/icons on secondary color (can also be dark if contrast allows)
+
+  success: '#3FB950',     // Green for success, alias of secondary
+  error: '#F85149',       // Red for negative P&L, errors
   onError: '#FFFFFF',
-  success: '#00E28A',
-  onSuccess: '#0E0F11',
-  warning: '#FFC107',
-  onWarning: '#18191B',
-  info: '#3A7BFF',
+
+  warning: '#F0883E',     // Orange/Yellow for warnings or neutral states in charts
+  onWarning: '#FFFFFF',
+
+  info: '#58A6FF',        // Blue for informational elements (can be same as primary)
   onInfo: '#FFFFFF',
-  // Primitives
-  pureDark: '#0E0F11',
-  cardStroke: '#1A1B1D',
-  textPrimary: '#FFFFFF',
-  textSecondary: '#A9A9B8',
-  border: '#232327',
-  // 'accent' is mapped to 'info' blue for highlights; 'surfaceVariant' is a lighter dark for input backgrounds.
+
+  // Primitive/UI Element Colors
+  border: '#30363D',        // Borders for cards, inputs, dividers
+  cardStroke: '#30363D',    // Specific for card borders if different from general border
+  
+  // Chart Specific (can alias from above or be specific)
+  chartPositive: '#3FB950', // success green
+  chartNegative: '#F85149', // error red
+  chartNeutral: '#8B949E',  // textSecondary gray for neutral R-multiples or zero lines
+  chartGridLines: '#21262D', // subtle grid lines, like surfaceVariant
+
+  // Specific UI elements from screenshot
+  topBarBackground: '#161B22', // surface or a dedicated top bar color
+  sidebarBackground: '#161B22',// surface
+  activeNavBackground: 'rgba(88, 166, 255, 0.1)', // primary with alpha for active sidebar item
+  activeNavText: '#58A6FF', // primary
+  buttonSecondaryBackground: '#21262D', // surfaceVariant for secondary buttons like "Export"
+  buttonSecondaryText: '#C9D1D9', // onBackground
+  buttonSecondaryBorder: '#30363D', // border
+
+  // Progress bars in cards
+  progressTrack: '#30363D', // Darker track for progress bars
 };
 
 export const typography = {
   fontFamily: {
-    ui: 'Inter, sans-serif',
-    mono: 'Roboto Mono, monospace',
+    ui: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    mono: '"Roboto Mono", "SFMono-Regular", "Consolas", "Liberation Mono", Menlo, Courier, monospace',
   },
   fontWeight: {
+    light: 300,
     normal: 400,
+    medium: 500, // For titles, emphasized text
     semiBold: 600,
     bold: 700,
   },
   fontSize: {
-    xs: '0.75rem',   // 12px
-    sm: '0.875rem',  // 14px
-    base: '1rem',    // 16px
+    xxs: '0.625rem', // 10px (for very small text like progress bar labels)
+    xs: '0.75rem',   // 12px (card titles, axis labels)
+    sm: '0.875rem',  // 14px (body text, descriptions)
+    base: '1rem',    // 16px (main values if not oversized)
     lg: '1.125rem',  // 18px
-    xl: '1.25rem',   // 20px
+    xl: '1.375rem',  // 22px (main metric values)
     '2xl': '1.5rem',  // 24px
-    '3xl': '1.875rem', // 30px
+    '3xl': '1.875rem',// 30px
     '4xl': '2.25rem', // 36px
-    '5xl': '3rem', // 48px
-    '32px': '2rem',   // 32px (Net Account Balance)
+    // Specifics from screenshot
+    mainMetricValue: '1.75rem', // ~28px for the large numbers like Net Account Balance
+    cardTitle: '0.75rem', // ~12px, often uppercase
+    cardChangeIndicator: '0.75rem', // ~12px for P&L change
   },
   letterSpacing: {
-    tight: '-0.01em',
-    normal: '0',
-    wide: '0.01em',
+    tight: '-0.02em',
+    normal: '0em',
+    wide: '0.025em', // For uppercase titles
   },
   lineHeight: {
+    none: '1',
+    tight: '1.25',
     normal: '1.5',
     relaxed: '1.625',
-    tight: '1.25',
   },
 };
 
 export const spacing = {
   px: '1px',
   '0': '0',
-  '1': '0.25rem', // 4px
-  '2': '0.5rem',  // 8px
-  '3': '0.75rem', // 12px
-  '4': '1rem',    // 16px
-  '5': '1.25rem', // 20px
-  '6': '1.5rem',  // 24px
-  '7': '1.75rem', // 28px
-  '8': '2rem',    // 32px
-  '10': '2.5rem', // 40px
-  '12': '3rem',   // 48px
-  '16': '4rem',   // 64px
-  '20': '5rem',   // 80px
-  '24': '6rem',   // 96px
-  '32': '8rem',   // 128px
-  '56px': '3.5rem', // Top bar height (56px)
-  '72px': '4.5rem', // Sidebar collapsed (72px)
-  '220px': '13.75rem',// Sidebar expanded (220px)
-  '420px': '26.25rem',// Drawer width (420px)
-  // ...
+  '0.5': '0.125rem', // 2px
+  '1': '0.25rem',   // 4px
+  '1.5': '0.375rem',// 6px
+  '2': '0.5rem',    // 8px
+  '2.5': '0.625rem',// 10px
+  '3': '0.75rem',   // 12px
+  '3.5': '0.875rem',// 14px
+  '4': '1rem',      // 16px
+  '5': '1.25rem',   // 20px
+  '6': '1.5rem',    // 24px
+  '8': '2rem',      // 32px
+  '10': '2.5rem',   // 40px
+  '12': '3rem',     // 48px
+  '16': '4rem',     // 64px
+  // ... add more as needed, or use Tailwind's defaults and extend them
+  topBarHeight: '3.5rem', // 56px
+  sidebarWidth: '14rem', // 224px
 };
 
 export const shadows = {
-  elevation2: '0 4px 10px rgba(0,0,0,0.3)', // Softer shadow for dark mode
-  // Define other elevations if needed
+  // The screenshot has very subtle or almost no distinct shadows on cards, relying on background contrast
+  card: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)', // A very subtle default Tailwind shadow
+  none: 'none',
+  // Target design seems to use borders more than heavy shadows for separation
+  elevation1: '0px 2px 4px -1px rgba(0,0,0,0.06), 0px 4px 5px 0px rgba(0,0,0,0.04), 0px 1px 10px 0px rgba(0,0,0,0.03)', // Softer, more modern shadow
+  elevation2: '0px 5px 5px -3px rgba(0,0,0,0.06), 0px 8px 10px 1px rgba(0,0,0,0.04), 0px 3px 14px 2px rgba(0,0,0,0.03)',
 };
 
 export const borderRadius = {
-  sm: '0.125rem',
-  md: '0.25rem',
-  lg: '0.5rem',
-  xl: '0.75rem',
-  '2xl': '1rem', // Card corners
-};
-
-export const iconSizes = {
-  default: '24px',
+  none: '0px',
+  sm: '0.25rem', // 4px
+  md: '0.5rem',  // 8px (looks like what's used on cards and inputs in target)
+  lg: '0.75rem', // 12px
+  xl: '1rem',    // 16px
+  full: '9999px',
 };
 
 export const animation = {
   framerMotionFadeSlide: {
-    duration: 0.15, // 150ms
-    // You might define variants here or directly in components
+    duration: 0.15,
   },
 };
 
-export const cardBaseClasses = 'bg-pure-dark/80 backdrop-blur-sm rounded-2xl shadow-elevation-2 border border-card-stroke';
+// Base classes for Tailwind if you want to abstract common card styling
+export const cardBaseClasses = `bg-surface text-on-surface rounded-${borderRadius.md} border border-cardStroke shadow-elevation1 p-4`; // Example usage

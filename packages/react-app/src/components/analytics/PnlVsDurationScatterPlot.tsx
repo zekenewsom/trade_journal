@@ -16,15 +16,10 @@ interface PnlVsDurationScatterPlotProps {
   data: DurationPerformanceData[];
 }
 
-interface FormattedDataPoint extends DurationPerformanceData {
-  durationLabel: string;
-  tooltipPayload: string;
-}
-
 const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props: PnlVsDurationScatterPlotProps) => {
   // DEBUG: Log the incoming data
   React.useEffect(() => {
-    // eslint-disable-next-line no-console
+     
     console.log('[PnLvsDuration] formattedData:', props.data);
   }, [props.data]);
   const isMobile = useIsMobile();
@@ -68,7 +63,7 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
 
   return (
     <div>
-      <h4 className="mb-3 text-lg font-semibold text-on-surface">Net P&L vs. Trade Duration (Fully Closed Trades)</h4>
+      
       <ResponsiveContainer width="100%" height={isMobile ? 240 : 400}>
         <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
           <CartesianGrid stroke="var(--color-card-stroke)" />
@@ -105,8 +100,8 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
             name="Trades"
             data={formattedData}
             fillOpacity={0.7}
-            shape={(props: any) => {
-              const { cx, cy, payload } = props as { cx?: number; cy?: number; payload?: any };
+            shape={(point: { cx?: number; cy?: number; payload?: { [key: string]: unknown } }) => {
+              const { cx, cy, payload } = point as { cx?: number; cy?: number; payload?: any };
               if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
                 // Return an invisible circle to satisfy type
                 return <circle cx={0} cy={0} r={0} fill="none" />;

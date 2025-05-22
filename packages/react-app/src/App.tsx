@@ -2,7 +2,6 @@
 // Modified for Stage 6: Add navigation to AnalyticsPage, update ElectronAPI type if needed
 
 import { useEffect } from 'react';
-import { colors } from '/src/styles/design-tokens';
 import { useAppStore } from './stores/appStore';
 import LogTransactionPage from './views/LogTransactionPage';
 import EditTradeDetailsPage from './views/EditTradeDetailsPage';
@@ -87,10 +86,6 @@ function App() {
       default:
         return (
           <div>
-            <h1>Trade Journal - Dashboard</h1>
-            <p>Electron App Version: {appVersion || 'Loading...'}</p>
-            <p>Database Status: {dbStatus || 'Testing DB...'}</p>
-            <hr className="my-5" />
             <DashboardMetrics />
             <hr className="my-5" />
             <div className="flex gap-2.5 justify-center mt-5">

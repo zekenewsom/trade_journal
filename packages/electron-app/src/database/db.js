@@ -13,6 +13,8 @@ module.exports = {
   getDb: connection.getDb, // May not be needed externally if all DB ops are via services
   closeDatabase: connection.closeDatabase,
   testDbConnection: connection.testDbConnection,
+  backupDatabase: connection.backupDatabase,
+  restoreDatabase: connection.restoreDatabase,
 
   // Trade Service
   fetchTradesForListView: tradeService.fetchTradesForListView,

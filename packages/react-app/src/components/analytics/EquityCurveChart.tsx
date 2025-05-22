@@ -32,15 +32,10 @@ const EquityCurveChart: React.FC<Props> = ({ equityCurve }: Props) => {
   }
 
   return (
-    <div
-      className="bg-surface rounded-2xl p-4"
-      style={{
-        // Explicitly set theme-compliant green and red for chart CSS variables
-        '--color-success': 'rgb(34 197 94)', // Tailwind green-500
-        '--color-error': 'rgb(239 68 68)',   // Tailwind red-500
-      } as React.CSSProperties}
-    >
-      <h3 className="mb-4 text-xl font-semibold text-primary">Equity Curve & Drawdown</h3>
+    <div style={{
+      '--color-success': 'rgb(34 197 94)', // Tailwind green-500
+      '--color-error': 'rgb(239 68 68)',   // Tailwind red-500
+    } as React.CSSProperties}>
       <ResponsiveContainer width="100%" height={isMobile ? 240 : 400}>
         <AreaChart data={equityData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <defs>
