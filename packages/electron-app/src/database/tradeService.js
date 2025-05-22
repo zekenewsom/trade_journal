@@ -332,6 +332,7 @@ function deleteFullTradeAndTransactions(tradeId) {
     const transactFn = db.transaction(() => {
       db.prepare('DELETE FROM trade_emotions WHERE trade_id = ?').run(tradeId);
       db.prepare('DELETE FROM trade_attachments WHERE trade_id = ?').run(tradeId);
+      db.prepare('DELETE FROM account_transactions WHERE related_trade_id = ?').run(tradeId); // Ensure no FK errors
       // transactions and transaction_emotions are deleted by CASCADE constraint on trades table
       const result = db.prepare('DELETE FROM trades WHERE trade_id = ?').run(tradeId);
       if (result.changes === 0) throw new Error(`Delete failed: Trade ID ${tradeId} not found or no changes made.`);
