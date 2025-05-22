@@ -1,6 +1,0 @@
-import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { MetricCard } from '../ui/MetricCard';
-import CountUp from 'react-countup';
-export function BuyingPowerCard({ value = 823571.08, allocation = 64 }) {
-    return (_jsx(MetricCard, { title: "Available Buying Power", children: _jsxs("div", { className: "flex flex-col", children: [_jsxs("div", { className: "text-2xl font-semibold font-mono", children: ["$", _jsx(CountUp, { end: value, separator: ",", decimals: 2, preserveValue: true })] }), _jsxs("div", { className: "flex items-center justify-between mt-4", children: [_jsxs("div", { className: "text-xs text-gray-400", children: [_jsx("span", { className: "mr-1", children: "Allocation:" }), _jsxs("span", { className: "font-medium text-white", children: [allocation, "%"] })] }), _jsxs("div", { className: "text-xs text-gray-400", children: [_jsx("span", { className: "mr-1", children: "Free:" }), _jsxs("span", { className: "font-medium text-white", children: [100 - allocation, "%"] })] })] }), _jsx("div", { className: "mt-1", children: _jsx("div", { className: "w-full bg-dark-800 h-1.5 rounded-full overflow-hidden", children: _jsx("div", { className: "h-full bg-primary", style: { width: `${allocation}%` } }) }) })] }) }));
-}

@@ -1,5 +1,28 @@
 # React + TypeScript + Vite
 
+## Styling Conventions
+
+**Systematic Refactor Process:**
+- Systematically go through all components and ensure they use **Tailwind CSS** for utilities/layout (margins, padding, flex/grid, border radius, colors, typography, etc.).
+- Use **MUI's `sx` prop** (with theme tokens from `design-tokens.ts` via `theme.ts`) for MUI component-specific styling only (e.g., colors, spacing, border radius, shadows on MUI components).
+- **Remove all hardcoded styles** and any direct use of `design-tokens.ts` in components. All colors, radii, and shadows should come from the MUI theme or Tailwind classes.
+- For **charts and third-party visualizations**, use Tailwind classes for container/layout. For chart colors, prefer semantic hex values or pass theme tokens as props if needed.
+
+**After finishing the components, always refer to this README for guidance when making changes to the rest of the files in the codebase.**
+
+**Example:**
+```tsx
+<Box className="flex flex-col gap-4" sx={theme => ({ backgroundColor: theme.palette.background.paper, borderRadius: theme.shape.borderRadius })}>
+  <Typography className="text-lg font-bold" sx={theme => ({ color: theme.palette.primary.main })}>
+    Dashboard
+  </Typography>
+</Box>
+```
+
+This ensures a consistent, theme-driven, and maintainable UI throughout the application.
+
+---
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

@@ -71,7 +71,7 @@ export function ReturnScatterChart({ data }: ReturnScatterChartProps) {
               name="Risk"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: '#9ca3af' }}
+              tick={{ fontSize: 10, fill: colors.textSecondary }}
               domain={['dataMin', 'dataMax']}
             />
             <YAxis
@@ -80,7 +80,7 @@ export function ReturnScatterChart({ data }: ReturnScatterChartProps) {
               name="Return"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: '#9ca3af' }}
+              tick={{ fontSize: 10, fill: colors.textSecondary }}
               domain={['dataMin', 'dataMax']}
             />
             <ZAxis

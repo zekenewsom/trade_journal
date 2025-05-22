@@ -1,10 +1,17 @@
+import React from 'react';
+import { colors } from '/src/styles/design-tokens';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 
+function useIsMobile() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 639px)').matches;
+}
 interface DrawdownCurveChartProps {
   data?: { date: string; value: number }[];
 }
 
 export function DrawdownCurveChart({ data }: DrawdownCurveChartProps = {}) {
+  const isMobile = useIsMobile();
   // Mock data if not provided
   const mockData = data || [
     { date: 'Jan 1', value: 0 },
@@ -19,39 +26,40 @@ export function DrawdownCurveChart({ data }: DrawdownCurveChartProps = {}) {
   ];
 
   return (
-    <div className="h-[300px] w-full">
+    <div className={isMobile ? "h-[180px] w-full" : "h-[300px] w-full"}>
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={mockData}>
           <defs>
             <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#FF4D67" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#FF4D67" stopOpacity={0}/>
+              <stop offset="5%" stopColor="var(--color-error)" stopOpacity={0.8}/>
+              <stop offset="95%" stopColor="var(--color-error)" stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-card-stroke)" />
           <XAxis 
             dataKey="date" 
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
-            axisLine={{ stroke: '#1A1B1D' }}
+            tick={{ fill: colors.textSecondary, fontSize: 12 }}
+            axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
+            interval={isMobile ? 'preserveStartEnd' : 0}
           />
           <YAxis 
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
-            axisLine={{ stroke: '#1A1B1D' }}
+            tick={{ fill: colors.textSecondary, fontSize: 12 }}
+            axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
             tickFormatter={(value) => `${value}%`}
             domain={['dataMin', 0]}
           />
           <Tooltip 
-            contentStyle={{ backgroundColor: '#0E0F11', borderColor: '#1A1B1D' }}
-            itemStyle={{ color: '#FF4D67' }}
+            contentStyle={{ backgroundColor: colors.background, borderColor: colors.cardStroke }}
+            itemStyle={{ color: colors.error }}
             formatter={(value: number) => [`${value}%`, 'Drawdown']}
             labelFormatter={(label) => `Date: ${label}`}
           />
           <Area 
             type="monotone" 
             dataKey="value" 
-            stroke="#FF4D67" 
+            stroke="var(--color-error)" 
             strokeWidth={2}
             fillOpacity={1}
             fill="url(#drawdownGradient)"

@@ -1,6 +1,5 @@
 import { MetricCard } from '../ui/MetricCard';
 import CountUp from 'react-countup';
-import { colors } from '../../styles/design-tokens';
 
 interface SortinoRatioCardProps {
   value: number;
@@ -15,32 +14,23 @@ export function SortinoRatioCard({
   const ratio = Math.min(value / 5, 1) * 100;
   
   return (
-    <MetricCard title="Sortino Ratio" status="good">
+    <MetricCard title="Sortino Ratio" status="good" className="bg-white">
       <div className="flex flex-col">
-        <div className="text-2xl font-semibold font-mono">
+        <div className="text-2xl font-semibold font-mono text-primary">
           <CountUp end={value} decimals={2} preserveValue />
         </div>
         
         <div className="flex items-center justify-between mt-1 mb-1">
-          <div className="text-xs" style={{ color: colors.textSecondary }}>Poor</div>
-          <div className="text-xs" style={{ color: colors.textSecondary }}>Excellent</div>
+          <div className="text-xs text-secondary">Poor</div>
+          <div className="text-xs text-secondary">Excellent</div>
         </div>
         
-        <div className="w-full h-1 rounded-full" style={{ background: colors.cardStroke }}>
-          <div 
-            style={{ 
-              width: `${ratio}%`, 
-              height: '100%', 
-              borderRadius: '9999px', 
-              background: status === 'excellent' || status === 'good'
-                ? colors.success 
-                : status === 'moderate' 
-                  ? colors.warning 
-                  : colors.error 
-            }}
+        <div className="w-full h-1 rounded-full bg-gray-200">
+          <div
+            style={{ width: `${ratio}%`, height: '100%', borderRadius: '9999px', background: status === 'excellent' || status === 'good' ? 'green' : status === 'moderate' ? 'yellow' : 'red' }}
           />
         </div>
       </div>
     </MetricCard>
   );
-} 
+}

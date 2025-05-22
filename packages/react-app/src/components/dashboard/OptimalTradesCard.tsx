@@ -1,7 +1,7 @@
 import { MetricCard } from '../ui/MetricCard';
 import CountUp from 'react-countup';
 import { AreaChart, Area, ResponsiveContainer, XAxis } from 'recharts';
-import { colors } from '../../styles/design-tokens';
+import { useTheme } from '@mui/material/styles';
 
 interface OptimalTradesCardProps {
   value: number;
@@ -25,14 +25,15 @@ export function OptimalTradesCard({
 
   const isNegative = change < 0;
   
+  const theme = useTheme();
   return (
-    <MetricCard title="Optimal Trades Gain" status={isNegative ? 'bad' : 'good'}>
+    <MetricCard title="Optimal Trades Gain" status={isNegative ? 'bad' : 'good'} className="bg-white">
       <div className="flex flex-col">
-        <div className="text-2xl font-semibold font-mono">
+        <div className="text-2xl font-semibold font-mono text-primary">
           $<CountUp end={value} separator="," decimals={2} preserveValue />
         </div>
         
-        <div className="text-sm" style={{ color: isNegative ? colors.error : colors.success }}>
+        <div className="text-sm" style={{ color: isNegative ? theme.palette.error.main : theme.palette.success.main }}>
           {isNegative ? '' : '+'}
           {change}%
         </div>
@@ -42,20 +43,20 @@ export function OptimalTradesCard({
             <AreaChart data={mockData}>
               <defs>
                 <linearGradient id="optimalGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={isNegative ? colors.error : colors.success} stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor={isNegative ? colors.error : colors.success} stopOpacity={0}/>
+                  <stop offset="5%" stopColor={isNegative ? theme.palette.error.main : theme.palette.success.main} stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor={isNegative ? theme.palette.error.main : theme.palette.success.main} stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <XAxis 
                 dataKey="month" 
-                tick={{ fontSize: 10, fill: colors.textSecondary }}
+                tick={{ fontSize: 10, fill: theme.palette.text.secondary }}
                 axisLine={false}
                 tickLine={false}
               />
               <Area 
                 type="monotone" 
                 dataKey="value" 
-                stroke={isNegative ? colors.error : colors.success} 
+                stroke={isNegative ? theme.palette.error.main : theme.palette.success.main} 
                 fillOpacity={1}
                 fill="url(#optimalGradient)"
               />

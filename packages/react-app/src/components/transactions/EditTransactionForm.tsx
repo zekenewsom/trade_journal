@@ -1,7 +1,8 @@
 // File: zekenewsom-trade_journal/packages/react-app/src/components/transactions/EditTransactionForm.tsx
 // New file for Stage 5 - A small form for editing a single transaction (e.g., in a modal)
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { colors } from '/src/styles/design-tokens';
 import type { EditTransactionFormData, EmotionRecord } from '../../types';
 
 interface EditTransactionFormProps {
@@ -58,7 +59,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
       <div className="bg-surface p-6 rounded-2xl w-[90%] max-w-xl max-h-[90vh] overflow-y-auto shadow-elevation-2 border border-card-stroke">
         <h2 className="text-on-surface text-2xl font-bold mb-6">Edit Transaction</h2>
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">
           <div className="mb-4">
             <label className="block mb-1 text-on-surface font-medium">Quantity:</label>
             <input
@@ -66,14 +67,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               name="quantity"
               value={formData.quantity}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
-                borderRadius: '4px',
-                color: '#fff'
-              }}
+              
               required
             />
           </div>
@@ -85,14 +79,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               name="price"
               value={formData.price}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
-                borderRadius: '4px',
-                color: '#fff'
-              }}
+              
               required
             />
           </div>
@@ -104,14 +91,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               name="datetime"
               value={formData.datetime}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
-                borderRadius: '4px',
-                color: '#fff'
-              }}
+              
               required
             />
           </div>
@@ -144,14 +124,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               name="strategy_id"
               value={formData.strategy_id || ''}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
-                borderRadius: '4px',
-                color: '#fff'
-              }}
+              
             />
           </div>
 
@@ -161,15 +134,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
   className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary"              name="market_conditions"
               value={formData.market_conditions || ''}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
-                borderRadius: '4px',
-                color: '#fff',
-                minHeight: '100px'
-              }}
+              
             />
           </div>
 
@@ -179,15 +144,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
   className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary"              name="setup_description"
               value={formData.setup_description || ''}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
-                borderRadius: '4px',
-                color: '#fff',
-                minHeight: '100px'
-              }}
+              
             />
           </div>
 
@@ -197,15 +154,7 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
   className="w-full p-2 bg-surface border border-card-stroke rounded text-on-surface min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary"              name="reasoning"
               value={formData.reasoning || ''}
               onChange={handleChange}
-              style={{
-                width: '100%',
-                padding: '8px',
-                backgroundColor: '#1a1d21',
-                border: '1px solid #444',
-                borderRadius: '4px',
-                color: '#fff',
-                minHeight: '100px'
-              }}
+              
             />
           </div>
 
@@ -248,17 +197,17 @@ const EditTransactionForm: React.FC<EditTransactionFormProps> = ({
               </div>
             </div>
           )}
-        <div className="flex gap-3 mt-6 justify-end">
+        <div className="flex flex-col gap-2 w-full sm:flex-row sm:gap-3 sm:w-auto mt-6 justify-end">
           <button
             type="button"
             onClick={onCancel}
-            className="py-2 px-4 bg-surface text-on-surface rounded hover:bg-surface/80 transition-colors font-semibold border border-card-stroke"
+            className="py-2 px-4 bg-surface text-on-surface rounded hover:bg-surface/80 transition-colors font-semibold border border-card-stroke w-full sm:w-auto"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="py-2 px-4 bg-primary text-on-primary rounded hover:bg-primary/90 transition-colors font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+            className="py-2 px-4 bg-primary text-on-primary rounded hover:bg-primary/90 transition-colors font-semibold disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
           >
             Save
           </button>

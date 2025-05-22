@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { MetricCard } from '../ui/MetricCard';
 import { colors } from '../../styles/design-tokens';
 

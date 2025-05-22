@@ -1,10 +1,17 @@
+import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Cell } from 'recharts';
+import { colors } from '/src/styles/design-tokens';
 
+function useIsMobile() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 639px)').matches;
+}
 interface MonthlyReturnsChartProps {
   data?: { value: number; count: number }[];
 }
 
 export function MonthlyReturnsChart({ data }: MonthlyReturnsChartProps = {}) {
+  const isMobile = useIsMobile();
   // Mock data if not provided - each bar represents an R-multiple value range
   const mockData = data || [
     { value: -3, count: 3 },
@@ -19,26 +26,27 @@ export function MonthlyReturnsChart({ data }: MonthlyReturnsChartProps = {}) {
   ];
 
   return (
-    <div className="h-[300px] w-full">
+    <div className={isMobile ? "h-[180px] w-full" : "h-[300px] w-full"}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={mockData} barGap={2}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-card-stroke)" vertical={false} />
           <XAxis 
             dataKey="value" 
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
-            axisLine={{ stroke: '#1A1B1D' }}
+            tick={{ fill: colors.textSecondary, fontSize: 12 }}
+            axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
             tickFormatter={(value) => `${value}R`}
+            interval={isMobile ? 'preserveStartEnd' : 0}
           />
           <YAxis 
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
-            axisLine={{ stroke: '#1A1B1D' }}
+            tick={{ fill: colors.textSecondary, fontSize: 12 }}
+            axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
             tickFormatter={(value) => value}
-            label={{ value: 'Frequency', angle: -90, position: 'insideLeft', fill: '#9ca3af', fontSize: 12 }}
+            label={{ value: 'Frequency', angle: -90, position: 'insideLeft', fill: colors.textSecondary, fontSize: 12 }}
           />
           <Tooltip 
-            contentStyle={{ backgroundColor: '#0E0F11', borderColor: '#1A1B1D' }}
+            contentStyle={{ backgroundColor: colors.background, borderColor: colors.cardStroke }}
             formatter={(value: number) => [value, 'Trades']}
             labelFormatter={(label) => `R-Multiple: ${label}`}
           />
@@ -46,7 +54,7 @@ export function MonthlyReturnsChart({ data }: MonthlyReturnsChartProps = {}) {
             {mockData.map((entry, index) => (
               <Cell 
                 key={`cell-${index}`} 
-                fill={entry.value < 0 ? '#FF4D67' : entry.value === 0 ? '#FFB547' : '#00E28A'} 
+                fill={entry.value < 0 ? colors.error : entry.value === 0 ? colors.warning : colors.success} 
               />
             ))}
           </Bar>

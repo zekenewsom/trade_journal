@@ -1,7 +1,8 @@
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { useTheme } from '@mui/material/styles';
 import { MetricCard } from '../ui/MetricCard';
 import CountUp from 'react-countup';
-import { colors } from '../../styles/design-tokens';
+
 
 interface NetBalanceCardProps {
   value: number;
@@ -28,16 +29,17 @@ export function NetBalanceCard({
   ];
   
   const isPositive = change >= 0;
-  const changeColor = isPositive ? colors.success : colors.error;
+  const changeColor = isPositive ? 'text-green-600' : 'text-error';
   const changePrefix = isPositive ? '+' : '';
 
+  const theme = useTheme();
   return (
-    <MetricCard title="Net Account Balance" size="lg" status={isPositive ? 'good' : 'bad'}>
+    <MetricCard title="Net Account Balance" size="lg" status={isPositive ? 'good' : 'bad'} className="bg-white">
       <div className="flex flex-col gap-1">
-        <div className="text-3xl font-semibold font-mono">
+        <div className="text-3xl font-semibold font-mono text-primary">
           $<CountUp end={value} separator="," decimals={2} preserveValue />
         </div>
-        <div className="flex items-center gap-2 text-sm" style={{ color: changeColor }}>
+        <div className={`flex items-center gap-2 text-sm ${changeColor}`}>
           <span>{changePrefix}${Math.abs(change).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
           <span>({changePrefix}{Math.abs(changePercentage).toFixed(2)}%)</span>
         </div>
@@ -49,7 +51,7 @@ export function NetBalanceCard({
             <Line 
               type="monotone" 
               dataKey="v" 
-              stroke={colors.primary} 
+              stroke={theme.palette.text.primary} 
               strokeWidth={2} 
               dot={false} 
               isAnimationActive={true}

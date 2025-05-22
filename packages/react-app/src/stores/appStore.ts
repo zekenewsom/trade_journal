@@ -3,10 +3,6 @@ import type {
   TradeListView,
   EmotionRecord,
   ElectronAPIDefinition,
-  LogTransactionPayload,
-  UpdateTradeDetailsPayload,
-  UpdateTransactionPayload,
-  TransactionRecord
 } from '../types';
 
 declare global {
@@ -15,12 +11,15 @@ declare global {
   }
 }
 
-type View =
+export type View =
   | 'dashboard'
+  | 'portfolio'
+  | 'analyticsPage'
   | 'tradesList'
+  | 'watchlist'
+  | 'settings'
   | 'logTransactionForm'
-  | 'editTradeDetailsForm'
-  | 'analyticsPage';
+  | 'editTradeDetailsForm';
 
 interface AppViewParams {
   initialValues?: {
@@ -48,7 +47,7 @@ interface AppState {
   analytics: AnalyticsData | null;
   isLoadingAnalytics: boolean;
   analyticsError: string | null;
-  fetchAnalyticsData: (filters?: Record<string, any>) => Promise<void>;
+  fetchAnalyticsData: (filters?: Record<string, unknown>) => Promise<void>;
 
   // Trades loading/error state
   isLoadingTrades: boolean;

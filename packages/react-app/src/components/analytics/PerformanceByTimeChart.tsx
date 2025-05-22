@@ -3,8 +3,12 @@
 
 import React from 'react';
 import type { TimePerformanceData } from '../../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
-import { colors } from '../../styles/design-tokens';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+
+function useIsMobile() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 639px)').matches;
+}
 
 interface Props {
   title: string;
@@ -14,36 +18,36 @@ interface Props {
 }
 
 const PerformanceByTimeChart: React.FC<Props> = ({ title, data, dataKeyX, dataKeyY }) => {
+  const isMobile = useIsMobile();
   if (!data || data.length === 0) {
     return (
-      <div className="text-sm" style={{ color: colors.textSecondary }}>
+      <div className="text-sm text-gray-500 dark:text-gray-400">
         No data available for {title}.
       </div>
     );
   }
 
-  const yAxisLabel = dataKeyY === 'totalNetPnl' ? "Net P&L ($)" : "Count / Rate";
-
   return (
     <div>
-      <h3 className="text-xl font-semibold mb-4" style={{ color: colors.onSurface }}>{title}</h3>
-      <div className="h-[400px]">
+      <h3 className="text-xl font-semibold mb-4 text-on-surface">{title}</h3>
+      <div className={isMobile ? "h-[240px]" : "h-[400px]"}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke={colors.cardStroke} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-card-stroke)" />
             <XAxis 
               dataKey={dataKeyX} 
-              tick={{ fontSize: 12, fill: colors.textSecondary }}
+              tick={{ fontSize: 12, fill: 'var(--color-on-surface-variant)' }}
+              interval={isMobile ? 'preserveStartEnd' : 0}
             />
             <YAxis 
               tickFormatter={(value) => `$${value.toFixed(0)}`}
-              tick={{ fontSize: 12, fill: colors.textSecondary }}
+              tick={{ fontSize: 12, fill: 'var(--color-on-surface-variant)' }}
             />
             <Tooltip 
               formatter={(value: number) => [`$${value.toFixed(2)}`, 'P&L']}
               contentStyle={{ 
-                backgroundColor: colors.surface,
-                border: `1px solid ${colors.cardStroke}`,
+                backgroundColor: 'var(--color-surface)',
+                border: '1px solid var(--color-card-stroke)',
                 borderRadius: '0.375rem'
               }}
             />
@@ -51,7 +55,7 @@ const PerformanceByTimeChart: React.FC<Props> = ({ title, data, dataKeyX, dataKe
               {data.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`}
-                  fill={entry.totalNetPnl >= 0 ? colors.success : colors.error}
+                  fill={entry.totalNetPnl >= 0 ? 'var(--color-success)' : 'var(--color-error)'}
                 />
               ))}
             </Bar>

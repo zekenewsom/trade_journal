@@ -51,13 +51,13 @@ export function HoldingsHistogram({ data }: HoldingsHistogramProps) {
               dataKey="r"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: '#9ca3af' }}
+              tick={{ fontSize: 10, fill: colors.textSecondary }}
               tickCount={data.length}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: '#9ca3af' }}
+              tick={{ fontSize: 10, fill: colors.textSecondary }}
             />
             <Tooltip content={renderTooltip} />
             <Bar

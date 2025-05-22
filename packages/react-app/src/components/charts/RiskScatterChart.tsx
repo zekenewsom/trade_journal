@@ -1,10 +1,17 @@
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, ZAxis } from 'recharts';
+import React from 'react';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, ZAxis, Legend } from 'recharts';
+import { colors } from '/src/styles/design-tokens';
 
+function useIsMobile() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(max-width: 639px)').matches;
+}
 interface RiskScatterChartProps {
   data?: { risk: number; return: number; size: number; ticker: string }[];
 }
 
 export function RiskScatterChart({ data }: RiskScatterChartProps = {}) {
+  const isMobile = useIsMobile();
   // Mock data if not provided
   const mockData = data || [
     { risk: 1.2, return: 2.5, size: 30000, ticker: 'AAPL' },
@@ -23,28 +30,28 @@ export function RiskScatterChart({ data }: RiskScatterChartProps = {}) {
   const negativeData = mockData.filter(item => item.return < 0);
 
   return (
-    <div className="h-[300px] w-full">
+    <div className={isMobile ? "h-[180px] w-full" : "h-[300px] w-full"}>
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" />
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.cardStroke} />
           <XAxis 
             type="number"
             dataKey="risk" 
             name="Risk"
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
-            axisLine={{ stroke: '#1A1B1D' }}
+            tick={{ fill: colors.textSecondary, fontSize: 12 }}
+            axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
-            label={{ value: 'Risk', position: 'insideBottom', offset: -10, fill: '#9ca3af', fontSize: 12 }}
+            label={{ value: 'Risk', position: 'insideBottom', offset: -10, fill: colors.textSecondary, fontSize: 12 }}
             domain={[0, 'dataMax']}
           />
           <YAxis 
             type="number"
             dataKey="return" 
             name="Return"
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
-            axisLine={{ stroke: '#1A1B1D' }}
+            tick={{ fill: colors.textSecondary, fontSize: 12 }}
+            axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
-            label={{ value: 'Return', angle: -90, position: 'insideLeft', fill: '#9ca3af', fontSize: 12 }}
+            label={{ value: 'Return', angle: -90, position: 'insideLeft', fill: colors.textSecondary, fontSize: 12 }}
           />
           <ZAxis 
             type="number"
@@ -53,7 +60,7 @@ export function RiskScatterChart({ data }: RiskScatterChartProps = {}) {
             name="Position Size"
           />
           <Tooltip 
-            contentStyle={{ backgroundColor: '#0E0F11', borderColor: '#1A1B1D' }}
+            contentStyle={{ backgroundColor: colors.background, borderColor: colors.cardStroke }}
             formatter={(value: number, name: string) => {
               if (name === 'Risk') return [`${value.toFixed(2)}`, name];
               if (name === 'Return') return [`${value.toFixed(2)}%`, name];
@@ -66,13 +73,14 @@ export function RiskScatterChart({ data }: RiskScatterChartProps = {}) {
           <Scatter 
             name="Positive Returns" 
             data={positiveData} 
-            fill="#00E28A"
+            fill={colors.success}
             fillOpacity={0.7}
           />
+          {!isMobile && <Legend />}
           <Scatter 
             name="Negative Returns" 
             data={negativeData} 
-            fill="#FF4D67"
+            fill={colors.error}
             fillOpacity={0.7}
           />
         </ScatterChart>

@@ -1,3 +1,5 @@
+import React from 'react';
+import { colors } from '/src/styles/design-tokens';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface EquityCurveChartProps {
@@ -24,36 +26,36 @@ export function EquityCurveChart({ data }: EquityCurveChartProps = {}) {
         <LineChart data={mockData}>
           <defs>
             <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#3A7BFF" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="#3A7BFF" stopOpacity={0}/>
+              <stop offset="5%" stopColor={colors.accent} stopOpacity={0.8}/>
+              <stop offset="95%" stopColor={colors.accent} stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1A1B1D" />
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.cardStroke} />
           <XAxis 
             dataKey="date" 
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
-            axisLine={{ stroke: '#1A1B1D' }}
+            tick={{ fill: colors.textSecondary, fontSize: 12 }}
+            axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
           />
           <YAxis 
-            tick={{ fill: '#9ca3af', fontSize: 12 }}
-            axisLine={{ stroke: '#1A1B1D' }}
+            tick={{ fill: colors.textSecondary, fontSize: 12 }}
+            axisLine={{ stroke: colors.cardStroke }}
             tickLine={false}
             tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
           />
           <Tooltip 
-            contentStyle={{ backgroundColor: '#0E0F11', borderColor: '#1A1B1D' }}
-            itemStyle={{ color: '#ffffff' }}
+            contentStyle={{ backgroundColor: colors.surface, borderColor: colors.cardStroke }}
+            itemStyle={{ color: colors.onSurface }}
             formatter={(value: number) => [`$${value.toLocaleString()}`, 'Balance']}
             labelFormatter={(label) => `Date: ${label}`}
           />
           <Line 
             type="monotone" 
             dataKey="value" 
-            stroke="#3A7BFF" 
+            stroke={colors.accent} 
             strokeWidth={2}
             dot={false}
-            activeDot={{ r: 6, stroke: '#3A7BFF', strokeWidth: 2, fill: '#0E0F11' }}
+            activeDot={{ r: 6, stroke: colors.accent, strokeWidth: 2, fill: colors.surface }}
             fillOpacity={1}
             fill="url(#equityGradient)"
           />

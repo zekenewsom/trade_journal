@@ -2,17 +2,15 @@
 // Modified for Stage 6: Add navigation to AnalyticsPage, update ElectronAPI type if needed
 
 import { useEffect } from 'react';
+import { colors } from '/src/styles/design-tokens';
 import { useAppStore } from './stores/appStore';
 import LogTransactionPage from './views/LogTransactionPage';
 import EditTradeDetailsPage from './views/EditTradeDetailsPage';
 import TradesListPage from './views/TradesListPage';
 import DashboardMetrics from './components/dashboard/DashboardMetrics';
-import AnalyticsPage from './views/AnalyticsPage'; // New for Stage 6
+import AnalyticsPage from './views/AnalyticsPage';
+import { AppShell } from './components/layout/AppShell';
 // Types now imported in the store as needed
-
-
-
-
 
 function App() {
   const {
@@ -39,10 +37,10 @@ function App() {
 
   const renderView = () => {
     if (isLoadingInitialData) {
-      return <p>Loading application data...</p>;
+      return <p className="text-gray-400 text-center py-8">Loading application data...</p>;
     }
     if (errorLoadingInitialData) {
-      return <p style={{ color: 'red' }}>Error loading application: {errorLoadingInitialData}</p>;
+      return <p className="text-red-500 text-center py-8 font-semibold">Error loading application: {errorLoadingInitialData}</p>;
     }
     switch (currentView) {
       case 'tradesList':
@@ -57,7 +55,6 @@ function App() {
         return <LogTransactionPage
           key={currentViewParams?.navTimestamp || Date.now()}
           onTransactionLogged={handleActionComplete}
-          onCancel={() => navigateTo('tradesList')}
           initialValues={currentViewParams?.initialValues}
         />;
       case 'editTradeDetailsForm':
@@ -67,8 +64,7 @@ function App() {
         }
         return <EditTradeDetailsPage
           tradeId={editingTradeId}
-          onEditComplete={handleActionComplete}
-          onCancel={() => navigateTo('tradesList')}
+          onCancel={handleActionComplete}
           onLogTransaction={() => {
             const trade = trades.find(t => t.trade_id === editingTradeId);
             if (trade) {
@@ -94,13 +90,13 @@ function App() {
             <h1>Trade Journal - Dashboard</h1>
             <p>Electron App Version: {appVersion || 'Loading...'}</p>
             <p>Database Status: {dbStatus || 'Testing DB...'}</p>
-            <hr style={{ margin: "20px 0" }} />
+            <hr className="my-5" />
             <DashboardMetrics />
-            <hr style={{ margin: "20px 0" }} />
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginTop: '20px' }}>
-              <button onClick={() => navigateTo('logTransactionForm', { navTimestamp: Date.now() })} style={{ padding: '10px' }}>Log New Transaction</button>
-              <button onClick={() => navigateTo('tradesList')} style={{ padding: '10px' }}>View All Trades</button>
-              <button onClick={() => navigateTo('analyticsPage')} style={{ padding: '10px' }}>View Analytics</button>
+            <hr className="my-5" />
+            <div className="flex gap-2.5 justify-center mt-5">
+              <button onClick={() => navigateTo('logTransactionForm', { navTimestamp: Date.now() })} className="px-4 py-2.5">Log New Transaction</button>
+              <button onClick={() => navigateTo('tradesList')} className="px-4 py-2.5">View All Trades</button>
+              <button onClick={() => navigateTo('analyticsPage')} className="px-4 py-2.5">View Analytics</button>
             </div>
           </div>
         );
@@ -108,14 +104,9 @@ function App() {
   };
 
   return (
-    <div className="app-container" style={{ padding: '20px' }}>
-      <nav style={{ marginBottom: '20px', borderBottom: '1px solid #444', paddingBottom: '10px', display: 'flex', gap: '10px' }}>
-        <button onClick={() => navigateTo('dashboard')} disabled={currentView === 'dashboard'}>Dashboard</button>
-        <button onClick={() => navigateTo('tradesList')} disabled={currentView === 'tradesList'}>Trades List</button>
-        <button onClick={() => navigateTo('analyticsPage')} disabled={currentView === 'analyticsPage'}>Analytics</button>
-      </nav>
+    <AppShell>
       {renderView()}
-    </div>
+    </AppShell>
   );
 }
 

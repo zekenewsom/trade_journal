@@ -1,18 +1,33 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
-import { colors } from '../../styles/design-tokens';
 
 export interface AppShellProps {
   children: React.ReactNode;
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar on route change or overlay click
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  const toggleSidebar = useCallback(() => setSidebarOpen((open) => !open), []);
+
   return (
-    <div className="flex h-screen" style={{ color: colors.textPrimary, background: colors.background, fontSize: '0.875rem' }}>
-      <Sidebar />
+    <div className="flex h-screen text-on-surface bg-background text-sm font-sans">
+      {/* Sidebar: overlay on mobile, always visible on desktop */}
+      <Sidebar open={sidebarOpen} onClose={closeSidebar} />
+      {/* Overlay for mobile sidebar */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/30 md:hidden"
+          aria-label="Sidebar overlay"
+          onClick={closeSidebar}
+          tabIndex={-1}
+        />
+      )}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <TopBar />
+        <TopBar onMenuClick={toggleSidebar} />
         <main className="flex-1 overflow-auto p-4 md:p-6 grid grid-cols-12 gap-4">
           {children}
         </main>

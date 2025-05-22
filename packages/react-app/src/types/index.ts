@@ -261,6 +261,9 @@ export interface AnalyticsData {
 }
 
 export interface ElectronAPIDefinition {
+  exportDataCSV: (opts: { includeTransactions: boolean }) => Promise<any>;
+  exportDataJSON: (opts: { includeTransactions: boolean }) => Promise<any>;
+  exportDataXLSX: (opts: { includeTransactions: boolean }) => Promise<any>;
   backupDatabase: () => Promise<{ success: boolean; message: string }>;
   restoreDatabase: () => Promise<{ success: boolean; message: string }>;
 
