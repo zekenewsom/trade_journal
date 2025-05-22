@@ -65,6 +65,7 @@ async function calculateAnalyticsData(filters = {}) {
       pnlByExchange: [],
       pnlByStrategy: [],
       pnlByEmotion: [],
+      pnlByAsset: [], // NEW FIELD
       maxDrawdownPercentage: null,
       // --- NEW FIELDS INITIALIZATION ---
       kellyCriterion: null,
@@ -172,6 +173,29 @@ async function calculateAnalyticsData(filters = {}) {
         dayOfWeekData.totalNetPnl += pnlDetails.realizedNetPnl; dayOfWeekData.tradeCount++;
         if (pnlDetails.outcome === 'Win') dayOfWeekData.wins++; else if (pnlDetails.outcome === 'Loss') dayOfWeekData.losses++; else dayOfWeekData.breakEvens++;
         
+        // --- P&L By Asset ---
+        if (trade.instrument_ticker) {
+          let assetData = analyticsData.pnlByAsset.find(a => a.name === trade.instrument_ticker);
+          if (!assetData) {
+            assetData = {
+              name: trade.instrument_ticker,
+              totalNetPnl: 0,
+              tradeCount: 0,
+              winRate: null,
+              wins: 0,
+              losses: 0,
+              breakEvens: 0
+            };
+            analyticsData.pnlByAsset.push(assetData);
+          }
+          assetData.totalNetPnl += pnlDetails.realizedNetPnl;
+          assetData.tradeCount++;
+          if (pnlDetails.outcome === 'Win') assetData.wins++;
+          else if (pnlDetails.outcome === 'Loss') assetData.losses++;
+          else assetData.breakEvens++;
+        }
+// END P&L By Asset
+
         // --- P&L By Asset Class ---
         if (trade.asset_class) {
           let assetClassData = analyticsData.pnlByAssetClass.find(a => a.name === trade.asset_class);
@@ -218,15 +242,17 @@ async function calculateAnalyticsData(filters = {}) {
         }
 // END P&L By Exchange
 
-        // --- P&L By Emotion ---
-        if (trade.emotion_id) {
-          // Try to get the emotion name from analyticsData.availableEmotions
+        // --- P&L By Emotion (Updated: aggregate all emotions linked to this trade, not just trade.emotion_id) ---
+        // For each closed trade, fetch all unique emotion_ids from transaction_emotions
+        const emotionLinks = db.prepare('SELECT DISTINCT emotion_id FROM transaction_emotions WHERE transaction_id IN (SELECT transaction_id FROM transactions WHERE trade_id = ?)').all(trade.trade_id);
+        for (const { emotion_id } of emotionLinks) {
+          if (!emotion_id) continue;
           let emotionName = null;
           if (analyticsData.availableEmotions && Array.isArray(analyticsData.availableEmotions)) {
-            const found = analyticsData.availableEmotions.find(e => e.emotion_id === trade.emotion_id);
+            const found = analyticsData.availableEmotions.find(e => e.emotion_id === emotion_id);
             if (found) emotionName = found.emotion_name;
           }
-          const emotionKey = emotionName || `Emotion #${trade.emotion_id}`;
+          const emotionKey = emotionName || `Emotion #${emotion_id}`;
           let emotionData = analyticsData.pnlByEmotion.find(e => e.name === emotionKey);
           if (!emotionData) {
             emotionData = {
@@ -295,8 +321,9 @@ async function calculateAnalyticsData(filters = {}) {
     }
     
     const calculateWinRateForGroup = (group) => { if (group.tradeCount > 0 && typeof group.wins === 'number') group.winRate = (group.wins / group.tradeCount) * 100; }; //
-    [analyticsData.pnlByMonth, analyticsData.pnlByDayOfWeek, analyticsData.pnlByAssetClass, analyticsData.pnlByExchange, analyticsData.pnlByStrategy, analyticsData.pnlByEmotion].forEach(groupArray => groupArray.forEach(calculateWinRateForGroup));
+    [analyticsData.pnlByMonth, analyticsData.pnlByDayOfWeek, analyticsData.pnlByAssetClass, analyticsData.pnlByExchange, analyticsData.pnlByStrategy, analyticsData.pnlByEmotion, analyticsData.pnlByAsset].forEach(groupArray => groupArray.forEach(calculateWinRateForGroup));
     analyticsData.pnlByMonth.sort((a,b) => a.period.localeCompare(b.period)); //
+    analyticsData.pnlByAsset.sort((a, b) => b.totalNetPnl - a.totalNetPnl); // Sort descending by P&L
 
     let peakEquity = 0; let maxDrawdownRatio = 0; //
     if (analyticsData.equityCurve.length > 0) {

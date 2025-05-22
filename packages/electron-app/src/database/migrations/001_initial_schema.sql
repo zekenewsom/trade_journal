@@ -1,10 +1,10 @@
 -- Initial schema migration: all CREATE TABLE and TRIGGER statements
 
-CREATE TABLE IF NOT EXISTS accounts (
-    account_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    account_name TEXT NOT NULL UNIQUE,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
+-- CREATE TABLE IF NOT EXISTS accounts (
+--     account_id INTEGER PRIMARY KEY AUTOINCREMENT,
+--     account_name TEXT NOT NULL UNIQUE,
+--     created_at TEXT DEFAULT CURRENT_TIMESTAMP
+-- );
 
 CREATE TABLE IF NOT EXISTS strategies (
     strategy_id INTEGER PRIMARY KEY AUTOINCREMENT,

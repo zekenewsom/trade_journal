@@ -4,6 +4,7 @@ const tradeService = require('./tradeService');
 const transactionService = require('./transactionService');
 const emotionService = require('./emotionService');
 const analyticsService = require('./analyticsService');
+const accountService = require('./accountService');
 
 console.log('[DB_FACADE] Loaded and re-exporting services.');
 
@@ -38,4 +39,17 @@ module.exports = {
 
   // Analytics Service
   calculateAnalyticsData: analyticsService.calculateAnalyticsData,
+
+  // Account Service
+  createAccount: accountService.createAccount,
+  renameAccount: accountService.renameAccount,
+  archiveAccount: accountService.archiveAccount,
+  unarchiveAccount: accountService.unarchiveAccount,
+  deleteAccount: accountService.deleteAccount,
+  getAccounts: accountService.getAccounts,
+  getAccountById: accountService.getAccountById,
+  addAccountTransaction: accountService.addAccountTransaction,
+  getAccountTransactions: accountService.getAccountTransactions,
+  getAccountBalance: accountService.getAccountBalance,
+  getAccountTimeSeries: accountService.getAccountTimeSeries,
 };

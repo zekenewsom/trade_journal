@@ -21,5 +21,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getTradeEmotions: (tradeId) => ipcRenderer.invoke('get-trade-emotions', tradeId),
   saveTradeEmotions: (payload) => ipcRenderer.invoke('save-trade-emotions', payload),
   updateMarkPrice: (payload) => ipcRenderer.invoke('update-mark-price', payload),
+  createAccount: (opts) => ipcRenderer.invoke('create-account', opts),
+  renameAccount: (opts) => ipcRenderer.invoke('rename-account', opts),
+  archiveAccount: (opts) => ipcRenderer.invoke('archive-account', opts),
+  unarchiveAccount: (opts) => ipcRenderer.invoke('unarchive-account', opts),
+  deleteAccount: (opts) => ipcRenderer.invoke('delete-account', opts),
+  getAccounts: (opts = {}) => ipcRenderer.invoke('get-accounts', opts),
+  getAccountById: (accountId) => ipcRenderer.invoke('get-account-by-id', accountId),
+  addAccountTransaction: (opts) => ipcRenderer.invoke('add-account-transaction', opts),
+  getAccountTransactions: (opts) => ipcRenderer.invoke('get-account-transactions', opts),
+  getAccountBalance: (accountId) => ipcRenderer.invoke('get-account-balance', accountId),
+  getAccountTimeSeries: (accountId) => ipcRenderer.invoke('get-account-time-series', accountId),
   // Add any new IPC calls here if you add new handlers in main.js
 });

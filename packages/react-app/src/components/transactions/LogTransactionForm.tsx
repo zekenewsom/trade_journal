@@ -2,6 +2,7 @@
 // New file for Stage 5
 
 import React, { useState } from 'react';
+import { useAppStore } from '../../stores/appStore';
 import type { LogTransactionFormData, LogTransactionPayload } from '../../types';
 
 interface LogTransactionFormProps {
@@ -13,7 +14,7 @@ interface LogTransactionFormProps {
   };
 }
 
-const getInitialFormData = (): LogTransactionFormData => {
+const getInitialFormData = (defaultAccountId?: number): LogTransactionFormData => {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -31,6 +32,7 @@ const getInitialFormData = (): LogTransactionFormData => {
     price: '',
     fees: '0',
     notes: '',
+    account_id: defaultAccountId ?? 0,
     strategy_id: undefined,
     market_conditions: undefined,
     setup_description: undefined,
@@ -43,14 +45,17 @@ const getInitialFormData = (): LogTransactionFormData => {
 
 const LogTransactionForm: React.FC<LogTransactionFormProps> = ({ 
   onSubmit, 
-  
   initialValues 
 }) => {
+  const accounts = useAppStore(s => s.accounts);
+  const selectedAccountId = useAppStore(s => s.selectedAccountId);
+
   const [formData, setFormData] = useState<LogTransactionFormData>(() => ({
-    ...getInitialFormData(),
+    ...getInitialFormData(selectedAccountId ?? (accounts.length > 0 ? accounts[0].account_id : 0)),
     instrument_ticker: initialValues?.instrument_ticker || '',
     asset_class: initialValues?.asset_class || null,
-    exchange: initialValues?.exchange || ''
+    exchange: initialValues?.exchange || '',
+    account_id: selectedAccountId ?? (accounts.length > 0 ? accounts[0].account_id : 0),
   }));
   const [errors, setErrors] = useState<Partial<Record<keyof LogTransactionFormData, string>>>({});
   const [submissionStatus, setSubmissionStatus] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -60,7 +65,7 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'account_id' ? Number(value) : value
     }));
     if (errors[name as keyof LogTransactionFormData]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
@@ -69,6 +74,9 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
 
   const validateForm = (): boolean => {
     const newErrors: Partial<Record<keyof LogTransactionFormData, string>> = {};
+    if (!formData.account_id || !accounts.some(acc => acc.account_id === formData.account_id)) {
+      newErrors.account_id = 'Account is required.';
+    }
     if (!formData.instrument_ticker.trim()) newErrors.instrument_ticker = 'Instrument/Ticker is required.';
     if (!formData.exchange.trim()) newErrors.exchange = 'Exchange is required.';
     if (!formData.action) newErrors.action = 'Action (Buy/Sell) is required.';
@@ -103,6 +111,7 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
         price: parseFloat(formData.price),
         fees_for_transaction: parseFloat(formData.fees),
         notes_for_transaction: formData.notes || null,
+        account_id: formData.account_id,
         strategy_id: formData.strategy_id ? parseInt(formData.strategy_id) : undefined,
         market_conditions: formData.market_conditions,
         setup_description: formData.setup_description,
@@ -115,7 +124,7 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
       const result = await window.electronAPI.logTransaction(payload);
       if (result.success) {
         setSubmissionStatus({ message: 'Transaction logged successfully!', type: 'success' });
-        setFormData(getInitialFormData()); // Reset form with current date/time
+        setFormData(getInitialFormData(selectedAccountId ?? (accounts.length > 0 ? accounts[0].account_id : 0)));
         if (onSubmit) await onSubmit(formData);
       } else {
         setSubmissionStatus({ message: `Error: ${result.message}`, type: 'error' });
@@ -131,6 +140,25 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
   return (
     <div className="flex flex-col gap-4 w-full max-w-xl mx-auto">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4 w-full">
+        <div className="flex flex-col gap-1 text-left">
+          <label htmlFor="account_id" className="font-medium">Account:</label>
+          <select
+            id="account_id"
+            name="account_id"
+            value={formData.account_id || ''}
+            onChange={handleInputChange}
+            className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary"
+            required
+          >
+            <option value="">Select Account</option>
+            {accounts.map((acc) => (
+              <option key={acc.account_id} value={acc.account_id}>
+                {acc.name} {acc.is_archived ? '(Archived)' : ''}
+              </option>
+            ))}
+          </select>
+          {errors.account_id && <span className="text-error text-sm mt-1">{errors.account_id}</span>}
+        </div>
         <div className="flex flex-col gap-1 text-left">
           <label htmlFor="instrument_ticker" className="font-medium">Instrument/Ticker:</label>
           <input type="text" id="instrument_ticker" name="instrument_ticker" value={formData.instrument_ticker} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" required />

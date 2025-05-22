@@ -1,8 +1,12 @@
 // packages/electron-app/src/database/transactionService.js
 const { getDb } = require('./connection');
 const tradeService = require('./tradeService'); // To call _recalculateTradeState
+const accountService = require('./accountService');
 
 function addTransactionAndManageTrade(transactionData) {
+  // Accepts optional account_id; fallback to first available cash account if not provided
+  let { account_id } = transactionData;
+
   console.log('[TRANSACTION_SERVICE] addTransactionAndManageTrade CALLED');
   const db = getDb();
   const {
@@ -49,6 +53,16 @@ function addTransactionAndManageTrade(transactionData) {
       });
       current_trade_id = newTradeResult.trade_id;
       if (!current_trade_id) throw new Error("[TRANSACTION_SERVICE] DB error: Failed to create new trade.");
+      // On new trade (first transaction), subtract initial cost from account as "trade_open"
+      // For now, assume full notional: quantity * price + fees
+      const openAmount = -1 * (quantity * price + (fees_for_transaction || 0));
+      accountService.addAccountTransaction({
+        accountId: account_id,
+        type: 'trade_open',
+        amount: openAmount,
+        relatedTradeId: current_trade_id,
+        memo: `Open trade for ${instrument_ticker}`
+      });
     } else {
       current_trade_id = trade.trade_id;
       position_trade_direction = trade.trade_direction;
@@ -93,7 +107,31 @@ function addTransactionAndManageTrade(transactionData) {
         }
     }
 
+    const tradeBefore = db.prepare('SELECT * FROM trades WHERE trade_id = ?').get(current_trade_id);
     tradeService._recalculateTradeState(current_trade_id, db); // Pass db instance for transaction
+    // After recalculation, check if trade status transitioned to Closed
+    const tradeAfter = db.prepare('SELECT * FROM trades WHERE trade_id = ?').get(current_trade_id);
+    if (tradeBefore.status !== 'Closed' && tradeAfter.status === 'Closed') {
+      // Trade just closed; calculate realized P&L (after fees)
+      // Use tradeAfter.realized_net_pnl if available, else calculate
+      let realizedNetPnl = null;
+      if ('realized_net_pnl' in tradeAfter) {
+        realizedNetPnl = tradeAfter.realized_net_pnl;
+      } else {
+        // fallback: calculate
+        const transactionsForThisTrade = db.prepare('SELECT * FROM transactions WHERE trade_id = ?').all(current_trade_id);
+        const pnlResult = tradeService.calculateTradePnlFifoEnhanced(tradeAfter, transactionsForThisTrade);
+        realizedNetPnl = pnlResult.realizedNetPnl;
+      }
+      // Add realized P&L to account as "trade_close"
+      accountService.addAccountTransaction({
+        accountId: account_id,
+        type: 'trade_close',
+        amount: realizedNetPnl,
+        relatedTradeId: current_trade_id,
+        memo: `Close trade for ${instrument_ticker}`
+      });
+    }
 
     return {
       transaction_id: transactionResult.transaction_id,

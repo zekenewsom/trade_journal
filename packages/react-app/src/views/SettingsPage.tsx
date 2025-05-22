@@ -1,5 +1,6 @@
 import React from 'react';
 import BackupRestorePage from './BackupRestorePage';
+import SettingsRiskFreeRate from '../components/dashboard/SettingsRiskFreeRate';
 
 const SettingsPage = () => {
   return (
@@ -15,6 +16,13 @@ const SettingsPage = () => {
         </div>
       </div>
       {/* Other settings sections can be added here */}
+      <div className="mb-10">
+        <h2 className="text-xl font-semibold mb-2 text-white">Sharpe Ratio Settings</h2>
+        <p className="text-gray-400 mb-4">Set the risk-free rate for accurate Sharpe Ratio calculations.</p>
+        <div className="bg-dark-500 rounded-xl p-6 border border-dark-400 shadow-lg">
+          <SettingsRiskFreeRate />
+        </div>
+      </div>
     </div>
   );
 };

@@ -64,6 +64,112 @@ app.on('activate', () => {
 
 // --- IPC Handlers ---
 
+// --- Account IPC Handlers ---
+ipcMain.handle('create-account', async (event, { name, type = 'cash' }) => {
+  try {
+    if (!name) throw new Error('Account name is required');
+    const id = dbModule.createAccount({ name, type });
+    return { success: true, id };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('rename-account', async (event, { accountId, newName }) => {
+  try {
+    if (!accountId || !newName) throw new Error('accountId and newName required');
+    dbModule.renameAccount({ accountId, newName });
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('archive-account', async (event, { accountId }) => {
+  try {
+    if (!accountId) throw new Error('accountId required');
+    dbModule.archiveAccount({ accountId });
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('unarchive-account', async (event, { accountId }) => {
+  try {
+    if (!accountId) throw new Error('accountId required');
+    dbModule.unarchiveAccount({ accountId });
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('delete-account', async (event, { accountId }) => {
+  try {
+    if (!accountId) throw new Error('accountId required');
+    dbModule.deleteAccount({ accountId });
+    return { success: true };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('get-accounts', async (event, opts = {}) => {
+  try {
+    return dbModule.getAccounts(opts);
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('get-account-by-id', async (event, accountId) => {
+  try {
+    if (!accountId) throw new Error('accountId required');
+    return dbModule.getAccountById(accountId);
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('add-account-transaction', async (event, { accountId, type, amount, relatedTradeId = null, memo = null }) => {
+  try {
+    if (!accountId || !type || typeof amount !== 'number') throw new Error('accountId, type, and amount required');
+    const id = dbModule.addAccountTransaction({ accountId, type, amount, relatedTradeId, memo });
+    return { success: true, id };
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('get-account-transactions', async (event, { accountId, limit = 100, offset = 0 }) => {
+  try {
+    if (!accountId) throw new Error('accountId required');
+    return dbModule.getAccountTransactions({ accountId, limit, offset });
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('get-account-balance', async (event, accountId) => {
+  try {
+    if (!accountId) throw new Error('accountId required');
+    return dbModule.getAccountBalance(accountId);
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+ipcMain.handle('get-account-time-series', async (event, accountId) => {
+  try {
+    if (!accountId) throw new Error('accountId required');
+    return dbModule.getAccountTimeSeries(accountId);
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});
+
+
 const { dialog } = require('electron');
 const fs = require('fs');
 const { Parser: Json2CsvParser } = (() => { try { return require('json2csv'); } catch { return {}; } })();

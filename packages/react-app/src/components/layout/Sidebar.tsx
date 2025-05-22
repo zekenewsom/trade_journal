@@ -4,6 +4,7 @@ import {
   
   BarChart3 as AnalyticsIcon,
   ListCollapse as TradesIcon,
+  Wallet as AccountsIcon,
   Settings,
   Home,
 } from 'lucide-react';
@@ -18,6 +19,7 @@ const navItems = [
   { name: 'Dashboard', view: 'dashboard', icon: LayoutDashboard },
   { name: 'Analytics', view: 'analyticsPage', icon: AnalyticsIcon },
   { name: 'Trades', view: 'tradesList', icon: TradesIcon },
+  { name: 'Accounts', view: 'accountsPage', icon: AccountsIcon },
   // { name: 'Watchlist', view: 'watchlist', icon: WatchlistIcon }, // Assuming 'watchlist' view exists
 ];
 

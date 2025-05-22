@@ -39,7 +39,46 @@ export const formatNumber = (value: number | null | undefined, decimals = 2): st
 };
 
 const DashboardMetrics: React.FC = () => {
-  const { analytics, isLoadingAnalytics, analyticsError, fetchAnalyticsData, currentViewParams } = useAppStore();
+  const totalBuyingPower = useAppStore(s => s.getTotalBuyingPower());
+  const riskFreeRate = useAppStore(s => s.riskFreeRate);
+  const analytics = useAppStore(s => s.analytics);
+  const isLoadingAnalytics = useAppStore(s => s.isLoadingAnalytics);
+  const analyticsError = useAppStore(s => s.analyticsError);
+  const fetchAnalyticsData = useAppStore(s => s.fetchAnalyticsData);
+  const currentViewParams = useAppStore(s => s.currentViewParams);
+
+  // Calculate Sharpe Ratio (annualized)
+  let sharpeRatio = 0;
+  let sortinoRatio = 0;
+  if (analytics && analytics.equityCurve && analytics.equityCurve.length > 1) {
+    // Calculate daily returns
+    const returns: number[] = [];
+    for (let i = 1; i < analytics.equityCurve.length; i++) {
+      const prev = analytics.equityCurve[i - 1].equity;
+      const curr = analytics.equityCurve[i].equity;
+      if (prev !== 0) {
+        returns.push((curr - prev) / prev);
+      }
+    }
+    if (returns.length > 0) {
+      const avgDailyReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
+      const stdDailyReturn = Math.sqrt(returns.reduce((a, b) => a + Math.pow(b - avgDailyReturn, 2), 0) / returns.length);
+      // Annualize: multiply excess daily return by 252, std by sqrt(252)
+      const annualizedReturn = avgDailyReturn * 252;
+      const annualizedStd = stdDailyReturn * Math.sqrt(252);
+      const rf = (riskFreeRate ?? 0) / 100;
+      sharpeRatio = annualizedStd !== 0 ? (annualizedReturn - rf) / annualizedStd : 0;
+
+      // --- Sortino Ratio Calculation ---
+      // 1. MAR: use risk-free rate (annualized, divided by 252 for daily)
+      const mar = rf / 252;
+      // 2. Downside deviation: only count returns below MAR
+      const downsideDiffs = returns.map(r => r < mar ? Math.pow(r - mar, 2) : 0);
+      const downsideDeviation = Math.sqrt(downsideDiffs.reduce((a, b) => a + b, 0) / returns.length) * Math.sqrt(252); // annualized
+      // 3. Sortino Ratio = (annualizedReturn - rf) / downsideDeviation
+      sortinoRatio = downsideDeviation !== 0 ? (annualizedReturn - rf) / downsideDeviation : 0;
+    }
+  }
 
   // This effect will run when filters from TopBar (if managed in Zustand) change
   useEffect(() => {
@@ -112,26 +151,28 @@ const DashboardMetrics: React.FC = () => {
           />
         </Grid>
         <Grid item xs={12} md={12} lg={4}>
-          <EnhancedMetricCard
-            title="Available Buying Power"
-            value={"N/A"} // Placeholder - data not in current AnalyticsData
-            descriptionText="34% used" // Placeholder
-            progressValue={34} // Placeholder
-            progressBarMinLabel=""
-            progressBarMaxLabel=""
-            progressColor="primary"
-            minHeight="160px"
-          />
-        </Grid>
+  <EnhancedMetricCard
+    title="Available Buying Power"
+    value={formatCurrency(totalBuyingPower)}
+    descriptionText={totalBuyingPower === 0 ? 'No funds available' : ''}
+    progressValue={0}
+    progressBarMinLabel=""
+    progressBarMaxLabel=""
+    progressColor="primary"
+    minHeight="160px"
+  />
+</Grid>
 
         {/* Row 2: Risk & Return Quality */}
         
         <Grid item xs={12} sm={6} md={3} lg={3}>
           <EnhancedMetricCard
-            title="Sharpe Ratio (YTD)"
-            value={formatNumber(2.37)} // Placeholder
-            descriptionText="Good"
-            progressValue={75} // (2.37 / 3 * 100) example mapping
+            title="Sharpe Ratio"
+            value={formatNumber(sharpeRatio)}
+            descriptionText={
+              sharpeRatio > 3 ? 'Excellent' : sharpeRatio > 2 ? 'Very Good' : sharpeRatio > 1 ? 'Good' : 'Suboptimal'
+            }
+            progressValue={Math.max(0, Math.min(100, Math.round((sharpeRatio / 3) * 100)))}
             progressBarMinLabel="Poor"
             progressBarMaxLabel="Excellent"
             progressColor="success"
@@ -140,23 +181,65 @@ const DashboardMetrics: React.FC = () => {
         <Grid item xs={12} sm={6} md={3} lg={3}>
           <EnhancedMetricCard
             title="Sortino Ratio"
-            value={formatNumber(3.14)} // Placeholder
-            descriptionText="Excellent"
-            progressValue={90} // (3.14 / 3.5 * 100) example mapping
+            value={formatNumber(sortinoRatio)}
+            descriptionText={
+              sortinoRatio > 3 ? 'Excellent' : sortinoRatio > 2 ? 'Very Good' : sortinoRatio > 1 ? 'Good' : sortinoRatio > 0 ? 'Suboptimal' : 'Negative'
+            }
+            progressValue={Math.max(0, Math.min(100, Math.round((sortinoRatio / 3) * 100)))}
             progressBarMinLabel="Poor"
             progressBarMaxLabel="Excellent"
-            progressColor="success"
+            progressColor={sortinoRatio > 1 ? 'success' : sortinoRatio > 0 ? 'warning' : 'error'}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3} lg={3}>
           <EnhancedMetricCard
             title="Profit Factor"
-            value={analytics.totalRealizedGrossPnl && analytics.numberOfLosingTrades > 0 && analytics.avgLossPnlOverall !== null ? formatNumber(Math.abs(analytics.totalRealizedGrossPnl) / Math.abs(analytics.numberOfLosingTrades * analytics.avgLossPnlOverall)) : "N/A" }
-            descriptionText="Good"
-            progressValue={70} // Example
-            progressBarMinLabel="Poor"
+            value={(() => {
+              const grossProfit = analytics.totalRealizedGrossPnl && analytics.totalRealizedGrossPnl > 0 ? analytics.totalRealizedGrossPnl : 0;
+              const grossLoss = analytics.numberOfLosingTrades > 0 && analytics.avgLossPnlOverall !== null ? Math.abs(analytics.numberOfLosingTrades * analytics.avgLossPnlOverall) : 0;
+              if (grossProfit > 0 && grossLoss > 0) {
+                return formatNumber(grossProfit / grossLoss);
+              } else {
+                return "N/A";
+              }
+            })()}
+            descriptionText={(() => {
+              const grossProfit = analytics.totalRealizedGrossPnl && analytics.totalRealizedGrossPnl > 0 ? analytics.totalRealizedGrossPnl : 0;
+              const grossLoss = analytics.numberOfLosingTrades > 0 && analytics.avgLossPnlOverall !== null ? Math.abs(analytics.numberOfLosingTrades * analytics.avgLossPnlOverall) : 0;
+              if (grossProfit > 0 && grossLoss > 0) {
+                const pf = grossProfit / grossLoss;
+                if (pf > 1.5) return "Very Profitable";
+                if (pf > 1) return "Profitable";
+                if (pf === 1) return "Breakeven";
+                return "Losing";
+              } else {
+                return "N/A";
+              }
+            })()}
+            progressValue={(() => {
+              const grossProfit = analytics.totalRealizedGrossPnl && analytics.totalRealizedGrossPnl > 0 ? analytics.totalRealizedGrossPnl : 0;
+              const grossLoss = analytics.numberOfLosingTrades > 0 && analytics.avgLossPnlOverall !== null ? Math.abs(analytics.numberOfLosingTrades * analytics.avgLossPnlOverall) : 0;
+              if (grossProfit > 0 && grossLoss > 0) {
+                const pf = grossProfit / grossLoss;
+                return Math.max(0, Math.min(100, Math.round((pf / 2) * 100)));
+              } else {
+                return 0;
+              }
+            })()}
+            progressBarMinLabel="Losing"
             progressBarMaxLabel="Excellent"
-            progressColor="success"
+            progressColor={(() => {
+              const grossProfit = analytics.totalRealizedGrossPnl && analytics.totalRealizedGrossPnl > 0 ? analytics.totalRealizedGrossPnl : 0;
+              const grossLoss = analytics.numberOfLosingTrades > 0 && analytics.avgLossPnlOverall !== null ? Math.abs(analytics.numberOfLosingTrades * analytics.avgLossPnlOverall) : 0;
+              if (grossProfit > 0 && grossLoss > 0) {
+                const pf = grossProfit / grossLoss;
+                if (pf > 1.5) return "success";
+                if (pf > 1) return "warning";
+                return "error";
+              } else {
+                return "warning";
+              }
+            })()}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3} lg={3}>

@@ -31,6 +31,7 @@ export interface LogTransactionPayload {
   price: number; // [cite: 1371]
   fees_for_transaction: number; // [cite: 1371]
   notes_for_transaction: string | null; // [cite: 1371]
+  account_id: number; // [added for account selection]
   strategy_id?: number; // [cite: 1372]
   market_conditions?: string; // [cite: 1372]
   setup_description?: string; // [cite: 1372]
@@ -162,6 +163,7 @@ export interface LogTransactionFormData {
   price: string; // [cite: 1387]
   fees: string; // [cite: 1387]
   notes: string; // [cite: 1387]
+  account_id: number; // [added for account selection]
   strategy_id?: string; // [cite: 1387]
   market_conditions?: string; // [cite: 1387]
   setup_description?: string; // [cite: 1387]
@@ -318,10 +320,37 @@ export interface AnalyticsData {
   availableAssetClasses?: string[]; // [cite: 1401]
   availableEmotions?: EmotionRecord[]; // [cite: 1401]
   availableTickers?: string[]; // [cite: 1401]
+
+  // --- Grouped performance ---
+  pnlByAsset?: GroupedPerformance[];
 }
 
 // Defines the contract for IPC communication with Electron main process
+export interface AccountRecord {
+  account_id: number;
+  name: string;
+  type: string;
+  is_archived: 0 | 1;
+  is_deleted: 0 | 1;
+  created_at: string;
+  updated_at: string;
+  balance?: number; // Optional: present if fetched with balance aggregation
+}
+
 export interface ElectronAPIDefinition {
+  // --- Account Management ---
+  createAccount: (opts: { name: string; type?: string }) => Promise<{ success: boolean; id?: number; message?: string }>;
+  renameAccount: (opts: { accountId: number; newName: string }) => Promise<{ success: boolean; message?: string }>;
+  archiveAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
+  unarchiveAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
+  deleteAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
+  getAccounts: (opts?: { includeArchived?: boolean; includeDeleted?: boolean }) => Promise<any>;
+  getAccountById: (accountId: number) => Promise<any>;
+  addAccountTransaction: (opts: { accountId: number; type: string; amount: number; relatedTradeId?: number | null; memo?: string | null }) => Promise<{ success: boolean; id?: number; message?: string }>;
+  getAccountTransactions: (opts: { accountId: number; limit?: number; offset?: number }) => Promise<any>;
+  getAccountBalance: (accountId: number) => Promise<any>;
+  getAccountTimeSeries: (accountId: number) => Promise<any>;
+
   exportDataCSV: (opts: { includeTransactions: boolean }) => Promise<unknown>; // [cite: 1402]
   exportDataJSON: (opts: { includeTransactions: boolean }) => Promise<unknown>; // [cite: 1403]
   exportDataXLSX: (opts: { includeTransactions: boolean }) => Promise<unknown>; // [cite: 1403]

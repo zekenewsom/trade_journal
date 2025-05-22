@@ -6,15 +6,18 @@ interface BuyingPowerCardProps {
   allocation: number;
 }
 
+import { useAppStore } from '../../stores/appStore';
+
 export function BuyingPowerCard({
-  value = 823571.08,
   allocation = 64
 }: Partial<BuyingPowerCardProps>) {
+  // Get aggregated available buying power from the store
+  const totalBuyingPower = useAppStore(s => s.getTotalBuyingPower());
   return (
     <MetricCard title="Available Buying Power" className="bg-white">
       <div className="flex flex-col">
         <div className="text-2xl font-semibold font-mono text-primary">
-          $<CountUp end={value} separator="," decimals={2} preserveValue />
+          $<CountUp end={totalBuyingPower} separator="," decimals={2} preserveValue />
         </div>
         
         <div className="flex items-center justify-between mt-4">

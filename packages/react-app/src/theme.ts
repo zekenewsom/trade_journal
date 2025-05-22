@@ -27,7 +27,7 @@ export const darkTheme = createTheme({
     },
     success: {
       main: colors.success,
-      contrastText: colors.onSuccess,
+      contrastText: colors.success,
     },
     background: {
       default: colors.background,
