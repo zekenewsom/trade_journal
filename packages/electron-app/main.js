@@ -1,6 +1,6 @@
 // File: zekenewsom-trade_journal/packages/electron-app/main.js
 const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
+const path = require('path'); // Only declared once at the top
 // This now requires the new facade db.js
 const dbModule = require('./src/database/db');
 
@@ -63,6 +63,88 @@ app.on('activate', () => {
 });
 
 // --- IPC Handlers ---
+
+const { dialog } = require('electron');
+const fs = require('fs');
+const { Parser: Json2CsvParser } = (() => { try { return require('json2csv'); } catch { return {}; } })();
+const xlsx = (() => { try { return require('xlsx'); } catch { return {}; } })();
+
+ipcMain.handle('export-data-csv', async () => {
+  try {
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      title: 'Export Data as CSV',
+      defaultPath: `trade_journal_export_${new Date().toISOString().replace(/[:.]/g, '-')}.csv`,
+      filters: [{ name: 'CSV File', extensions: ['csv'] }]
+    });
+    if (canceled || !filePath) return { success: false, message: 'Export canceled by user.' };
+    const trades = await dbModule.fetchTradesForListView();
+    if (!trades || trades.length === 0) return { success: false, message: 'No trades to export.' };
+    if (!Json2CsvParser) return { success: false, message: 'json2csv not installed.' };
+    const parser = new Json2CsvParser();
+    const csv = parser.parse(trades);
+    fs.writeFileSync(filePath, csv);
+    return { success: true, message: `Exported to ${filePath}` };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('export-data-json', async () => {
+  try {
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      title: 'Export Data as JSON',
+      defaultPath: `trade_journal_export_${new Date().toISOString().replace(/[:.]/g, '-')}.json`,
+      filters: [{ name: 'JSON File', extensions: ['json'] }]
+    });
+    if (canceled || !filePath) return { success: false, message: 'Export canceled by user.' };
+    const trades = await dbModule.fetchTradesForListView();
+    if (!trades || trades.length === 0) return { success: false, message: 'No trades to export.' };
+    fs.writeFileSync(filePath, JSON.stringify(trades, null, 2));
+    return { success: true, message: `Exported to ${filePath}` };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('export-data-xlsx', async () => {
+  try {
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      title: 'Export Data as Excel',
+      defaultPath: `trade_journal_export_${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`,
+      filters: [{ name: 'Excel File', extensions: ['xlsx'] }]
+    });
+    if (canceled || !filePath) return { success: false, message: 'Export canceled by user.' };
+    const trades = await dbModule.fetchTradesForListView();
+    if (!trades || trades.length === 0) return { success: false, message: 'No trades to export.' };
+    if (!xlsx || !xlsx.utils) return { success: false, message: 'xlsx package not installed.' };
+    const ws = xlsx.utils.json_to_sheet(trades);
+    const wb = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(wb, ws, 'Trades');
+    xlsx.writeFile(wb, filePath);
+    return { success: true, message: `Exported to ${filePath}` };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('backup-database', async () => {
+  try {
+    const result = await dbModule.backupDatabase();
+    return result;
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('restore-database', async () => {
+  try {
+    const result = await dbModule.restoreDatabase();
+    return result;
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : String(error) };
+  }
+});
+
 // These should now call functions exposed by the db.js facade,
 // which in turn call the respective service functions.
 

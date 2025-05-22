@@ -1,260 +1,253 @@
-// File: zekenewsom-trade_journal/packages/react-app/src/components/dashboard/DashboardMetrics.tsx
-// Modified for Stage 6 to use getAnalyticsData
-
-import React, { useEffect, useState } from 'react';
+// packages/react-app/src/components/dashboard/DashboardMetrics.tsx
+import React, { useEffect } from 'react';
 import { useAppStore } from '../../stores/appStore';
-import { Box, Grid, Typography, CircularProgress, Alert, Paper, Button, Select, MenuItem, InputLabel, FormControl, Avatar, IconButton } from '@mui/material';
-
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
-import BackupIcon from '@mui/icons-material/Backup';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import PersonIcon from '@mui/icons-material/Person';
-import KeyMetricCard from './cards/KeyMetricCard';
-import InfoCard from './cards/InfoCard';
+import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
+import Alert from '@mui/material/Alert';
+import Paper from '@mui/material/Paper';
+import { typography } from '../../styles/design-tokens';
+// Import your new card
+import EnhancedMetricCard from './cards/EnhancedMetricCard';
+// Import necessary charts
 import EquityCurveChart from '../analytics/EquityCurveChart';
 import DashboardDrawdownChart from './charts/DashboardDrawdownChart';
 import DashboardRMultipleHistogram from './charts/DashboardRMultipleHistogram';
-import ReturnVsRiskScatterPlot from './charts/ReturnVsRiskScatterPlot';
-import PnlHeatmapCalendar from './charts/PnlHeatmapCalendar';
-// import icons as desired from '@mui/icons-material' for InfoCard
+// Placeholders or components to be implemented/connected to real data:
+// import ReturnVsRiskScatterPlot from './charts/ReturnVsRiskScatterPlot'; // Assuming you'll create/use this
+// import PnlHeatmapCalendar from './charts/PnlHeatmapCalendar'; // Assuming you'll create/use this
+
+// Icons (example, choose as needed)
+
+import { colors } from '../../styles/design-tokens';
+
+export const formatCurrency = (value: number | null | undefined, showSign = false): string => {
+  if (value === null || value === undefined || isNaN(value)) return 'N/A';
+  const sign = value > 0 && showSign ? '+' : '';
+  return `${sign}${value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`;
+};
+
+export const formatPercentage = (value: number | null | undefined, decimals = 1): string => {
+  if (value === null || value === undefined || isNaN(value)) return 'N/A';
+  return `${value.toFixed(decimals)}%`;
+};
+
+export const formatNumber = (value: number | null | undefined, decimals = 2): string => {
+  if (value === null || value === undefined || isNaN(value)) return 'N/A';
+  return value.toFixed(decimals);
+};
 
 const DashboardMetrics: React.FC = () => {
-  const { analytics, isLoadingAnalytics, analyticsError, fetchAnalyticsData } = useAppStore();
-  // Header filter state
-  const [startDate, setStartDate] = useState<Date | null>(null);
-  const [endDate, setEndDate] = useState<Date | null>(null);
-  const [selectedStrategy, setSelectedStrategy] = useState<number | ''>('');
+  const { analytics, isLoadingAnalytics, analyticsError, fetchAnalyticsData, currentViewParams } = useAppStore();
 
+  // This effect will run when filters from TopBar (if managed in Zustand) change
   useEffect(() => {
-    fetchAnalyticsData({
-      ...(startDate ? { startDate: startDate.toISOString() } : {}),
-      ...(endDate ? { endDate: endDate.toISOString() } : {}),
-      ...(selectedStrategy ? { strategy_id: selectedStrategy } : {})
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate, selectedStrategy]);
+    // Assuming currentViewParams might hold filter values passed from TopBar via Zustand
+    // For now, we fetch with default filters or any passed via currentViewParams
+    fetchAnalyticsData(currentViewParams as Record<string, unknown> || {});
+  }, [fetchAnalyticsData, currentViewParams]);
 
-  if (isLoadingAnalytics)
+  // Helper to create mini trend data from equity curve for Net Account Balance
+  const getMiniTrendData = (equityCurve: { date: number; equity: number }[] | undefined) => {
+    if (!equityCurve || equityCurve.length === 0) return undefined;
+    // Take last N points for the trend, e.g., last 30
+    const lastN = equityCurve.slice(-30);
+    return lastN.map(p => ({ value: p.equity }));
+  };
+
+  const netAccountBalance = analytics?.totalRealizedNetPnl ?? 0; // Assuming this is the base for change calculation
+  const lastEquityPoint = analytics?.equityCurve && analytics.equityCurve.length > 0 ? analytics.equityCurve[analytics.equityCurve.length - 1].equity : netAccountBalance;
+  const secondLastEquityPoint = analytics?.equityCurve && analytics.equityCurve.length > 1 ? analytics.equityCurve[analytics.equityCurve.length - 2].equity : netAccountBalance;
+  const pnlChangeValue = lastEquityPoint - secondLastEquityPoint;
+  const pnlChangePercent = secondLastEquityPoint !== 0 ? (pnlChangeValue / Math.abs(secondLastEquityPoint)) * 100 : 0;
+
+  if (isLoadingAnalytics) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh" className="flex justify-center items-center h-screen">
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
         <CircularProgress />
       </Box>
     );
-  if (analyticsError)
+  }
+
+  if (analyticsError) {
     return (
-      <Alert severity="error" className="m-2" sx={{ borderColor: 'error.main', color: 'error.main' }}>
-        Error loading metrics: {analyticsError}
+      <Alert severity="error" sx={{ m: 2, backgroundColor: colors.surface, color: colors.error, border: `1px solid ${colors.border}` }}>
+        Error loading dashboard metrics: {analyticsError}
       </Alert>
     );
-  if (!analytics)
-    return <Typography className="m-2">No analytics data available for dashboard.</Typography>;
+  }
 
-  // Helpers for formatting
-  const formatCurrency = (value: number | null | undefined) => value === null || value === undefined ? 'N/A' : value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  if (!analytics) {
+    return <Typography sx={{ m: 2, color: colors.textSecondary }}>No analytics data available for the dashboard.</Typography>;
+  }
 
+  // --- Start of the new Grid Layout ---
   return (
-    <Box className="flex-grow p-6 min-h-screen" sx={theme => ({ backgroundColor: theme.palette.background.default, color: theme.palette.text.primary })}>
-      {/* Header Section */}
-      <Paper elevation={2} className="mb-8 p-4 md:p-6 overflow-hidden" sx={theme => ({ backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary, borderRadius: theme.shape.borderRadius * 2, boxShadow: theme.shadows[2] })}>
-        <Grid container columns={12} spacing={2} alignItems="center" justifyContent="space-between" wrap="wrap">
-          {/* Filters Section */}
-          <Grid size={{ xs: 12, md: 7 }}>
-            <Grid container columns={12} spacing={2} alignItems="center" wrap="wrap">
-              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <DatePicker
-                    label="Start Date"
-                    value={startDate}
-                    onChange={setStartDate}
-                    slotProps={{ textField: { size: 'small', sx: theme => ({ width: '100%', background: theme.palette.background.paper, input: { color: theme.palette.text.primary } }) } }}
-                  />
-                </LocalizationProvider>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                  <DatePicker
-                    label="End Date"
-                    value={endDate}
-                    onChange={setEndDate}
-                    slotProps={{ textField: { size: 'small', sx: theme => ({ width: '100%', background: theme.palette.background.paper, input: { color: theme.palette.text.primary } }) } }}
-                  />
-                </LocalizationProvider>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
-                <FormControl size="small" sx={theme => ({ width: '100%', background: theme.palette.background.paper })}>
-                  <InputLabel id="strategy-label" sx={theme => ({ color: theme.palette.text.primary })}>Strategy</InputLabel>
-                  <Select
-                    labelId="strategy-label"
-                    value={selectedStrategy}
-                    label="Strategy"
-                    onChange={e => setSelectedStrategy(e.target.value as number)}
-                    sx={theme => ({ color: theme.palette.text.primary, '.MuiSelect-icon': { color: theme.palette.secondary.main } })}
-                  >
-                    <MenuItem value="">All Strategies</MenuItem>
-                    {analytics?.availableStrategies?.map((s) => (
-                      <MenuItem key={s.strategy_id} value={s.strategy_id}>{s.strategy_name}</MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-            </Grid>
-          </Grid>
-          {/* Actions Section */}
-          <Grid size={{ xs: 12, md: 5 }}>
-            <Grid container spacing={1} alignItems="center" justifyContent={{ xs: 'flex-start', md: 'flex-end' }} wrap="wrap">
-              <Grid>
-                <Button startIcon={<SearchIcon />} variant="outlined" color="primary" sx={theme => ({ borderColor: theme.palette.primary.main, color: theme.palette.secondary.main, borderRadius: theme.shape.borderRadius, px: 2, minWidth: 120 })}>Search Trades</Button>
-              </Grid>
-              <Grid>
-                <Button startIcon={<AddIcon />} variant="contained" color="primary" sx={theme => ({ background: theme.palette.primary.main, borderRadius: theme.shape.borderRadius, px: 2, minWidth: 120 })} onClick={() => {/* Navigation to logTransactionForm should be implemented if route/callback is available */}}>Add Trade</Button>
-              </Grid>
-              <Grid>
-                <Button startIcon={<FileDownloadIcon />} variant="outlined" sx={theme => ({ borderColor: theme.palette.primary.main, color: theme.palette.secondary.main, borderRadius: theme.shape.borderRadius, px: 2, minWidth: 110 })}>Export</Button>
-              </Grid>
-              <Grid>
-                <Button startIcon={<BackupIcon />} variant="outlined" sx={theme => ({ borderColor: theme.palette.primary.main, color: theme.palette.secondary.main, borderRadius: theme.shape.borderRadius, px: 2, minWidth: 120 })}>Backup Now</Button>
-              </Grid>
-              <Grid>
-                <IconButton sx={{ ml: 1 }}>
-                  <Avatar sx={theme => ({ bgcolor: theme.palette.background.paper, color: theme.palette.secondary.main, width: 36, height: 36, borderRadius: theme.shape.borderRadius })}>
-                    <PersonIcon />
-                  </Avatar>
-                </IconButton>
-              </Grid>
-            </Grid>
-          </Grid>
+    <Box className="flex-grow"> {/* Removed p-6, min-h-screen from here, AppShell handles padding */}
+      {/* Filter section is now part of TopBar.tsx */}
+
+      <Grid container spacing={2.5}> {/* Use spacing from your design tokens, e.g., 2.5 * 8px = 20px */}
+        {/* Row 1: Key Account Metrics */}
+        <Grid item xs={12} md={6} lg={4}>
+          <EnhancedMetricCard
+            title="Net Account Balance"
+            value={formatCurrency(analytics.equityCurve.length > 0 ? analytics.equityCurve[analytics.equityCurve.length - 1].equity : analytics.totalRealizedNetPnl)}
+            changeText={`${pnlChangeValue >= 0 ? '+' : ''}${formatCurrency(pnlChangeValue)} (${formatPercentage(pnlChangePercent)})`}
+            changeColor={pnlChangeValue >= 0 ? 'success' : 'error'}
+            trendData={getMiniTrendData(analytics.equityCurve)}
+            trendColor={pnlChangeValue >= 0 ? colors.success : colors.error}
+            minHeight="160px" // Example min height
+          />
         </Grid>
-      </Paper>
-      <Grid container columns={12} spacing={3} alignItems="stretch">
-        {/* Section 1: Key Account Metrics (Net Balance, Unrealized P&L, Buying Power) */}
-        <Grid container columns={12} spacing={3} alignItems="stretch">
-          <Grid size={{ xs: 12, md: 4 }}>
-            <KeyMetricCard
-              title="Net Account Balance"
-              value={formatCurrency(analytics?.totalRealizedNetPnl)}
-              // trendData={[{value: 10}, {value: 15}, {value: 13}, {value: 17}]}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <KeyMetricCard
-              title="Unrealized P&L"
-              value={formatCurrency(analytics?.totalUnrealizedPnl)}
-              change="Auto-refresh 60s"
-              // trendData={[{value: 5}, {value: 8}, {value: 6}, {value: 9}]}
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <KeyMetricCard
-              title="Available Buying Power"
-              value={'N/A'}
-              change={'N/A'}
-            />
-          </Grid>
+        <Grid item xs={12} md={6} lg={4}>
+          <EnhancedMetricCard
+            title="Unrealized P&L"
+            value={formatCurrency(analytics.totalUnrealizedPnl)}
+            // Assuming unrealized P&L might have its own change logic if tracked daily
+            // changeText="+ $1,234.56 (+1.5%)" 
+            // changeColor="success"
+            descriptionText="Auto-refresh: 60s" // Placeholder
+            minHeight="160px"
+          />
+        </Grid>
+        <Grid item xs={12} md={12} lg={4}>
+          <EnhancedMetricCard
+            title="Available Buying Power"
+            value={"N/A"} // Placeholder - data not in current AnalyticsData
+            descriptionText="34% used" // Placeholder
+            progressValue={34} // Placeholder
+            progressBarMinLabel=""
+            progressBarMaxLabel=""
+            progressColor="primary"
+            minHeight="160px"
+          />
         </Grid>
 
-        {/* Section 2: Risk & Return Quality */}
-        <Grid container columns={12} spacing={3} alignItems="stretch" sx={{ mt: 1 }}>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <InfoCard title="Sharpe Ratio" value={"2.37"} description="Good" progress={75} progressColor="success" />
-          </Grid>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <InfoCard title="Sortino Ratio" value={"3.14"} description="Excellent" progress={90} progressColor="success" />
-          </Grid>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <InfoCard title="Profit Factor" value={"2.12"} description="Good" progress={70} progressColor="success" />
-          </Grid>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <InfoCard
-              title="Hit Rate (%)"
-              value={analytics?.winRateOverall !== undefined && analytics?.winRateOverall !== null ? `${(analytics.winRateOverall * 100).toFixed(1)}%` : 'N/A'}
-              description={analytics?.winRateOverall && analytics?.winRateOverall > 0.5 ? "Moderate" : "Needs Improvement"}
-              progress={analytics?.winRateOverall ? analytics.winRateOverall * 100 : 0}
-              progressColor={analytics?.winRateOverall && analytics?.winRateOverall > 0.5 ? 'info' : 'warning'}
-            />
-          </Grid>
+        {/* Row 2: Risk & Return Quality */}
+        
+        <Grid item xs={12} sm={6} md={3} lg={3}>
+          <EnhancedMetricCard
+            title="Sharpe Ratio (YTD)"
+            value={formatNumber(2.37)} // Placeholder
+            descriptionText="Good"
+            progressValue={75} // (2.37 / 3 * 100) example mapping
+            progressBarMinLabel="Poor"
+            progressBarMaxLabel="Excellent"
+            progressColor="success"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3} lg={3}>
+          <EnhancedMetricCard
+            title="Sortino Ratio"
+            value={formatNumber(3.14)} // Placeholder
+            descriptionText="Excellent"
+            progressValue={90} // (3.14 / 3.5 * 100) example mapping
+            progressBarMinLabel="Poor"
+            progressBarMaxLabel="Excellent"
+            progressColor="success"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3} lg={3}>
+          <EnhancedMetricCard
+            title="Profit Factor"
+            value={analytics.totalRealizedGrossPnl && analytics.numberOfLosingTrades > 0 && analytics.avgLossPnlOverall !== null ? formatNumber(Math.abs(analytics.totalRealizedGrossPnl) / Math.abs(analytics.numberOfLosingTrades * analytics.avgLossPnlOverall)) : "N/A" }
+            descriptionText="Good"
+            progressValue={70} // Example
+            progressBarMinLabel="Poor"
+            progressBarMaxLabel="Excellent"
+            progressColor="success"
+          />
+        </Grid>
+        <Grid item xs={12} sm={6} md={3} lg={3}>
+          <EnhancedMetricCard
+            title="Hit Rate (%)"
+            value={formatPercentage(analytics.winRateOverall ? analytics.winRateOverall * 100 : 0)}
+            descriptionText={analytics.winRateOverall && analytics.winRateOverall * 100 >= 60 ? "Good" : "Moderate"}
+            progressValue={analytics.winRateOverall ? analytics.winRateOverall * 100 : 0}
+            progressBarMinLabel="Low"
+            progressBarMaxLabel="High"
+            progressColor={analytics.winRateOverall && analytics.winRateOverall * 100 >= 60 ? "success" : "warning"}
+          />
         </Grid>
 
-        {/* Section 3: Experience & Other Metrics */}
-        <Grid container columns={12} spacing={3} alignItems="stretch" sx={{ mt: 1 }}>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <InfoCard title="Experience / Trade" value={'N/A'} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <InfoCard title="Ulcer Index" value={'N/A'} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <InfoCard title="Current Drawdown" value={'N/A'} valueColor="error" />
-          </Grid>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <InfoCard
-              title="Max Historical Drawdown"
-              value={analytics?.maxDrawdownPercentage ? `-${analytics.maxDrawdownPercentage.toFixed(2)}%` : 'N/A'}
-              description={analytics?.maxDrawdownPercentage ? `${formatCurrency((analytics?.totalRealizedNetPnl || 0) * (analytics?.maxDrawdownPercentage / 100))}` : 'N/A'}
-              progress={analytics?.maxDrawdownPercentage || 0}
-              valueColor="error"
-            />
-          </Grid>
-          <Grid size={{ xs: 12, md: 3 }}>
-            <InfoCard title="1-Day 95% VaR" value={'N/A'} />
-          </Grid>
+        {/* Row 3: Expectancy & Other Risk Metrics */}
+        <Grid item xs={12} sm={6} md={4} lg={2.4}>
+          <EnhancedMetricCard title="Expectancy $/Trade" value={analytics.avgWinPnlOverall && analytics.winRateOverall && analytics.avgLossPnlOverall ? formatCurrency((analytics.avgWinPnlOverall * analytics.winRateOverall) - (Math.abs(analytics.avgLossPnlOverall) * (1 - analytics.winRateOverall))) : "N/A"} descriptionText="Strong" />
+        </Grid>
+        <Grid item xs={12} sm={6} md={4} lg={2.4}>
+          <EnhancedMetricCard title="Ulcer Index" value="N/A" descriptionText="Moderate" />
+        </Grid>
+        <Grid item xs={12} sm={6} md={4} lg={2.4}>
+          <EnhancedMetricCard title="Current Drawdown" value={"N/A"} descriptionText="0%" changeColor="error" />
+        </Grid>
+        <Grid item xs={12} sm={6} md={6} lg={2.4}>
+          <EnhancedMetricCard title="Max Historical Drawdown" value={formatPercentage(analytics.maxDrawdownPercentage ? -analytics.maxDrawdownPercentage : 0)} descriptionText={formatCurrency(analytics.maxDrawdownPercentage && analytics.totalRealizedNetPnl ? -(analytics.totalRealizedNetPnl * (analytics.maxDrawdownPercentage/100)) : 0)} changeColor="error" />
+        </Grid>
+        <Grid item xs={12} sm={12} md={6} lg={2.4}>
+          <EnhancedMetricCard title="1-Day 95% VaR" value={"N/A"} descriptionText="2.00% of equity" />
         </Grid>
 
-        {/* Section 4: Charts */}
-        <Grid size={{ xs: 12 }}>
-          <Typography variant="h6" className="mb-2 mt-2" sx={theme => ({ color: theme.palette.success.main })}>CHARTS</Typography>
-        </Grid>
-        <Grid size={{ xs: 12, md: 8 }}>
-          <Paper className="h-[400px]" sx={theme => ({ p: 2, backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary, borderRadius: theme.shape.borderRadius })}>
-            <Typography variant="subtitle2" className="text-center mb-1" sx={theme => ({ color: theme.palette.secondary.main })}>
-              Cumulative Equity Curve
-            </Typography>
-            {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
-              <EquityCurveChart equityCurve={analytics?.equityCurve} />
-            ) : (
-              <Typography>No equity curve data.</Typography>
-            )}
-          </Paper>
-        </Grid>
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Grid container direction="column" spacing={3}>
-            <Grid size={{ xs: 12 }}>
-              <Paper className="h-[188px]" sx={theme => ({ p: 1, backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary })}>
-                <Typography variant="subtitle2" className="text-center mb-1" sx={theme => ({ color: theme.palette.secondary.main })}>Drawdown Curve</Typography>
-                {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
-                  <DashboardDrawdownChart equityCurveData={analytics?.equityCurve} />
-                ) : (
-                  <Typography>No drawdown data.</Typography>
-                )}
-              </Paper>
+        {/* Row 4: Charts Title */}
+        
+
+        {/* Row 5: Main Charts */}
+        <Grid item xs={12} lg={12}>
+            <Grid container spacing={2.5}>
+                <Grid item xs={12} sx={{height: {xs: 220, lg: 'calc(50% - 20px)'}}}>
+                     {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
+                        <EnhancedMetricCard title="Drawdown Curve" value="" minHeight="100%">
+                             <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
+                                <DashboardDrawdownChart equityCurveData={analytics.equityCurve} />
+                             </Box>
+                        </EnhancedMetricCard>
+                    ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No Drawdown Data</Typography></Paper>}
+                </Grid>
+
+                <Grid item xs={12} sx={{height: {xs: 350, md: 500, lg: 600}}}>
+                    {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
+                        <EnhancedMetricCard title="CUMULATIVE EQUITY CURVE" value="" minHeight="100%">
+                            <Box sx={{flexGrow: 1, width: '400px', height: { xs: 350, sm: 400, md: 500, lg: 600 }}}>
+                                <EquityCurveChart equityCurve={analytics.equityCurve} />
+                            </Box>
+                        </EnhancedMetricCard>
+                    ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No Equity Data</Typography></Paper> }
+                </Grid>
+
+                <Grid item xs={12} sx={{height: {xs: 220, lg: 'calc(50% - 20px)'}}}>
+                     {analytics.rMultipleDistribution && analytics.rMultipleDistribution.length > 0 ? (
+                        <EnhancedMetricCard title="R-Multiple Histogram (Last 100 Trades)" value="" minHeight="100%">
+                            <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
+                                <DashboardRMultipleHistogram data={analytics.rMultipleDistribution} />
+                            </Box>
+                        </EnhancedMetricCard>
+                    ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No R-Multiple Data</Typography></Paper>}
+                </Grid>
             </Grid>
-            <Grid size={{ xs: 12 }}>
-              <Paper className="h-[188px]" sx={theme => ({ p: 1, backgroundColor: theme.palette.background.paper, color: theme.palette.text.primary })}>
-                <Typography variant="subtitle2" className="text-center mb-1" sx={theme => ({ color: theme.palette.secondary.main })}>R-Multiple Histogram</Typography>
-                {analytics?.rMultipleDistribution && analytics?.rMultipleDistribution.length > 0 ? (
-                  <DashboardRMultipleHistogram data={analytics?.rMultipleDistribution} />
-                ) : (
-                  <Typography>No R-Multiple data.</Typography>
-                )}
-              </Paper>
-            </Grid>
-          </Grid>
         </Grid>
 
-        {/* Section 5: More Charts (Bottom row) */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <ReturnVsRiskScatterPlot />
+        {/* Row 6: Bottom Charts */}
+        <Grid item xs={12} md={7} sx={{height: 350}}>
+            <EnhancedMetricCard title="Return vs Risk Scatter" value="" minHeight="100%">
+                 {/* <ReturnVsRiskScatterPlot data={analytics.pnlVsDurationSeries} /> Adjust data source as needed */}
+                 <Box sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                   <Typography sx={{color: colors.textSecondary}}>Return vs Risk Scatter (Coming Soon)</Typography>
+                 </Box>
+            </EnhancedMetricCard>
         </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <PnlHeatmapCalendar />
+        <Grid item xs={12} md={5} sx={{height: 350}}>
+             <EnhancedMetricCard title="30-Day P&L Heatmap Calendar" value="" minHeight="100%">
+                {/* <PnlHeatmapCalendar data={...} /> */}
+                <Box sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center'}}>
+                  <Typography sx={{color: colors.textSecondary}}>30-Day P&L Heatmap (Coming Soon)</Typography>
+                </Box>
+            </EnhancedMetricCard>
         </Grid>
+
       </Grid>
     </Box>
   );
-
 };
+
 
 export default DashboardMetrics;

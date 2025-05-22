@@ -1,35 +1,61 @@
+/* packages/react-app/src/index.css */
+@import './fonts.css'; /* Your existing font definitions */
 
-@import './fonts.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Basic dark mode and global styles */
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: theme('fontFamily.ui'); /* Use Inter from Tailwind config */
+  background-color: theme('colors.background');
+  color: theme('colors.onBackground');
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #161a25; /* Match theme background.default */
-  color: #f8f8f2; /* Match theme text.primary */
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* Ensure Roboto Mono is applied to numerals as needed */
-.font-roboto-mono {
-  font-family: 'Roboto Mono', monospace;
+*, *::before, *::after {
+  box-sizing: inherit;
 }
 
-/* Custom scrollbar styling for a dark theme (optional but good for consistency) */
+/* Custom scrollbar to match dark theme */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #1A1B1D; /* card-stroke or similar dark */
+  background: theme('colors.surfaceVariant'); /* Slightly lighter than main background */
 }
 ::-webkit-scrollbar-thumb {
-  background: #3A7BFF; /* primary-action */
-  border-radius: 4px;
+  background: theme('colors.border'); /* A bit darker than track */
+  border-radius: theme('borderRadius.full');
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #5c8eff; /* slightly lighter primary-action */
+  background: theme('colors.primary'); /* Use primary color on hover */
+}
+
+/* General style for Recharts text to inherit UI font better by default */
+.recharts-text, .recharts-cartesian-axis-tick-value {
+  font-family: theme('fontFamily.ui') !important;
+  font-size: theme('fontSize.xs') !important;
+  fill: theme('colors.textSecondary') !important;
+}
+
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: theme('colors.surface') !important;
+  border-color: theme('colors.border') !important;
+  border-radius: theme('borderRadius.md') !important;
+  box-shadow: theme('boxShadow.elevation1') !important;
+}
+
+.recharts-tooltip-label {
+  color: theme('colors.onSurface') !important;
+  margin-bottom: theme('spacing.1') !important;
+  font-weight: theme('fontWeight.medium') !important;
+}
+
+.recharts-tooltip-item {
+   color: theme('colors.textSecondary') !important;
 }

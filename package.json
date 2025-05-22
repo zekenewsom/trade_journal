@@ -5,7 +5,9 @@
     "dev": "concurrently --kill-others-on-fail --names \"VITE,ELECTRON\" -c \"cyan,magenta\" \"pnpm --filter react-app dev\" \"wait-on tcp:5173 && pnpm --filter electron-app start:dev\"",
     "start-electron": "pnpm --filter electron-app start",
     "start-react": "pnpm --filter react-app dev",
-    "build-react": "pnpm --filter react-app build"
+    "build-react": "pnpm --filter react-app build",
+    "lint": "pnpm -r lint || pnpm --filter react-app exec eslint . --ext .ts,.tsx,.js,.jsx",
+    "type-check": "pnpm -r type-check || pnpm --filter react-app exec tsc --noEmit"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
@@ -14,6 +16,7 @@
     "wait-on": "^8.0.3"
   },
   "dependencies": {
-    "better-sqlite3": "^9.6.0"
+    "better-sqlite3": "^9.6.0",
+    "typescript": "~5.8.3"
   }
 }

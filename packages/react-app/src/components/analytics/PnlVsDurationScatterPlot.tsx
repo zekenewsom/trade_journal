@@ -16,15 +16,10 @@ interface PnlVsDurationScatterPlotProps {
   data: DurationPerformanceData[];
 }
 
-interface FormattedDataPoint extends DurationPerformanceData {
-  durationLabel: string;
-  tooltipPayload: string;
-}
-
 const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props: PnlVsDurationScatterPlotProps) => {
   // DEBUG: Log the incoming data
   React.useEffect(() => {
-    // eslint-disable-next-line no-console
+     
     console.log('[PnLvsDuration] formattedData:', props.data);
   }, [props.data]);
   const isMobile = useIsMobile();
@@ -105,8 +100,8 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
             name="Trades"
             data={formattedData}
             fillOpacity={0.7}
-            shape={(props: any) => {
-              const { cx, cy, payload } = props as { cx?: number; cy?: number; payload?: any };
+            shape={(point: { cx?: number; cy?: number; payload?: { [key: string]: unknown } }) => {
+              const { cx, cy, payload } = point as { cx?: number; cy?: number; payload?: any };
               if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
                 // Return an invisible circle to satisfy type
                 return <circle cx={0} cy={0} r={0} fill="none" />;

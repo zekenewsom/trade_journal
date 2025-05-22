@@ -2,6 +2,11 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  backupDatabase: () => ipcRenderer.invoke('backup-database'),
+  restoreDatabase: () => ipcRenderer.invoke('restore-database'),
+  exportDataCSV: () => ipcRenderer.invoke('export-data-csv'),
+  exportDataJSON: () => ipcRenderer.invoke('export-data-json'),
+  exportDataXLSX: () => ipcRenderer.invoke('export-data-xlsx'),
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   testDbConnection: () => ipcRenderer.invoke('test-db'),
   logTransaction: (data) => ipcRenderer.invoke('log-transaction', data),

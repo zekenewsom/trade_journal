@@ -77,10 +77,48 @@ function testDbConnection() {
   }
 }
 
+const { dialog } = require('electron');
+
+async function backupDatabase() {
+  try {
+    if (!db || !db.open) throw new Error('Database not initialized.');
+    const { filePath, canceled } = await dialog.showSaveDialog({
+      title: 'Save Database Backup',
+      defaultPath: `trade_journal_backup_${new Date().toISOString().replace(/[:.]/g, '-')}.sqlite3`,
+      filters: [{ name: 'SQLite Database', extensions: ['sqlite3'] }]
+    });
+    if (canceled || !filePath) return { success: false, message: 'Backup canceled by user.' };
+    fs.copyFileSync(db.name, filePath);
+    return { success: true, message: `Backup saved to ${filePath}` };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+async function restoreDatabase() {
+  try {
+    if (!db || !db.open) throw new Error('Database not initialized.');
+    const { filePaths, canceled } = await dialog.showOpenDialog({
+      title: 'Select Backup to Restore',
+      filters: [{ name: 'SQLite Database', extensions: ['sqlite3'] }],
+      properties: ['openFile']
+    });
+    if (canceled || !filePaths || !filePaths[0]) return { success: false, message: 'Restore canceled by user.' };
+    db.close();
+    fs.copyFileSync(filePaths[0], db.name);
+    initializeDatabase(db.name); // Reopen DB
+    return { success: true, message: 'Database restored from backup.' };
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : String(error) };
+  }
+}
+
 module.exports = {
   initializeDatabase,
   getDb,
   closeDatabase,
   seedInitialData,
   testDbConnection,
+  backupDatabase,
+  restoreDatabase,
 };
