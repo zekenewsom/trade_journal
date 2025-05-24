@@ -44,8 +44,8 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Local state for filters - ideally, this would live in Zustand store if global
-  const [startDate, setStartDate] = useState<Date | null>(new Date(2023, 0, 1)); // Example Start Date
-  const [endDate, setEndDate] = useState<Date | null>(new Date(2023, 4, 12));     // Example End Date
+  const [startDate, setStartDate] = useState<Date | null>(new Date(2025, 0, 1)); // Example Start Date
+  const [endDate, setEndDate] = useState<Date | null>(new Date(2025, 5, 12));     // Example End Date
   const [selectedStrategy, setSelectedStrategy] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -248,7 +248,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
           )}
           <IconButton sx={{ p: '6px', ml: isMobile ? 0 : 1 }}>
             <Avatar sx={{ width: 32, height: 32, bgcolor: colors.primary, fontSize: typography.fontSize.sm }}>
-              ZK {/* Or UserIcon */}
+              ZN {/* Or UserIcon */}
             </Avatar>
           </IconButton>
         </Box>

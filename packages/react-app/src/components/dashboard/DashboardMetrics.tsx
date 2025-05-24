@@ -12,8 +12,10 @@ import { typography } from '../../styles/design-tokens';
 import EnhancedMetricCard from './cards/EnhancedMetricCard';
 // Import necessary charts
 import EquityCurveChart from '../analytics/EquityCurveChart';
-import DashboardDrawdownChart from './charts/DashboardDrawdownChart';
+import { DrawdownChart } from './DrawdownChart';
+import { CumulativeEquityChart } from './CumulativeEquityChart';
 import DashboardRMultipleHistogram from './charts/DashboardRMultipleHistogram';
+import PnlHeatmapCalendar from './charts/PnlHeatmapCalendar';
 // Placeholders or components to be implemented/connected to real data:
 // import ReturnVsRiskScatterPlot from './charts/ReturnVsRiskScatterPlot'; // Assuming you'll create/use this
 // import PnlHeatmapCalendar from './charts/PnlHeatmapCalendar'; // Assuming you'll create/use this
@@ -140,16 +142,49 @@ const DashboardMetrics: React.FC = () => {
           />
         </Grid>
         <Grid item xs={12} md={6} lg={4}>
-          <EnhancedMetricCard
-            title="Unrealized P&L"
-            value={formatCurrency(analytics.totalUnrealizedPnl)}
-            // Assuming unrealized P&L might have its own change logic if tracked daily
-            // changeText="+ $1,234.56 (+1.5%)" 
-            // changeColor="success"
-            descriptionText="Auto-refresh: 60s" // Placeholder
-            minHeight="160px"
-          />
-        </Grid>
+  <EnhancedMetricCard
+    title="Unrealized P&L"
+    value={formatCurrency(analytics.totalUnrealizedPnl)}
+    changeText={(() => {
+      // Calculate unrealized P&L change
+      let unrealizedChange = 0;
+      let unrealizedChangePercent = 0;
+      if (
+        analytics.equityCurve &&
+        analytics.equityCurve.length > 1 &&
+        typeof analytics.totalUnrealizedPnl === 'number'
+      ) {
+        // Estimate previous unrealized P&L by difference in net equity change vs realized P&L change
+        const last = analytics.equityCurve[analytics.equityCurve.length - 1];
+        const prev = analytics.equityCurve[analytics.equityCurve.length - 2];
+        const realizedChange = (analytics.totalRealizedNetPnl ?? 0) - (analytics.prevTotalRealizedNetPnl ?? 0);
+        unrealizedChange = (analytics.totalUnrealizedPnl ?? 0) - (analytics.prevTotalUnrealizedPnl ?? 0);
+        // Fallback: estimate unrealizedChange as equity change - realizedChange
+        if (isNaN(unrealizedChange)) {
+          unrealizedChange = (last.equity - prev.equity) - realizedChange;
+        }
+        unrealizedChangePercent = prev.equity !== 0 ? (unrealizedChange / Math.abs(prev.equity)) * 100 : 0;
+      }
+      const showValue = !isNaN(unrealizedChange) && !isNaN(unrealizedChangePercent);
+      return showValue
+        ? `${unrealizedChange >= 0 ? '+' : ''}${formatPercentage(unrealizedChangePercent)}`
+        : 'N/A';
+    })()}
+    changeColor={(() => {
+      let unrealizedChange = 0;
+      if (
+        analytics.equityCurve &&
+        analytics.equityCurve.length > 1 &&
+        typeof analytics.totalUnrealizedPnl === 'number'
+      ) {
+        unrealizedChange = (analytics.totalUnrealizedPnl ?? 0) - (analytics.prevTotalUnrealizedPnl ?? 0);
+      }
+      return unrealizedChange >= 0 ? 'success' : 'error';
+    })()}
+    descriptionText="Auto-refresh: 60s"
+    minHeight="160px"
+  />
+</Grid>
         <Grid item xs={12} md={12} lg={4}>
   <EnhancedMetricCard
     title="Available Buying Power"
@@ -258,19 +293,10 @@ const DashboardMetrics: React.FC = () => {
         <Grid item xs={12} sm={6} md={4} lg={3}>
           <EnhancedMetricCard title="Expectancy $/Trade" value={analytics.avgWinPnlOverall && analytics.winRateOverall && analytics.avgLossPnlOverall ? formatCurrency((analytics.avgWinPnlOverall * analytics.winRateOverall) - (Math.abs(analytics.avgLossPnlOverall) * (1 - analytics.winRateOverall))) : "N/A"} descriptionText="Strong" />
         </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={3}>
-          <EnhancedMetricCard title="Ulcer Index" value="N/A" descriptionText="Moderate" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={4} lg={3}>
-          <EnhancedMetricCard title="Current Drawdown" value={"N/A"} descriptionText="0%" changeColor="error" />
-        </Grid>
-        <Grid item xs={12} sm={6} md={6} lg={3}>
+                <Grid item xs={12} sm={6} md={6} lg={3}>
           <EnhancedMetricCard title="Max Historical Drawdown" value={formatPercentage(analytics.maxDrawdownPercentage ? -analytics.maxDrawdownPercentage : 0)} descriptionText={formatCurrency(analytics.maxDrawdownPercentage && analytics.totalRealizedNetPnl ? -(analytics.totalRealizedNetPnl * (analytics.maxDrawdownPercentage/100)) : 0)} changeColor="error" />
         </Grid>
-        <Grid item xs={12} sm={12} md={6} lg={3}>
-          <EnhancedMetricCard title="1-Day 95% VaR" value={"N/A"} descriptionText="2.00% of equity" />
-        </Grid>
-
+        
         {/* Row 4: Charts Title */}
         
 
@@ -279,52 +305,59 @@ const DashboardMetrics: React.FC = () => {
             <Grid container spacing={2.5}>
                 <Grid item xs={12} sx={{height: {xs: 220, lg: 'calc(50% - 20px)'}}}>
                      {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
-                        <EnhancedMetricCard title="Drawdown Curve" value="" minHeight="100%">
-                             <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
-                                <DashboardDrawdownChart equityCurveData={analytics.equityCurve} />
-                             </Box>
-                        </EnhancedMetricCard>
+  <>
+    <Grid container spacing={2.5}>
+  <Grid item xs={12} md={4} sx={{ minWidth: 400 }}>
+    <EnhancedMetricCard title="EQUITY CURVE" value="" minHeight="100%">
+      <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
+        <CumulativeEquityChart data={analytics.equityCurve ? analytics.equityCurve.map(pt => ({ date: new Date(pt.date).toISOString(), value: pt.equity })) : []} />
+      </Box>
+    </EnhancedMetricCard>
+  </Grid>
+  <Grid item xs={12} md={4} sx={{ minWidth: 400 }}>
+    <EnhancedMetricCard title="Drawdown Curve" value="" minHeight="100%">
+      <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
+        <DrawdownChart data={(() => {
+          if (!analytics.equityCurve || analytics.equityCurve.length === 0) return [];
+          let peak = -Infinity;
+          return analytics.equityCurve.map(pt => {
+            if (pt.equity > peak) peak = pt.equity;
+            const drawdown = peak > 0 ? ((pt.equity - peak) / peak) * 100 : 0;
+            return { date: new Date(pt.date).toISOString(), value: drawdown };
+          });
+        })()} />
+      </Box>
+    </EnhancedMetricCard>
+  </Grid>
+  <Grid item xs={12} md={4} sx={{ minWidth: 400 }}>
+    <EnhancedMetricCard title="CUMULATIVE EQUITY CURVE" value="" minHeight="100%">
+      <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
+        <EquityCurveChart equityCurve={analytics.equityCurve} />
+      </Box>
+    </EnhancedMetricCard>
+  </Grid>
+</Grid>
+  </>
+
                     ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No Drawdown Data</Typography></Paper>}
                 </Grid>
 
-                <Grid item xs={12} sx={{height: {xs: 350, md: 500, lg: 600}}}>
-                    {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
-                        <EnhancedMetricCard title="CUMULATIVE EQUITY CURVE" value="" minHeight="100%">
-                            <Box sx={{flexGrow: 1, width: '400px', height: { xs: 350, sm: 400, md: 500, lg: 600 }}}>
-                                <EquityCurveChart equityCurve={analytics.equityCurve} />
-                            </Box>
-                        </EnhancedMetricCard>
-                    ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No Equity Data</Typography></Paper> }
-                </Grid>
-
-                <Grid item xs={12} sx={{height: {xs: 220, lg: 'calc(50% - 20px)'}}}>
-                     {analytics.rMultipleDistribution && analytics.rMultipleDistribution.length > 0 ? (
-                        <EnhancedMetricCard title="R-Multiple Histogram (Last 100 Trades)" value="" minHeight="100%">
-                            <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
-                                <DashboardRMultipleHistogram data={analytics.rMultipleDistribution} />
-                            </Box>
-                        </EnhancedMetricCard>
-                    ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No R-Multiple Data</Typography></Paper>}
-                </Grid>
+                
+                
             </Grid>
         </Grid>
 
         {/* Row 6: Bottom Charts */}
-        <Grid item xs={12} md={7} sx={{height: 350}}>
-            <EnhancedMetricCard title="Return vs Risk Scatter" value="" minHeight="100%">
-                 {/* <ReturnVsRiskScatterPlot data={analytics.pnlVsDurationSeries} /> Adjust data source as needed */}
-                 <Box sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                   <Typography sx={{color: colors.textSecondary}}>Return vs Risk Scatter (Coming Soon)</Typography>
-                 </Box>
-            </EnhancedMetricCard>
-        </Grid>
         <Grid item xs={12} md={5} sx={{height: 350}}>
-             <EnhancedMetricCard title="30-Day P&L Heatmap Calendar" value="" minHeight="100%">
-                {/* <PnlHeatmapCalendar data={...} /> */}
-                <Box sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center'}}>
-                  <Typography sx={{color: colors.textSecondary}}>30-Day P&L Heatmap (Coming Soon)</Typography>
-                </Box>
-            </EnhancedMetricCard>
+             <EnhancedMetricCard title="Heatmap Calendar" value="" minHeight="100%">
+  {analytics.dailyPnlForHeatmap && analytics.dailyPnlForHeatmap.length > 0 ? (
+    <PnlHeatmapCalendar data={analytics.dailyPnlForHeatmap} />
+  ) : (
+    <Box sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center'}}>
+      <Typography sx={{color: colors.textSecondary}}>No 30-Day P&L Data</Typography>
+    </Box>
+  )}
+</EnhancedMetricCard>
         </Grid>
 
       </Grid>
