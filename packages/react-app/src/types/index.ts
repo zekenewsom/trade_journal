@@ -2,6 +2,8 @@
 
 // Base Transaction Record
 export interface TransactionRecord {
+  ticker?: string;
+  exchange?: string;
   transaction_id?: number;
   trade_id: number; // [cite: 1368]
   action: 'Buy' | 'Sell'; // [cite: 1368]
