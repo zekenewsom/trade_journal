@@ -291,26 +291,55 @@ function updateTradeMetadata(payload) {
   console.log('[TRADE_SERVICE] updateTradeMetadata CALLED');
   const db = getDb();
   try {
-    const { trade_id, strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk } = payload;
+    const {
+      trade_id,
+      strategy_id,
+      conviction_score,
+      market_conditions,
+      setup_description,
+      reasoning,
+      lessons_learned,
+      r_multiple_initial_risk,
+      initial_take_profit_price,
+      initial_stop_loss_price,
+      thesis_validation,
+      adherence_to_plan,
+      unforeseen_events,
+      overall_trade_rating
+    } = payload;
     const stmt = db.prepare(
       `UPDATE trades SET 
         strategy_id = @strategy_id, 
+        conviction_score = @conviction_score, 
         market_conditions = @market_conditions, 
         setup_description = @setup_description, 
         reasoning = @reasoning, 
         lessons_learned = @lessons_learned, 
         r_multiple_initial_risk = @r_multiple_initial_risk, 
-        updated_at = CURRENT_TIMESTAMP 
+        initial_take_profit_price = @initial_take_profit_price, 
+        initial_stop_loss_price = @initial_stop_loss_price, 
+        thesis_validation = @thesis_validation, 
+        adherence_to_plan = @adherence_to_plan, 
+        unforeseen_events = @unforeseen_events, 
+        overall_trade_rating = @overall_trade_rating, 
+        updated_at = CURRENT_TIMESTAMP
       WHERE trade_id = @trade_id`
     );
     const result = stmt.run({
       trade_id,
-      strategy_id: strategy_id === undefined ? null : strategy_id,
-      market_conditions: market_conditions === undefined ? null : market_conditions,
-      setup_description: setup_description === undefined ? null : setup_description,
-      reasoning: reasoning === undefined ? null : reasoning,
-      lessons_learned: lessons_learned === undefined ? null : lessons_learned,
-      r_multiple_initial_risk: (r_multiple_initial_risk === undefined || r_multiple_initial_risk === null || isNaN(parseFloat(r_multiple_initial_risk))) ? null : parseFloat(r_multiple_initial_risk)
+      strategy_id,
+      conviction_score,
+      market_conditions,
+      setup_description,
+      reasoning,
+      lessons_learned,
+      r_multiple_initial_risk,
+      initial_take_profit_price,
+      initial_stop_loss_price,
+      thesis_validation,
+      adherence_to_plan,
+      unforeseen_events,
+      overall_trade_rating
     });
     if (result.changes === 0) {
       // It's possible no fields actually changed, or ID not found. 
@@ -324,6 +353,7 @@ function updateTradeMetadata(payload) {
     throw error; // Let the caller (IPC handler) format the error response
   }
 }
+
 
 function deleteFullTradeAndTransactions(tradeId) {
   console.log(`[TRADE_SERVICE] deleteFullTradeAndTransactions CALLED for ID: ${tradeId}`);

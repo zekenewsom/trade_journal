@@ -56,13 +56,13 @@ const TradeMetadataForm: React.FC<TradeMetadataFormProps> = ({
       </div>
 
       <div className="flex flex-col gap-1 text-left">
-        <label className="block mb-1 text-accent text-sm font-medium">Reasoning</label>
+        <label className="block mb-1 text-accent text-sm font-medium">Trade Thesis Summary</label>
         <textarea
           name="reasoning"
           value={formData.reasoning || ''}
           onChange={onFormChange}
           className="p-2 border border-card-stroke rounded bg-surface-variant text-on-surface w-full min-h-[100px] focus:outline-none focus:ring-2 focus:ring-primary"
-          placeholder="Explain your reasoning for taking this trade..."
+          placeholder="Summarize your trade thesis for this trade..."
         />
       </div>
 

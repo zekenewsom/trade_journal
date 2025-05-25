@@ -87,6 +87,7 @@ function addTransactionAndManageTrade(transactionData) {
       throw new Error(`[TRANSACTION_SERVICE] Cannot ${action.toLowerCase()} ${quantity}. Only ${currentOpenPositionSize} effectively open for trade ID ${current_trade_id}.`);
     }
 
+    // Insert strategy_id and all relevant fields into transactions
     const transactionInsertStmt = db.prepare(
       `INSERT INTO transactions (
          trade_id, action, quantity, price, datetime, fees, notes, 

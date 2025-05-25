@@ -35,9 +35,14 @@ export interface LogTransactionPayload {
   strategy_id?: number; // [cite: 1372]
   market_conditions?: string; // [cite: 1372]
   setup_description?: string; // [cite: 1372]
-  reasoning?: string; // [cite: 1372]
+  reasoning?: string; // Trade Thesis Summary
   lessons_learned?: string; // [cite: 1372]
   r_multiple_initial_risk?: number; // [cite: 1372]
+  conviction_score?: number; // New: 1-10 confidence
+  thesis_validation?: 'Correct' | 'Partially Correct' | 'Incorrect'; // New
+  adherence_to_plan?: 'High' | 'Medium' | 'Low'; // New
+  unforeseen_events?: string; // New
+  overall_trade_rating?: number; // New: 1-10 rating
   emotion_ids: number[]; // [cite: 1372]
 }
 
@@ -52,7 +57,7 @@ export interface UpdateTransactionPayload {
   strategy_id?: number; // [cite: 1374]
   market_conditions?: string; // [cite: 1374]
   setup_description?: string; // [cite: 1374]
-  reasoning?: string; // [cite: 1374]
+  reasoning?: string; // Trade Thesis Summary
   lessons_learned?: string; // [cite: 1374]
   r_multiple_initial_risk?: number; // [cite: 1374]
   emotion_ids: number[]; // [cite: 1374]
@@ -60,14 +65,19 @@ export interface UpdateTransactionPayload {
 
 // Form data for editing trade-level details
 export interface EditTradeDetailsFormData {
-  trade_id: number; // [cite: 1375]
-  strategy_id?: number | null; // [cite: 1375]
-  market_conditions?: string; // [cite: 1375]
-  setup_description?: string; // [cite: 1375]
-  reasoning?: string; // [cite: 1375]
-  lessons_learned?: string; // [cite: 1376]
-  r_multiple_initial_risk?: number; // [cite: 1376]
-  emotion_ids?: number[]; // [cite: 1376]
+  trade_id: number;
+  strategy_id?: number | null;
+  market_conditions?: string;
+  setup_description?: string;
+  reasoning?: string;
+  lessons_learned?: string;
+  r_multiple_initial_risk?: number;
+  conviction_score?: number; // New: 1-10 confidence
+  thesis_validation?: 'Correct' | 'Partially Correct' | 'Incorrect'; // New
+  adherence_to_plan?: 'High' | 'Medium' | 'Low'; // New
+  unforeseen_events?: string; // New
+  overall_trade_rating?: number; // New: 1-10 rating
+  emotion_ids?: number[];
 }
 
 // Form data for editing a single transaction (usually in a modal)
@@ -91,39 +101,44 @@ export interface EditTransactionFormData {
 
 // Full Trade object including transactions and all calculated fields
 export interface Trade {
-  trade_id?: number; // [cite: 1378]
-  instrument_ticker: string; // [cite: 1378]
-  asset_class: 'Stock' | 'Cryptocurrency'; // [cite: 1378]
-  exchange: string | null; // [cite: 1379]
-  trade_direction: 'Long' | 'Short'; // [cite: 1379]
-  status: 'Open' | 'Closed'; // [cite: 1379]
-  open_datetime: string | null; // [cite: 1379]
-  close_datetime: string | null; // [cite: 1379]
-  strategy_id?: number | null; // [cite: 1379]
-  market_conditions?: string | null; // [cite: 1380]
-  setup_description?: string | null; // [cite: 1380]
-  reasoning?: string | null; // [cite: 1380]
-  lessons_learned?: string | null; // [cite: 1380]
-  r_multiple_initial_risk?: number | null; // [cite: 1380]
-  fees_total?: number; // [cite: 1381]
+  trade_id?: number;
+  instrument_ticker: string;
+  asset_class: 'Stock' | 'Cryptocurrency';
+  exchange: string | null;
+  trade_direction: 'Long' | 'Short';
+  status: 'Open' | 'Closed';
+  open_datetime: string | null;
+  close_datetime: string | null;
+  strategy_id?: number | null;
+  conviction_score?: number; // New: 1-10 confidence
+  market_conditions?: string | null;
+  setup_description?: string | null;
+  reasoning?: string | null;
+  lessons_learned?: string | null;
+  r_multiple_initial_risk?: number | null;
+  thesis_validation?: 'Correct' | 'Partially Correct' | 'Incorrect'; // New
+  adherence_to_plan?: 'High' | 'Medium' | 'Low'; // New
+  unforeseen_events?: string; // New
+  overall_trade_rating?: number; // New: 1-10 rating
+  fees_total?: number;
 
-  current_market_price?: number | null; // [cite: 1381]
-  unrealized_pnl?: number | null; // [cite: 1381]
-  average_open_price?: number | null; // [cite: 1381]
-  current_open_quantity?: number | null; // [cite: 1381]
-  realized_pnl_for_trade?: number | null; // [cite: 1382]
+  current_market_price?: number | null;
+  unrealized_pnl?: number | null;
+  average_open_price?: number | null;
+  current_open_quantity?: number | null;
+  realized_pnl_for_trade?: number | null;
 
-  calculated_pnl_gross?: number; // [cite: 1382]
-  calculated_pnl_net?: number; // [cite: 1382]
-  outcome?: 'Win' | 'Loss' | 'Break Even' | null; // [cite: 1382]
-  r_multiple_actual?: number | null; // [cite: 1382]
-  duration_ms?: number | null; // [cite: 1383]
+  calculated_pnl_gross?: number;
+  calculated_pnl_net?: number;
+  outcome?: 'Win' | 'Loss' | 'Break Even' | null;
+  r_multiple_actual?: number | null;
+  duration_ms?: number | null;
 
-  created_at?: string; // [cite: 1383]
-  updated_at?: string; // [cite: 1383]
-  transactions?: TransactionRecord[]; // [cite: 1383]
-  emotion_ids?: number[]; // [cite: 1383]
-  latest_trade?: string | null; // Added from zekenewsom-trade_journal(9).txt source 751
+  created_at?: string;
+  updated_at?: string;
+  transactions?: TransactionRecord[];
+  emotion_ids?: number[];
+  latest_trade?: string | null;
 }
 
 // Simplified Trade object for list views
@@ -154,35 +169,45 @@ export interface TradeListView extends Omit<Trade,
 
 // Form data for logging a new transaction from the UI
 export interface LogTransactionFormData {
-  instrument_ticker: string; // [cite: 1386]
-  asset_class: 'Stock' | 'Cryptocurrency' | null; // [cite: 1386]
-  exchange: string; // [cite: 1386]
-  action: 'Buy' | 'Sell'; // [cite: 1386]
-  datetime: string; // [cite: 1387]
-  quantity: string; // [cite: 1387]
-  price: string; // [cite: 1387]
-  fees: string; // [cite: 1387]
-  notes: string; // [cite: 1387]
-  account_id: number; // [added for account selection]
-  strategy_id?: string; // [cite: 1387]
-  market_conditions?: string; // [cite: 1387]
-  setup_description?: string; // [cite: 1387]
-  reasoning?: string; // [cite: 1387]
-  lessons_learned?: string; // [cite: 1387]
-  r_multiple_initial_risk?: string; // [cite: 1388]
-  emotion_ids: number[]; // [cite: 1388]
+  instrument_ticker: string;
+  asset_class: 'Stock' | 'Cryptocurrency' | null;
+  exchange: string;
+  action: 'Buy' | 'Sell';
+  datetime: string;
+  quantity: string;
+  price: string;
+  fees: string;
+  notes: string;
+  account_id: number;
+  strategy_id?: string;
+  market_conditions?: string;
+  setup_description?: string;
+  reasoning?: string;
+  lessons_learned?: string;
+  r_multiple_initial_risk?: string;
+  conviction_score?: number; // New: 1-10
+  thesis_validation?: 'Correct' | 'Partially Correct' | 'Incorrect'; // New
+  adherence_to_plan?: 'High' | 'Medium' | 'Low'; // New
+  unforeseen_events?: string; // New
+  overall_trade_rating?: number; // New: 1-10
+  emotion_ids: number[];
 }
 
 // Payload for updating trade-level details (metadata, emotions)
 export interface UpdateTradeDetailsPayload {
-  trade_id: number; // [cite: 1388]
-  strategy_id?: number; // [cite: 1388]
-  market_conditions?: string; // [cite: 1388]
-  setup_description?: string; // [cite: 1388]
-  reasoning?: string; // [cite: 1388]
-  lessons_learned?: string; // [cite: 1389]
-  r_multiple_initial_risk?: number; // [cite: 1389]
-  emotion_ids: number[]; // [cite: 1389]
+  trade_id: number;
+  strategy_id?: number;
+  market_conditions?: string;
+  setup_description?: string;
+  reasoning?: string;
+  lessons_learned?: string;
+  r_multiple_initial_risk?: number;
+  conviction_score?: number; // New: 1-10 confidence
+  thesis_validation?: 'Correct' | 'Partially Correct' | 'Incorrect'; // New
+  adherence_to_plan?: 'High' | 'Medium' | 'Low'; // New
+  unforeseen_events?: string; // New
+  overall_trade_rating?: number; // New: 1-10 rating
+  emotion_ids: number[];
 }
 
 // Emotion record structure
