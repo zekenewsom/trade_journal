@@ -67,8 +67,8 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
   const [submitting, setSubmitting] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    let newValue: any = value;
+    const { name, value } = e.target;
+    let newValue: string | number = value;
     // For sliders (range inputs) and numeric fields
     if (["conviction_score", "overall_trade_rating"].includes(name)) {
       newValue = Number(value);

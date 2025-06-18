@@ -81,9 +81,16 @@ const AnalyticsPage: React.FC = (): React.ReactElement => {
   };
 
 
-  const handleMultiSelectChange = (filterKey: 'assetClasses' | 'exchanges' | 'strategies' | 'tickers') => (event: SelectChangeEvent<string[]>) => {
-    const { target: { value } } = event;
-    handleFilterChange(filterKey, typeof value === 'string' ? value.split(',') : value as any);
+  const handleMultiSelectChange = (
+    filterKey: 'assetClasses' | 'exchanges' | 'strategies' | 'tickers'
+  ) => (event: SelectChangeEvent<string[]>) => {
+    const {
+      target: { value },
+    } = event;
+    handleFilterChange(
+      filterKey,
+      typeof value === 'string' ? value.split(',') : (value as string[])
+    );
   };
 
 
