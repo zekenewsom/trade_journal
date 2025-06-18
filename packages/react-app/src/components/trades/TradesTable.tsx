@@ -28,8 +28,9 @@ const TradesTable: React.FC<TradesTableProps> = ({ trades, onEdit, onDelete }) =
   const [markPrices, setMarkPrices] = useState<Record<number, string>>({}); // tradeId -> price string
 
   const handleSort = (key: SortKey) => {
-  // Sorting logic can be implemented here if needed
-};
+    void key; // placeholder to satisfy lint
+    // Sorting logic can be implemented here if needed
+  };
   const sortedTrades = useMemo(() => { /* ... same ... */ return trades || []; }, [trades]);
 
   const handleMarkPriceChange = (tradeId: number, value: string) => {
@@ -69,7 +70,12 @@ const TradesTable: React.FC<TradesTableProps> = ({ trades, onEdit, onDelete }) =
   };
 
   if (!sortedTrades || sortedTrades.length === 0) return <p className="text-on-surface/70">No trades to display.</p>;
-  const getSortIndicator = (_: keyof TradeListView | 'open_datetime' | 'close_datetime' | 'unrealized_pnl') => '';
+  const getSortIndicator = (
+    k: keyof TradeListView | 'open_datetime' | 'close_datetime' | 'unrealized_pnl'
+  ) => {
+    void k;
+    return '';
+  };
 
   return (
     <div className="overflow-x-auto">

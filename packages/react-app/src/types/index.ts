@@ -371,12 +371,12 @@ export interface ElectronAPIDefinition {
   archiveAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
   unarchiveAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
   deleteAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
-  getAccounts: (opts?: { includeArchived?: boolean; includeDeleted?: boolean }) => Promise<any>;
-  getAccountById: (accountId: number) => Promise<any>;
+  getAccounts: (opts?: { includeArchived?: boolean; includeDeleted?: boolean }) => Promise<unknown>;
+  getAccountById: (accountId: number) => Promise<unknown>;
   addAccountTransaction: (opts: { accountId: number; type: string; amount: number; relatedTradeId?: number | null; memo?: string | null }) => Promise<{ success: boolean; id?: number; message?: string }>;
-  getAccountTransactions: (opts: { accountId: number; limit?: number; offset?: number }) => Promise<any>;
-  getAccountBalance: (accountId: number) => Promise<any>;
-  getAccountTimeSeries: (accountId: number) => Promise<any>;
+  getAccountTransactions: (opts: { accountId: number; limit?: number; offset?: number }) => Promise<unknown>;
+  getAccountBalance: (accountId: number) => Promise<unknown>;
+  getAccountTimeSeries: (accountId: number) => Promise<unknown>;
 
   exportDataCSV: (opts: { includeTransactions: boolean }) => Promise<unknown>; // [cite: 1402]
   exportDataJSON: (opts: { includeTransactions: boolean }) => Promise<unknown>; // [cite: 1403]

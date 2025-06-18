@@ -7,14 +7,12 @@ import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Paper from '@mui/material/Paper';
-import { typography } from '../../styles/design-tokens';
 // Import your new card
 import EnhancedMetricCard from './cards/EnhancedMetricCard';
 // Import necessary charts
 import EquityCurveChart from '../analytics/EquityCurveChart';
 import { DrawdownChart } from './DrawdownChart';
 import { CumulativeEquityChart } from './CumulativeEquityChart';
-import DashboardRMultipleHistogram from './charts/DashboardRMultipleHistogram';
 import PnlHeatmapCalendar from './charts/PnlHeatmapCalendar';
 // Placeholders or components to be implemented/connected to real data:
 // import ReturnVsRiskScatterPlot from './charts/ReturnVsRiskScatterPlot'; // Assuming you'll create/use this

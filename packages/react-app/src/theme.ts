@@ -1,5 +1,5 @@
 // packages/react-app/src/theme.ts
-import { createTheme, alpha } from '@mui/material/styles';
+import { createTheme, alpha, Shadows } from '@mui/material/styles';
 import { colors, typography, borderRadius, shadows, spacing } from './styles/design-tokens';
 
 export const darkTheme = createTheme({
@@ -89,7 +89,7 @@ export const darkTheme = createTheme({
     shadows.elevation1, // elevation 3
     shadows.elevation2, // elevation 4
     // ... fill up to 24 if needed, or customize as necessary
-  ] as any, // Use 'as any' to bypass MUI's strict string[] type for shadows if using custom shadow strings
+  ] as unknown as Shadows,
   components: {
     MuiPaper: {
       styleOverrides: {

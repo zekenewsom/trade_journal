@@ -40,7 +40,7 @@ export default function GroupedPerformanceTabs({ analytics }: Props) {
         scrollButtons="auto"
         sx={{ mb: 2 }}
       >
-        {tabConfigs.map((tabConfig, idx) => (
+        {tabConfigs.map((tabConfig) => (
           <Tab key={tabConfig.key} label={tabConfig.label} />
         ))}
       </Tabs>
