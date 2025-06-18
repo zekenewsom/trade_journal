@@ -23,20 +23,22 @@ function addTransactionAndManageTrade(transactionData) {
 
   const transactFnResult = db.transaction(() => {
     let trade;
-    const findOpenTradeQuery = `
-      SELECT trade_id, trade_direction 
+    // Find the most recent trade for this instrument, asset class, and exchange
+    const findMostRecentTradeQuery = `
+      SELECT trade_id, trade_direction, status 
       FROM trades  
       WHERE instrument_ticker = @instrument_ticker  
       AND asset_class = @asset_class  
       AND exchange = @exchange  
-      AND status = 'Open' 
+      ORDER BY trade_id DESC LIMIT 1
     `;
-    trade = db.prepare(findOpenTradeQuery).get({ instrument_ticker, asset_class, exchange });
+    trade = db.prepare(findMostRecentTradeQuery).get({ instrument_ticker, asset_class, exchange });
 
     let current_trade_id;
     let position_trade_direction;
 
-    if (!trade) {
+    // If no trade exists, or the most recent trade is closed, create a new trade
+    if (!trade || trade.status !== 'Open') {
       position_trade_direction = (action === 'Buy') ? 'Long' : 'Short';
       const newTradeStmt = db.prepare(
         `INSERT INTO trades (
@@ -64,6 +66,11 @@ function addTransactionAndManageTrade(transactionData) {
         memo: `Open trade for ${instrument_ticker}`
       });
     } else {
+      // Defensive: ensure trade is still open
+      const tradeStatusCheck = db.prepare('SELECT status FROM trades WHERE trade_id = ?').get(trade.trade_id);
+      if (!tradeStatusCheck || tradeStatusCheck.status !== 'Open') {
+        throw new Error(`[TRANSACTION_SERVICE] Attempted to append transaction to a closed trade (ID: ${trade.trade_id}). This should never happen.`);
+      }
       current_trade_id = trade.trade_id;
       position_trade_direction = trade.trade_direction;
     }
@@ -108,31 +115,20 @@ function addTransactionAndManageTrade(transactionData) {
         }
     }
 
-    const tradeBefore = db.prepare('SELECT * FROM trades WHERE trade_id = ?').get(current_trade_id);
-    tradeService._recalculateTradeState(current_trade_id, db); // Pass db instance for transaction
-    // After recalculation, check if trade status transitioned to Closed
-    const tradeAfter = db.prepare('SELECT * FROM trades WHERE trade_id = ?').get(current_trade_id);
-    if (tradeBefore.status !== 'Closed' && tradeAfter.status === 'Closed') {
-      // Trade just closed; calculate realized P&L (after fees)
-      // Use tradeAfter.realized_net_pnl if available, else calculate
-      let realizedNetPnl = null;
-      if ('realized_net_pnl' in tradeAfter) {
-        realizedNetPnl = tradeAfter.realized_net_pnl;
-      } else {
-        // fallback: calculate
-        const transactionsForThisTrade = db.prepare('SELECT * FROM transactions WHERE trade_id = ?').all(current_trade_id);
-        const pnlResult = tradeService.calculateTradePnlFifoEnhanced(tradeAfter, transactionsForThisTrade);
-        realizedNetPnl = pnlResult.realizedNetPnl;
-      }
-      // Add realized P&L to account as "trade_close"
+    // Credit account for every closing transaction (partial or full close)
+    if (isExitingAction) {
+      // Proceeds = quantity * price - fees
+      const proceeds = quantity * price - (fees_for_transaction || 0);
       accountService.addAccountTransaction({
         accountId: account_id,
         type: 'trade_close',
-        amount: realizedNetPnl,
+        amount: proceeds,
         relatedTradeId: current_trade_id,
-        memo: `Close trade for ${instrument_ticker}`
+        memo: `Close (partial or full) for ${instrument_ticker}`
       });
     }
+
+    tradeService._recalculateTradeState(current_trade_id, db); // Pass db instance for transaction
 
     return {
       transaction_id: transactionResult.transaction_id,
