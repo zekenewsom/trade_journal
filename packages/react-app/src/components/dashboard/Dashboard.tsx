@@ -2,6 +2,7 @@ import { MetricCard } from '../ui/MetricCard';
 import { NetBalanceCard } from './NetBalanceCard';
 import { UnrealizedPnLCard } from './UnrealizedPnLCard';
 import { useEffect, useState } from 'react';
+import { useAppStore } from '../../stores/appStore';
 
 import { BuyingPowerCard } from './BuyingPowerCard';
 import { SharpeRatioCard } from './SharpeRatioCard';
@@ -84,13 +85,17 @@ const mockPnLCalendarData = {
 };
 
 import Button from '@mui/material/Button';
-import { useAppStore } from '../../stores/appStore';
 
 export function Dashboard() {
   const [unrealizedPnl, setUnrealizedPnl] = useState<number | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const { navigateTo } = useAppStore();
+  const { navigateTo, fetchAccounts } = useAppStore();
+
+  // Fetch accounts on dashboard mount to ensure buying power is up to date
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   useEffect(() => {
     let intervalId: number | null = null;

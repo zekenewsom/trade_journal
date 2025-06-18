@@ -32,7 +32,8 @@ CREATE TABLE IF NOT EXISTS trades (
     open_datetime TEXT NOT NULL, 
     close_datetime TEXT,       
     fees_total REAL DEFAULT 0.0, 
-    strategy_id INTEGER, 
+    strategy_id INTEGER, -- FK to strategies, for new dropdown
+    conviction_score INTEGER, -- New: 1-10 user confidence
     market_conditions TEXT,
     setup_description TEXT,
     reasoning TEXT,
@@ -40,13 +41,16 @@ CREATE TABLE IF NOT EXISTS trades (
     initial_stop_loss_price REAL,
     initial_take_profit_price REAL,
     r_multiple_initial_risk REAL,
-    
+    thesis_validation TEXT CHECK(thesis_validation IN ('Correct', 'Partially Correct', 'Incorrect')),
+    adherence_to_plan TEXT CHECK(adherence_to_plan IN ('High', 'Medium', 'Low')),
+    unforeseen_events TEXT,
+    overall_trade_rating INTEGER CHECK(overall_trade_rating >= 1 AND overall_trade_rating <= 10),
     current_market_price REAL, -- Stage 6: For mark-to-market of open positions
-    
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (strategy_id) REFERENCES strategies(strategy_id)
-);`;
+);`
+
 
 const tradesUpdatedAtTrigger = `
 CREATE TRIGGER IF NOT EXISTS update_trades_updated_at
@@ -66,7 +70,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     datetime TEXT NOT NULL, 
     fees REAL DEFAULT 0.0, 
     notes TEXT,
-    strategy_id INTEGER,
+    strategy_id INTEGER, -- FK to strategies, for per-transaction logging
     market_conditions TEXT,
     setup_description TEXT,
     reasoning TEXT,
@@ -75,7 +79,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (trade_id) REFERENCES trades(trade_id) ON DELETE CASCADE,
     FOREIGN KEY (strategy_id) REFERENCES strategies(strategy_id)
-);`;
+);`
+
 
 const transactionEmotionsTable = `
 CREATE TABLE IF NOT EXISTS transaction_emotions (

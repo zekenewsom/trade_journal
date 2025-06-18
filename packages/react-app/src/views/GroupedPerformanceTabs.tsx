@@ -12,6 +12,7 @@ const tabConfigs = [
   { label: 'By Asset Class', key: 'pnlByAssetClass', title: 'Performance by Asset Class' },
   { label: 'By Exchange', key: 'pnlByExchange', title: 'Performance by Exchange' },
   { label: 'By Emotion', key: 'pnlByEmotion', title: 'Performance by Emotion' },
+  { label: 'By Asset', key: 'pnlByAsset', title: 'Performance by Asset' },
 ];
 
 export default function GroupedPerformanceTabs({ analytics }: Props) {
@@ -25,6 +26,7 @@ export default function GroupedPerformanceTabs({ analytics }: Props) {
       case 'pnlByAssetClass': return analytics.pnlByAssetClass || [];
       case 'pnlByExchange': return analytics.pnlByExchange || [];
       case 'pnlByEmotion': return analytics.pnlByEmotion || [];
+      case 'pnlByAsset': return analytics.pnlByAsset || [];
       default: return [];
     }
   };

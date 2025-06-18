@@ -1,65 +1,72 @@
+// packages/react-app/src/components/charts/MonthlyReturnsChart.tsx
+// This should be adapted to display R-Multiple Distribution based on target design
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Cell } from 'recharts';
-import { colors } from '/src/styles/design-tokens';
+import { Typography, Box } from '@mui/material';
+import { colors, typography, borderRadius as br } from '../../styles/design-tokens';
 
-function useIsMobile() {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(max-width: 639px)').matches;
-}
-interface MonthlyReturnsChartProps {
-  data?: { value: number; count: number }[];
+interface RMultipleBucket {
+  range: string; // e.g., "<-2R", "-1R to 0R", "1R to 2R"
+  count: number;
 }
 
-export function MonthlyReturnsChart({ data }: MonthlyReturnsChartProps = {}) {
-  const isMobile = useIsMobile();
-  // Mock data if not provided - each bar represents an R-multiple value range
-  const mockData = data || [
-    { value: -3, count: 3 },
-    { value: -2, count: 5 },
-    { value: -1, count: 12 },
-    { value: 0, count: 20 },
-    { value: 1, count: 30 },
-    { value: 2, count: 15 },
-    { value: 3, count: 8 },
-    { value: 4, count: 5 },
-    { value: 5, count: 2 }
-  ];
+interface RMultipleHistogramProps {
+  data: RMultipleBucket[];
+  height?: number | string;
+}
+
+export function MonthlyReturnsChart({ data, height = '100%' }: RMultipleHistogramProps) { // Renamed prop
+  if (!data || data.length === 0) {
+    return (
+       <Box display="flex" justifyContent="center" alignItems="center" height={height}>
+        <Typography sx={{ color: colors.textSecondary, fontSize: typography.fontSize.sm }}>
+          No R-Multiple data available.
+        </Typography>
+      </Box>
+    );
+  }
+
+  const getColor = (range: string) => {
+    if (range.includes('-') || range.startsWith('<0') || parseFloat(range) < 0) return colors.chartNegative;
+    if (range.includes('0R to') || range.startsWith('0R') || range === "N/A" || parseFloat(range) === 0) return colors.chartNeutral;
+    return colors.chartPositive;
+  };
 
   return (
-    <div className={isMobile ? "h-[180px] w-full" : "h-[300px] w-full"}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={mockData} barGap={2}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-card-stroke)" vertical={false} />
-          <XAxis 
-            dataKey="value" 
-            tick={{ fill: colors.textSecondary, fontSize: 12 }}
-            axisLine={{ stroke: colors.cardStroke }}
-            tickLine={false}
-            tickFormatter={(value) => `${value}R`}
-            interval={isMobile ? 'preserveStartEnd' : 0}
-          />
-          <YAxis 
-            tick={{ fill: colors.textSecondary, fontSize: 12 }}
-            axisLine={{ stroke: colors.cardStroke }}
-            tickLine={false}
-            tickFormatter={(value) => value}
-            label={{ value: 'Frequency', angle: -90, position: 'insideLeft', fill: colors.textSecondary, fontSize: 12 }}
-          />
-          <Tooltip 
-            contentStyle={{ backgroundColor: colors.background, borderColor: colors.cardStroke }}
-            formatter={(value: number) => [value, 'Trades']}
-            labelFormatter={(label) => `R-Multiple: ${label}`}
-          />
-          <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-            {mockData.map((entry, index) => (
-              <Cell 
-                key={`cell-${index}`} 
-                fill={entry.value < 0 ? colors.error : entry.value === 0 ? colors.warning : colors.success} 
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke={colors.chartGridLines} vertical={false} />
+        <XAxis
+          dataKey="range"
+          tick={{ fill: colors.textSecondary, fontSize: typography.fontSize.xs }}
+          axisLine={{ stroke: colors.border }}
+          tickLine={false}
+          interval={0} // Show all labels if space permits
+        />
+        <YAxis
+          allowDecimals={false}
+          tick={{ fill: colors.textSecondary, fontSize: typography.fontSize.xs }}
+          axisLine={{ stroke: colors.border }}
+          tickLine={{ stroke: colors.border }}
+        />
+        <Tooltip
+          formatter={(value: number) => value}
+          labelFormatter={(label: string) => `R-Multiple: ${label}`}
+          contentStyle={{
+            backgroundColor: colors.surface,
+            borderColor: colors.border,
+            borderRadius: br.md,
+            fontSize: typography.fontSize.xs,
+          }}
+          itemStyle={{ color: colors.textSecondary }}
+          labelStyle={{ color: colors.onSurface, fontWeight: typography.fontWeight.medium }}
+        />
+        <Bar dataKey="count" name="Trades" barSize={20}>
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={getColor(entry.range)} radius={[parseInt(br.sm), parseInt(br.sm), 0, 0]} />
+          ))}
+        </Bar>
+      </BarChart>
+    </ResponsiveContainer>
   );
-} 
+}

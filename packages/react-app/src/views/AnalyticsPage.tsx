@@ -1,387 +1,292 @@
-// File: zekenewsom-trade_journal/packages/react-app/src/views/AnalyticsPage.tsx
-// New file for Stage 6
-
+// packages/react-app/src/views/AnalyticsPage.tsx
 import React, { useState, useEffect } from 'react';
-import { colors } from '/src/styles/design-tokens';
-import { Box, Button, MenuItem, Select, FormControl, InputLabel, OutlinedInput, Chip, TextField, CircularProgress, Alert } from '@mui/material';
+import {
+  Box,
+  Button,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  OutlinedInput,
+
+  CircularProgress,
+  Alert,
+  Typography,
+  Paper,
+  Skeleton,
+  alpha,
+  SelectChangeEvent,
+} from '@mui/material';
+import Grid from '@mui/material/Grid';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import type { AnalyticsData } from '../types';
-import { useAppStore } from '../stores/appStore';
-// Extend AnalyticsFilters locally to support tickers
-interface AnalyticsFilters {
-  dateRange?: {
-    startDate: string | null;
-    endDate: string | null;
-  };
-  assetClasses?: string[];
-  exchanges?: string[];
-  strategies?: number[];
-  tickers?: string[];
-} 
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import KeyMetricCard from '../components/dashboard/cards/KeyMetricCard';
-import EquityCurveChart from '../components/analytics/EquityCurveChart';
-import { DrawdownCurveChart } from '../components/charts/DrawdownCurveChart';
-import { MonthlyReturnsChart } from '../components/charts/MonthlyReturnsChart';
-import PnlVsDurationScatterPlot from '../components/analytics/PnlVsDurationScatterPlot';
-import TradeStatsCard from '../components/analytics/TradeStatsCard';
-import { Typography } from '@mui/material';
-// import { RiskScatterChart } from '../components/charts/RiskScatterChart'; // Uncomment if data available
-import PerformanceByTimeChart from '../components/analytics/PerformanceByTimeChart';
-import GroupedPerformanceTabs from './GroupedPerformanceTabs';
-import { Skeleton } from '@mui/material';
 import { motion } from 'framer-motion';
-import { RiskScatterChart } from '../components/charts/RiskScatterChart';
-import { DailyHeatmapCalendar } from '../components/charts/DailyHeatmapCalendar';
-// MonthlyReturnsChart already imported above as a named import, remove duplicate.
+
+import type { AnalyticsFilters as StoreAnalyticsFilters } from '../types';
+import { useAppStore } from '../stores/appStore';
+import EnhancedMetricCard from '../components/dashboard/cards/EnhancedMetricCard'; // Your new master card
+import EquityCurveChart from '../components/analytics/EquityCurveChart';
+
+import PnlVsDurationScatterPlot from '../components/analytics/PnlVsDurationScatterPlot';
+import GroupedPerformanceTabs from './GroupedPerformanceTabs';
+
+
+// Chart components that might be used (ensure they are styled and accept real data)
+import { DrawdownCurveChart } from '../components/charts/DrawdownCurveChart'; // Generic version
+import { MonthlyReturnsChart } from '../components/charts/MonthlyReturnsChart'; // Generic version (R-Multiple)
 
 
 
-const AnalyticsPage: React.FC = (): React.ReactElement | null => {
+import { colors, typography, borderRadius as br } from '../styles/design-tokens'; // Your design tokens
+
+// Local type for filters, can extend or align with store's AnalyticsFilters
+interface PageAnalyticsFilters extends StoreAnalyticsFilters {
+  tickers?: string[]; // Example if you want to add more specific filters here
+}
+
+const AnalyticsPage: React.FC = (): React.ReactElement => {
   const { analytics, isLoadingAnalytics, analyticsError, fetchAnalyticsData } = useAppStore();
-  const [filters, setFilters] = useState<AnalyticsFilters>({
-    dateRange: {
-      startDate: null,
-      endDate: null
-    }
+
+  const [filters, setFilters] = useState<PageAnalyticsFilters>({
+    dateRange: { startDate: null, endDate: null },
+    assetClasses: [],
+    exchanges: [],
+    strategies: [],
+    tickers: [],
   });
 
   useEffect(() => {
-    fetchAnalyticsData(filters as Record<string, unknown>);
-  }, [filters]);
+    // Fetch initial analytics data without specific filters or based on default view
+    fetchAnalyticsData({});
+  }, [fetchAnalyticsData]);
 
-  const handleDateChange = (field: 'startDate' | 'endDate') => (date: Date | null) => {
-    setFilters((prev: AnalyticsFilters) => ({
-      ...prev,
-      dateRange: {
-        startDate: field === 'startDate' ? (date ? date.toISOString() : null) : prev.dateRange?.startDate ?? null,
-        endDate: field === 'endDate' ? (date ? date.toISOString() : null) : prev.dateRange?.endDate ?? null
-      }
-    }));
+  const handleFilterChange = <K extends keyof PageAnalyticsFilters>(
+    filterKey: K,
+    value: PageAnalyticsFilters[K]
+  ) => {
+    setFilters(prev => ({ ...prev, [filterKey]: value }));
   };
 
-  const clearFilters = () => {
-    setFilters({
-      dateRange: {
-        startDate: null,
-        endDate: null
-      }
+  const handleDateChange = (field: 'startDate' | 'endDate') => (date: Date | null) => {
+    setFilters((prev: PageAnalyticsFilters) => {
+      const prevRange = prev.dateRange ?? { startDate: null, endDate: null };
+      return {
+        ...prev,
+        dateRange: {
+          startDate: field === 'startDate' ? (date ? date.toISOString() : null) : prevRange.startDate,
+          endDate: field === 'endDate' ? (date ? date.toISOString() : null) : prevRange.endDate,
+        },
+      };
     });
   };
 
-  // Main Render
+
+  const handleMultiSelectChange = (filterKey: 'assetClasses' | 'exchanges' | 'strategies' | 'tickers') => (event: SelectChangeEvent<string[]>) => {
+    const { target: { value } } = event;
+    handleFilterChange(filterKey, typeof value === 'string' ? value.split(',') : value as any);
+  };
+
+
+  const applyFilters = () => {
+    fetchAnalyticsData(filters as Record<string, unknown>);
+  };
+
+  const clearFilters = () => {
+    const initialFilters: PageAnalyticsFilters = {
+      dateRange: { startDate: null, endDate: null },
+      assetClasses: [],
+      exchanges: [],
+      strategies: [],
+      tickers: [],
+    };
+    setFilters(initialFilters);
+    fetchAnalyticsData({} as Record<string, unknown>); // Fetch with no filters
+  };
+  
+  const formatCurrency = (value: number | null | undefined, showSign = false): string => {
+    if (value === null || value === undefined || isNaN(value)) return 'N/A';
+    const sign = value > 0 && showSign ? '+' : '';
+    return `${sign}${value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`;
+  };
+
+  const formatPercentage = (value: number | null | undefined, decimals = 1): string => {
+    if (value === null || value === undefined || isNaN(value)) return 'N/A';
+    return `${value.toFixed(decimals)}%`;
+  };
+
+  const formatNumber = (value: number | null | undefined, decimals = 2): string => {
+    if (value === null || value === undefined || isNaN(value)) return 'N/A';
+    return value.toFixed(decimals);
+  };
+
+
+  const renderAnalyticsContent = () => {
+    if (isLoadingAnalytics) {
+      return (
+        <Grid container spacing={2.5}>
+          {[...Array(8)].map((_, i) => ( // Skeletons for cards and charts
+            <Grid item xs={12} sm={6} md={4} lg={3} key={i}>
+              <Skeleton variant="rectangular" height={150} sx={{ borderRadius: br.md, bgcolor: alpha(colors.surfaceVariant, 0.5) }} />
+            </Grid>
+          ))}
+          <Grid item xs={12} lg={8}>
+             <Skeleton variant="rectangular" height={400} sx={{ borderRadius: br.md, bgcolor: alpha(colors.surfaceVariant, 0.5) }} />
+          </Grid>
+           <Grid item xs={12} lg={4}>
+             <Skeleton variant="rectangular" height={400} sx={{ borderRadius: br.md, bgcolor: alpha(colors.surfaceVariant, 0.5) }} />
+          </Grid>
+        </Grid>
+      );
+    }
+
+    if (analyticsError) {
+      return <Alert severity="error" sx={{ backgroundColor: colors.surface, color: colors.error, border: `1px solid ${colors.border}` }}>Error loading analytics: {analyticsError}</Alert>;
+    }
+
+    if (!analytics) {
+      return <Typography sx={{color: colors.textSecondary, textAlign: 'center', py: 5}}>No analytics data to display. Adjust filters or log some trades.</Typography>;
+    }
+
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+        <Grid container spacing={2.5}> {/* Main content grid */}
+          {/* KPIs / TradeStatsCard - could be a series of EnhancedMetricCards or a dedicated TradeStatsCard */}
+          <Grid item xs={12}>
+             {/* Replace with multiple EnhancedMetricCard or keep/restyle TradeStatsCard */}
+             {/* Example using EnhancedMetricCard for key stats */}
+            <Grid container spacing={2.5}>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
+                    <EnhancedMetricCard title="Total Net P&L" value={formatCurrency(analytics.totalRealizedNetPnl)} changeColor={analytics.totalRealizedNetPnl >= 0 ? 'success' : 'error'} />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
+                    <EnhancedMetricCard title="Win Rate" value={formatPercentage(analytics.winRateOverall ? analytics.winRateOverall * 100 : 0)} />
+                </Grid>
+                <Grid item xs={12} sm={6} md={4} lg={3}>
+                    <EnhancedMetricCard title="Avg Win" value={formatCurrency(analytics.avgWinPnlOverall)} />
+                </Grid>
+                <Grid item xs={12} sm={6} md={6} lg={3}>
+                    <EnhancedMetricCard title="Avg Loss" value={formatCurrency(analytics.avgLossPnlOverall)} changeColor="error"/>
+                </Grid>
+                 <Grid item xs={12} sm={12} md={6} lg={3}>
+                    <EnhancedMetricCard title="Avg R-Multiple" value={formatNumber(analytics.avgRMultiple)} />
+                </Grid>
+            </Grid>
+            {/* Or use the existing TradeStatsCard if it's preferred and restyled */}
+            {/* <TradeStatsCard analytics={analytics} /> */}
+          </Grid>
+
+          {/* Equity Curve & Drawdown */}
+          <Grid container spacing={2.5}>
+  <Grid item xs={12} lg={7} sx={{ height: {xs: 350, lg: 450} }}>
+    {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
+      <EnhancedMetricCard title="Cumulative Equity Curve" value="" minHeight="100%">
+        <Box sx={{flexGrow: 1, height: 'calc(100% - 40px)'}}>
+          <EquityCurveChart equityCurve={analytics.equityCurve} />
+        </Box>
+      </EnhancedMetricCard>
+    ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No Equity Data</Typography></Paper> }
+  </Grid>
+  <Grid item xs={12} lg={5} sx={{ height: {xs: 300, lg: 450} }}>
+    {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
+      <EnhancedMetricCard title="Drawdown Curve" value="" minHeight="100%">
+        <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
+          {/* Using the generic DrawdownCurveChart, assuming it's styled */}
+          <DrawdownCurveChart data={analytics.equityCurve.map(p => ({ date: p.date.toString(), value: ((p.equity / (analytics.equityCurve.reduce((max, cp) => cp.equity > max ? cp.equity : max, 0) || 1)) -1) * 100 }))} />
+        </Box>
+      </EnhancedMetricCard>
+    ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No Drawdown Data</Typography></Paper> }
+  </Grid>
+</Grid>
+
+{/* P&L vs Duration & R-Multiple Histogram */}
+<Grid item xs={12} sx={{ height: 450 }}>
+  {analytics.pnlVsDurationSeries && analytics.pnlVsDurationSeries.length > 0 ? (
+    <EnhancedMetricCard title="Net P&L vs Trade Duration" value="" minHeight="100%">
+      <Box sx={{flexGrow: 1, height: 'calc(100%)'}}>
+        <PnlVsDurationScatterPlot data={analytics.pnlVsDurationSeries} />
+      </Box>
+    </EnhancedMetricCard>
+  ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No P&L vs Duration Data</Typography></Paper> }
+</Grid>
+<Grid item xs={12} sx={{ height: 450 }}>
+  {analytics.rMultipleDistribution && analytics.rMultipleDistribution.length > 0 ? (
+    <EnhancedMetricCard title="R-Multiple Distribution" value="" minHeight="100%">
+      <Box sx={{flexGrow: 1, height: 'calc(100%)'}}>
+        {/* Using the generic MonthlyReturnsChart for R-Multiples, assuming styled */}
+        <MonthlyReturnsChart data={analytics.rMultipleDistribution.map(d => ({ value: parseFloat(d.range.replace('R','')), count: d.count, range: d.range }))} />
+      </Box>
+    </EnhancedMetricCard>
+  ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No R-Multiple Data</Typography></Paper> }
+</Grid>
+
+
+          {/* Grouped Performance Tables */}
+          <Grid item xs={12}>
+            <GroupedPerformanceTabs analytics={analytics} />
+          </Grid>
+        </Grid>
+      </motion.div>
+    );
+  };
+
   return (
-    <Box sx={{ width: '100%', maxWidth: 1440, mx: 'auto', p: { xs: 1, md: 3 } }}>
-      {/* Filters Section - MUI DatePickers and Selects */}
-      <Box sx={{ mb: 3, p: 2, borderRadius: 2, background: 'var(--color-surface)', boxShadow: 1 }}>
+    <Box sx={{ width: '100%', p: { xs: 1, sm: 2, md: 2.5 } }}> {/* Consistent page padding */}
+      <Typography variant="h4" component="h1" sx={{ mb: 3, color: colors.textPrimary, fontWeight: typography.fontWeight.bold }}>
+        Performance Analytics
+      </Typography>
+
+      {/* Filters Section */}
+      <Paper sx={{ mb: 3, p: 2, borderRadius: br.md, backgroundColor: colors.surface, border: `1px solid ${colors.border}` }}>
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-            {/* Date Range Filters */}
-            <DatePicker
-              label="Start Date"
-              value={filters.dateRange?.startDate ? new Date(filters.dateRange.startDate) : null}
-              onChange={handleDateChange('startDate')}
-              slotProps={{ textField: { size: "small", sx: { minWidth: 160 } } }}
-            />
-            <DatePicker
-              label="End Date"
-              value={filters.dateRange?.endDate ? new Date(filters.dateRange.endDate) : null}
-              onChange={handleDateChange('endDate')}
-              slotProps={{ textField: { size: "small", sx: { minWidth: 160 } } }}
-            />
-            {/* Strategy Filter */}
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel id="strategy-filter-label">Strategy</InputLabel>
-              <Select
-                labelId="strategy-filter-label"
-                multiple
-                value={filters.strategies || []}
-                onChange={e => setFilters(f => ({ ...f, strategies: e.target.value as number[] }))}
-                input={<OutlinedInput label="Strategy" />}
-                renderValue={selected => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {(selected as number[]).map(val => {
-                      const name = analytics?.availableStrategies?.find(s => s.strategy_id === val)?.strategy_name || val;
-                      return <Chip key={val} label={name} size="small" />;
-                    })}
-                  </Box>
-                )}
-              >
-                {analytics?.availableStrategies?.map(strategy => (
-                  <MenuItem key={strategy.strategy_id} value={strategy.strategy_id}>
-                    {strategy.strategy_name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            {/* Asset Class Filter */}
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel id="asset-class-filter-label">Asset Class</InputLabel>
-              <Select
-                labelId="asset-class-filter-label"
-                multiple
-                value={filters.assetClasses || []}
-                onChange={e => setFilters(f => ({ ...f, assetClasses: e.target.value as string[] }))}
-                input={<OutlinedInput label="Asset Class" />}
-                renderValue={selected => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {(selected as string[]).map(val => <Chip key={val} label={val} size="small" />)}
-                  </Box>
-                )}
-              >
-                {analytics?.availableAssetClasses?.map(assetClass => (
-                  <MenuItem key={assetClass} value={assetClass}>
-                    {assetClass}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            {/* Exchange Filter */}
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel id="exchange-filter-label">Exchange</InputLabel>
-              <Select
-                labelId="exchange-filter-label"
-                multiple
-                value={filters.exchanges || []}
-                onChange={e => setFilters(f => ({ ...f, exchanges: e.target.value as string[] }))}
-                input={<OutlinedInput label="Exchange" />}
-                renderValue={selected => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {(selected as string[]).map(val => <Chip key={val} label={val} size="small" />)}
-                  </Box>
-                )}
-              >
-                {analytics?.availableExchanges?.map(exchange => (
-                  <MenuItem key={exchange} value={exchange}>
-                    {exchange}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            {/* Ticker Filter */}
-            <FormControl size="small" sx={{ minWidth: 150 }}>
-              <InputLabel id="ticker-filter-label">Ticker</InputLabel>
-              <Select
-                labelId="ticker-filter-label"
-                multiple
-                value={filters.tickers || []}
-                onChange={e => setFilters(f => ({ ...f, tickers: e.target.value as string[] }))}
-                input={<OutlinedInput label="Ticker" />}
-                renderValue={selected => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {(selected as string[]).map(val => <Chip key={val} label={val} size="small" />)}
-                  </Box>
-                )}
-              >
-                {analytics?.availableTickers?.map(ticker => (
-                  <MenuItem key={ticker} value={ticker}>
-                    {ticker}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            {/* Apply Filters Button */}
-            <Button
-              variant="contained"
-              color="primary"
-              sx={{ ml: 2, alignSelf: 'center', height: 40 }}
-              onClick={() => fetchAnalyticsData(filters as Record<string, unknown>)}
-              disabled={isLoadingAnalytics}
-            >
-              {isLoadingAnalytics ? <CircularProgress size={20} /> : 'Apply Filters'}
-            </Button>
-            {/* Clear Filters Button */}
-            <Button
-              variant="outlined"
-              color="secondary"
-              sx={{ ml: 1, alignSelf: 'center', height: 40 }}
-              onClick={clearFilters}
-              disabled={isLoadingAnalytics}
-            >
-              Clear Filters
-            </Button>
-          </Box>
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={6} md={3}>
+              <DatePicker
+                label="Start Date"
+                value={filters.dateRange?.startDate ? new Date(filters.dateRange.startDate) : null}
+                onChange={handleDateChange('startDate')}
+                slotProps={{ textField: { size: "small", fullWidth: true } }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <DatePicker
+                label="End Date"
+                value={filters.dateRange?.endDate ? new Date(filters.dateRange.endDate) : null}
+                onChange={handleDateChange('endDate')}
+                slotProps={{ textField: { size: "small", fullWidth: true } }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3} lg={2}>
+              <FormControl size="small" fullWidth>
+                <InputLabel>Strategy</InputLabel>
+                <Select
+                  multiple
+                  value={filters.strategies || []}
+                  onChange={handleMultiSelectChange('strategies') as Record<string, unknown>}
+                  input={<OutlinedInput label="Strategy" />}
+                  renderValue={(selected) => (selected as number[]).map(val => analytics?.availableStrategies?.find(s => s.strategy_id === val)?.strategy_name || val).join(', ')}
+                >
+                  {analytics?.availableStrategies?.map(s => <MenuItem key={s.strategy_id} value={s.strategy_id}>{s.strategy_name}</MenuItem>)}
+                </Select>
+              </FormControl>
+            </Grid>
+            {/* Add more filters (Asset Class, Exchange, Ticker) similarly if needed */}
+            <Grid item xs={12} sm={6} md={3}>
+              <Button variant="contained" onClick={applyFilters} disabled={isLoadingAnalytics} sx={{backgroundColor: colors.primary, '&:hover': {backgroundColor: alpha(colors.primary, 0.85)}}}>
+                {isLoadingAnalytics ? <CircularProgress size={24} color="inherit"/> : "Apply Filters"}
+              </Button>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Button variant="outlined" onClick={clearFilters} disabled={isLoadingAnalytics} sx={{borderColor: colors.border, color: colors.textSecondary}}>
+                Clear Filters
+              </Button>
+            </Grid>
+          </Grid>
         </LocalizationProvider>
-        {/* Error State */}
-        {analyticsError && (
-          <Alert severity="error" sx={{ mt: 2 }}>{analyticsError}</Alert>
-        )}
-      </Box>
-      {/* Loading State */}
-      {isLoadingAnalytics && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 200 }}>
-          <CircularProgress />
-        </Box>
-      )}
+      </Paper>
 
-      {/* KPIs Section */}
-import TradeStatsCard from '../components/analytics/TradeStatsCard';
-
-      <Box sx={{ mb: 4 }}>
-        {/* Consolidated Stats Card */}
-        {analytics && <Box sx={{ mb: 2 }}><TradeStatsCard analytics={analytics} /></Box>}
-        {/* Individual Metric Cards */}
-        <Box className="grid grid-cols-12 gap-4">
-          <KeyMetricCard
-            title="Net P&L"
-            value={analytics?.totalRealizedNetPnl != null ? analytics.totalRealizedNetPnl.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '--'}
-            change={''}
-            trendData={analytics?.equityCurve ? analytics.equityCurve.map(pt => ({ value: pt.equity })) : undefined}
-          />
-          <KeyMetricCard
-            title="Win Rate"
-            value={analytics?.winRateOverall != null ? `${analytics.winRateOverall.toFixed(1)}%` : '--'}
-            change={''}
-            trendData={undefined}
-          />
-          <KeyMetricCard
-            title="Max Drawdown %"
-            value={analytics?.maxDrawdownPercentage != null ? `${analytics.maxDrawdownPercentage.toFixed(2)}%` : '--'}
-            change={''}
-            trendData={undefined}
-          />
-          <KeyMetricCard
-            title="Profit Factor"
-            value={analytics?.totalRealizedGrossPnl && analytics?.totalFeesPaidOnClosedPortions
-              ? ((analytics.totalRealizedGrossPnl - analytics.totalFeesPaidOnClosedPortions) / Math.abs(analytics.totalFeesPaidOnClosedPortions)).toFixed(2)
-              : '--'}
-            change={''}
-            trendData={undefined}
-          />
-          <KeyMetricCard
-            title="Avg R-Multiple"
-            value={analytics?.avgRMultiple != null ? analytics.avgRMultiple.toFixed(2) : '--'}
-            change={''}
-            trendData={undefined}
-          />
-        </Box>
-      </Box>
-
-      {/* Main Charts & Visualizations */}
-      <Box className="grid grid-cols-12 gap-4">
-        {/* Equity Curve */}
-        <Box className="col-span-12 lg:col-span-8">
-          {isLoadingAnalytics ? (
-            <Skeleton variant="rectangular" height={320} sx={{ borderRadius: 3, bgcolor: 'var(--color-surface)' }} />
-          ) : analytics?.equityCurve && analytics.equityCurve.length > 0 ? (
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-              <EquityCurveChart equityCurve={analytics.equityCurve} />
-            </motion.div>
-          ) : (
-            <Box className="flex items-center justify-center h-full min-h-[200px] bg-surface rounded-2xl">
-              <span className="text-on-surface-variant">No equity curve data available.</span>
-            </Box>
-          )}
-        </Box>
-        {/* Drawdown Curve */}
-        <Box className="col-span-12 lg:col-span-4">
-          {isLoadingAnalytics ? (
-            <Skeleton variant="rectangular" height={320} sx={{ borderRadius: 3, bgcolor: 'var(--color-surface)' }} />
-          ) : analytics?.equityCurve && analytics.equityCurve.length > 0 ? (
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}>
-              <DrawdownCurveChart data={analytics.equityCurve.map(pt => ({ date: String(pt.date), value: pt.equity }))} />
-            </motion.div>
-          ) : (
-            <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
-              <Typography variant="body2" color="text.secondary">No drawdown data available.</Typography>
-            </Box>
-          )}
-        </Box>
-        {/* Monthly Returns Histogram */}
-        <Box className="col-span-12 md:col-span-6">
-          {isLoadingAnalytics ? (
-            <Skeleton variant="rectangular" height={260} sx={{ borderRadius: 3, bgcolor: 'var(--color-surface)' }} />
-          ) : analytics?.pnlByMonth && analytics.pnlByMonth.length > 0 ? (
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.2 }}>
-              <MonthlyReturnsChart data={analytics.pnlByMonth.map(pt => ({ value: pt.totalNetPnl, count: pt.tradeCount }))} />
-            </motion.div>
-          ) : (
-            <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
-              <Typography variant="body2" color="text.secondary">No monthly returns data available.</Typography>
-            </Box>
-          )}
-        </Box>
-        {/* PnL vs Duration Scatter Plot */}
-        <Box className="col-span-12 md:col-span-6">
-          {isLoadingAnalytics ? (
-            <Skeleton variant="rectangular" height={260} sx={{ borderRadius: 3, bgcolor: 'var(--color-surface)' }} />
-          ) : analytics?.pnlVsDurationSeries && analytics.pnlVsDurationSeries.length > 0 ? (
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.3 }}>
-              <PnlVsDurationScatterPlot data={analytics.pnlVsDurationSeries} />
-            </motion.div>
-          ) : (
-            <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
-              <Typography variant="body2" color="text.secondary">No PnL vs Duration data available.</Typography>
-            </Box>
-          )}
-        </Box>
-        {/* Risk Scatter Chart */}
-        <Box className="col-span-12 md:col-span-6">
-          {isLoadingAnalytics ? (
-            <Skeleton variant="rectangular" height={260} sx={{ borderRadius: 3, bgcolor: 'var(--color-surface)' }} />
-          ) : (
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.4 }}>
-              <RiskScatterChart />
-            </motion.div>
-          )}
-        </Box>
-        {/* Performance By Month Chart */}
-        <Box className="col-span-12 md:col-span-6">
-          {isLoadingAnalytics ? (
-            <Skeleton variant="rectangular" height={260} sx={{ borderRadius: 3, bgcolor: 'var(--color-surface)' }} />
-          ) : analytics?.pnlByMonth && analytics.pnlByMonth.length > 0 ? (
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.5 }}>
-              <PerformanceByTimeChart
-                title="P&L by Month"
-                data={analytics.pnlByMonth}
-                dataKeyX="period"
-                dataKeyY="totalNetPnl"
-              />
-            </motion.div>
-          ) : (
-            <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
-              <Typography variant="body2" color="text.secondary">No P&L by Month data available.</Typography>
-            </Box>
-          )}
-        </Box>
-        {/* Performance By Day of Week Chart */}
-        <Box className="col-span-12 md:col-span-6">
-          {isLoadingAnalytics ? (
-            <Skeleton variant="rectangular" height={260} sx={{ borderRadius: 3, bgcolor: 'var(--color-surface)' }} />
-          ) : analytics?.pnlByDayOfWeek && analytics.pnlByDayOfWeek.length > 0 ? (
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.6 }}>
-              <PerformanceByTimeChart
-                title="P&L by Day of Week"
-                data={analytics.pnlByDayOfWeek}
-                dataKeyX="period"
-                dataKeyY="totalNetPnl"
-              />
-            </motion.div>
-          ) : (
-            <Box display="flex" alignItems="center" justifyContent="center" minHeight={200}>
-              <Typography variant="body2" color="text.secondary">No P&L by Day of Week data available.</Typography>
-            </Box>
-          )}
-        </Box>
-        {/* Daily Heatmap Calendar */}
-        <Box className="col-span-12">
-          {isLoadingAnalytics ? (
-            <Skeleton variant="rectangular" height={180} sx={{ borderRadius: 3, bgcolor: 'var(--color-surface)' }} />
-          ) : (
-            <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.7 }}>
-              <DailyHeatmapCalendar />
-            </motion.div>
-          )}
-        </Box>
-      </Box>
-
-      {/* Grouped Performance Tables Section (Tabs) */}
-      <Box sx={{ mt: 6 }}>
-        <GroupedPerformanceTabs analytics={analytics} />
-      </Box>
+      {renderAnalyticsContent()}
     </Box>
   );
-}
+};
 
 export default AnalyticsPage;

@@ -1,8 +1,12 @@
 // packages/electron-app/src/database/transactionService.js
 const { getDb } = require('./connection');
 const tradeService = require('./tradeService'); // To call _recalculateTradeState
+const accountService = require('./accountService');
 
 function addTransactionAndManageTrade(transactionData) {
+  // Accepts optional account_id; fallback to first available cash account if not provided
+  let { account_id } = transactionData;
+
   console.log('[TRANSACTION_SERVICE] addTransactionAndManageTrade CALLED');
   const db = getDb();
   const {
@@ -19,20 +23,22 @@ function addTransactionAndManageTrade(transactionData) {
 
   const transactFnResult = db.transaction(() => {
     let trade;
-    const findOpenTradeQuery = `
-      SELECT trade_id, trade_direction 
+    // Find the most recent trade for this instrument, asset class, and exchange
+    const findMostRecentTradeQuery = `
+      SELECT trade_id, trade_direction, status 
       FROM trades  
       WHERE instrument_ticker = @instrument_ticker  
       AND asset_class = @asset_class  
       AND exchange = @exchange  
-      AND status = 'Open' 
+      ORDER BY trade_id DESC LIMIT 1
     `;
-    trade = db.prepare(findOpenTradeQuery).get({ instrument_ticker, asset_class, exchange });
+    trade = db.prepare(findMostRecentTradeQuery).get({ instrument_ticker, asset_class, exchange });
 
     let current_trade_id;
     let position_trade_direction;
 
-    if (!trade) {
+    // If no trade exists, or the most recent trade is closed, create a new trade
+    if (!trade || trade.status !== 'Open') {
       position_trade_direction = (action === 'Buy') ? 'Long' : 'Short';
       const newTradeStmt = db.prepare(
         `INSERT INTO trades (
@@ -49,7 +55,22 @@ function addTransactionAndManageTrade(transactionData) {
       });
       current_trade_id = newTradeResult.trade_id;
       if (!current_trade_id) throw new Error("[TRANSACTION_SERVICE] DB error: Failed to create new trade.");
+      // On new trade (first transaction), subtract initial cost from account as "trade_open"
+      // For now, assume full notional: quantity * price + fees
+      const openAmount = -1 * (quantity * price + (fees_for_transaction || 0));
+      accountService.addAccountTransaction({
+        accountId: account_id,
+        type: 'trade_open',
+        amount: openAmount,
+        relatedTradeId: current_trade_id,
+        memo: `Open trade for ${instrument_ticker}`
+      });
     } else {
+      // Defensive: ensure trade is still open
+      const tradeStatusCheck = db.prepare('SELECT status FROM trades WHERE trade_id = ?').get(trade.trade_id);
+      if (!tradeStatusCheck || tradeStatusCheck.status !== 'Open') {
+        throw new Error(`[TRANSACTION_SERVICE] Attempted to append transaction to a closed trade (ID: ${trade.trade_id}). This should never happen.`);
+      }
       current_trade_id = trade.trade_id;
       position_trade_direction = trade.trade_direction;
     }
@@ -73,6 +94,7 @@ function addTransactionAndManageTrade(transactionData) {
       throw new Error(`[TRANSACTION_SERVICE] Cannot ${action.toLowerCase()} ${quantity}. Only ${currentOpenPositionSize} effectively open for trade ID ${current_trade_id}.`);
     }
 
+    // Insert strategy_id and all relevant fields into transactions
     const transactionInsertStmt = db.prepare(
       `INSERT INTO transactions (
          trade_id, action, quantity, price, datetime, fees, notes, 
@@ -91,6 +113,19 @@ function addTransactionAndManageTrade(transactionData) {
         for (const emotionId of emotion_ids) {
             insertEmotionStmt.run(transactionResult.transaction_id, emotionId);
         }
+    }
+
+    // Credit account for every closing transaction (partial or full close)
+    if (isExitingAction) {
+      // Proceeds = quantity * price - fees
+      const proceeds = quantity * price - (fees_for_transaction || 0);
+      accountService.addAccountTransaction({
+        accountId: account_id,
+        type: 'trade_close',
+        amount: proceeds,
+        relatedTradeId: current_trade_id,
+        memo: `Close (partial or full) for ${instrument_ticker}`
+      });
     }
 
     tradeService._recalculateTradeState(current_trade_id, db); // Pass db instance for transaction

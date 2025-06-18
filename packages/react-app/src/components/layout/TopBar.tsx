@@ -1,60 +1,258 @@
-import { Bell, Calendar, Search } from 'lucide-react';
-import { format } from 'date-fns';
+// packages/react-app/src/components/layout/TopBar.tsx
+import React, { useState } from 'react';
+import {
+  AppBar,
+  Toolbar,
+  IconButton,
+  Button,
+  Box,
+  TextField,
+  InputAdornment,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Avatar,
+  useTheme,
+  useMediaQuery,
+  Divider,
+  SelectChangeEvent,
+  Menu, // For mobile actions
+} from '@mui/material';
+import {
+  Menu as MenuIcon, // Hamburger
+  Search as SearchIcon,
+  
+  PlusCircle as AddTradeIcon,
+
+
+  MoreVertical as MoreVertIcon, // For mobile actions
+} from 'lucide-react';
+import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+
+import { useAppStore } from '../../stores/appStore'; // For strategy list, and eventually filter state
+import { colors, typography, borderRadius, spacing } from '../../styles/design-tokens'; // For direct color usage if needed
+import { alpha } from '@mui/material/styles';
 
 interface TopBarProps {
   onMenuClick?: () => void;
 }
 
 export function TopBar({ onMenuClick }: TopBarProps) {
-  const dateRange = {
-    start: new Date(2023, 0, 1), // Jan 1, 2023
-    end: new Date(2023, 4, 10)   // May 10, 2023
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Local state for filters - ideally, this would live in Zustand store if global
+  const [startDate, setStartDate] = useState<Date | null>(new Date(2025, 0, 1)); // Example Start Date
+  const [endDate, setEndDate] = useState<Date | null>(new Date(2025, 5, 12));     // Example End Date
+  const [selectedStrategy, setSelectedStrategy] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const analytics = useAppStore(state => state.analytics);
+  const navigateTo = useAppStore(state => state.navigateTo);
+
+  const handleStrategyChange = (event: SelectChangeEvent<string>) => {
+    setSelectedStrategy(event.target.value as string);
+    // TODO: Trigger data refetch via appStore action
   };
-  
-  return (
-    <header className="h-14 flex items-center justify-between px-4 bg-surface border-b border-card-stroke">
-      <div className="flex items-center gap-4">
-        {/* Hamburger menu on mobile */}
-        <button
-          className="md:hidden mr-2 p-2 rounded focus:outline-none text-on-surface-variant hover:text-primary"
-          aria-label="Open sidebar"
-          onClick={onMenuClick}
-        >
-          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
-        </button>
-        <div className="flex items-center gap-2 text-xs text-on-surface-variant">
-          <span>Date Range:</span>
-          <div className="flex items-center gap-1.5 rounded-md px-2 py-1 bg-surface-variant">
-            <Calendar size={14} />
-            <span>
-              {format(dateRange.start, 'MMM d, yyyy')} - {format(dateRange.end, 'MMM d, yyyy')}
-            </span>
-          </div>
-        </div>
-        <div className="hidden md:flex">
-          <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs bg-surface-variant text-primary">
-            <span className="hidden md:inline">Settings</span> All Strategies
-          </span>
-        </div>
-      </div>
-      <div className="flex items-center gap-3">
-        <div className="relative hidden md:block">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant" />
-          <input 
-            type="text" 
-            placeholder="Search tickers..." 
-            className="h-8 pl-8 pr-3 rounded-md w-64 text-sm focus:outline-none focus:ring-1 bg-surface-variant border border-card-stroke text-on-surface"
-          />
-        </div>
-        <button className="p-1.5 rounded-md text-on-surface-variant">
-          <Bell size={18} />
-        </button>
-        <div className="ml-2 flex items-center gap-2">
-          <div className="h-8 w-8 rounded-full flex items-center justify-center font-medium bg-primary/20 text-primary">
-            ZK
-          </div>
-        </div>
-      </div>
-    </header>
+
+  const handleDateChange = (type: 'start' | 'end') => (date: Date | null) => {
+    if (type === 'start') setStartDate(date);
+    else setEndDate(date);
+    // TODO: Trigger data refetch via appStore action
+  };
+
+  // Mobile actions menu
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const mobileMenuOpen = Boolean(anchorEl);
+  const handleMobileMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleMobileMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const actionButtons = (
+    <>
+      <Button
+        variant="contained"
+        startIcon={<AddTradeIcon size={18} />}
+        onClick={() => navigateTo('logTransactionForm', { navTimestamp: Date.now() })}
+        sx={{
+          backgroundColor: colors.primary, // Using design token
+          color: colors.onPrimary,
+          '&:hover': { backgroundColor: alpha(colors.primary, 0.85) },
+          textTransform: 'none',
+          fontSize: typography.fontSize.sm,
+          padding: '6px 12px',
+          borderRadius: borderRadius.md,
+        }}
+      >
+        Add Trade
+      </Button>
+
+
+    </>
   );
-} 
+
+  return (
+    <AppBar
+      position="static"
+      elevation={0}
+      sx={{
+        backgroundColor: colors.topBarBackground, // design token
+        borderBottom: `1px solid ${colors.border}`, // design token
+      }}
+    >
+      <Toolbar sx={{ minHeight: spacing.topBarHeight, height: spacing.topBarHeight, paddingX: { xs: 1, sm: 2 } }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
+          {onMenuClick && (
+            <IconButton
+              color="inherit"
+              aria-label="open drawer"
+              edge="start"
+              onClick={onMenuClick}
+              sx={{ mr: 1, color: colors.textSecondary }}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            {!isMobile && (
+              <>
+                <DatePicker
+                  label="Start Date"
+                  value={startDate}
+                  onChange={handleDateChange('start')}
+                  slotProps={{
+                    textField: { size: 'small', sx: { mr: 1, width: 150 } },
+                    openPickerButton: { sx: { color: colors.textSecondary } },
+                  }}
+                  sx={{
+                    '& .MuiInputLabel-root': { fontSize: typography.fontSize.xs, color: colors.textSecondary },
+                    '& .MuiInputBase-input': { fontSize: typography.fontSize.sm, color: colors.onSurface },
+                    '& .MuiOutlinedInput-root fieldset': { borderColor: colors.border },
+                  }}
+                />
+                <DatePicker
+                  label="End Date"
+                  value={endDate}
+                  onChange={handleDateChange('end')}
+                  slotProps={{
+                    textField: { size: 'small', sx: { mr: 2, width: 150 } },
+                    openPickerButton: { sx: { color: colors.textSecondary } },
+                  }}
+                  sx={{
+                    '& .MuiInputLabel-root': { fontSize: typography.fontSize.xs, color: colors.textSecondary },
+                    '& .MuiInputBase-input': { fontSize: typography.fontSize.sm, color: colors.onSurface },
+                    '& .MuiOutlinedInput-root fieldset': { borderColor: colors.border },
+                  }}
+                />
+                <Divider orientation="vertical" flexItem sx={{ borderColor: colors.border, mx: 1, my: 1.5, display: { xs: 'none', md: 'block' } }} />
+                <FormControl size="small" sx={{ minWidth: 180, mr: 2 }}>
+                  <InputLabel
+                    id="strategy-select-label"
+                    sx={{ fontSize: typography.fontSize.xs, color: colors.textSecondary }}
+                  >
+                    Strategy
+                  </InputLabel>
+                  <Select
+                    labelId="strategy-select-label"
+                    value={selectedStrategy}
+                    onChange={handleStrategyChange}
+                    label="Strategy"
+                    sx={{
+                        fontSize: typography.fontSize.sm,
+                        color: colors.onSurface,
+                        '.MuiOutlinedInput-notchedOutline': { borderColor: colors.border },
+                        '.MuiSvgIcon-root': { color: colors.textSecondary },
+                        borderRadius: borderRadius.md,
+                    }}
+                  >
+                    <MenuItem value="all">All Strategies</MenuItem>
+                    {analytics?.availableStrategies?.map((s) => (
+                      <MenuItem key={s.strategy_id} value={String(s.strategy_id)}>
+                        {s.strategy_name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </>
+            )}
+          </LocalizationProvider>
+        </Box>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: isMobile ? 0.5 : 1.5 }}>
+          {!isMobile && (
+            <TextField
+              variant="outlined"
+              size="small"
+              placeholder="Search Tickers..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon style={{ color: colors.textSecondary }} />
+                  </InputAdornment>
+                ),
+                sx: {
+                  fontSize: typography.fontSize.sm,
+                  color: colors.onSurface,
+                  borderRadius: borderRadius.md,
+                  backgroundColor: colors.surfaceVariant, // design token
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: colors.border },
+                   height: '36px', // Match button height
+                },
+              }}
+              sx={{ width: 200 }}
+            />
+          )}
+
+          {isMobile ? (
+            <>
+              <IconButton sx={{color: colors.textSecondary}}><SearchIcon /></IconButton>
+              <IconButton
+                aria-label="more actions"
+                id="long-button"
+                aria-controls={mobileMenuOpen ? 'long-menu' : undefined}
+                aria-expanded={mobileMenuOpen ? 'true' : undefined}
+                aria-haspopup="true"
+                onClick={handleMobileMenuClick}
+                sx={{color: colors.textSecondary}}
+              >
+                <MoreVertIcon />
+              </IconButton>
+              <Menu
+                id="long-menu"
+                MenuListProps={{ 'aria-labelledby': 'long-button' }}
+                anchorEl={anchorEl}
+                open={mobileMenuOpen}
+                onClose={handleMobileMenuClose}
+                PaperProps={{
+                  style: {
+                    backgroundColor: colors.surface,
+                    border: `1px solid ${colors.border}`,
+                  },
+                }}
+              >
+                <MenuItem onClick={handleMobileMenuClose} sx={{fontSize: typography.fontSize.sm, color: colors.onSurface}}>Add Trade</MenuItem>
+
+
+              </Menu>
+            </>
+          ) : (
+            actionButtons
+          )}
+          <IconButton sx={{ p: '6px', ml: isMobile ? 0 : 1 }}>
+            <Avatar sx={{ width: 32, height: 32, bgcolor: colors.primary, fontSize: typography.fontSize.sm }}>
+              ZN {/* Or UserIcon */}
+            </Avatar>
+          </IconButton>
+        </Box>
+      </Toolbar>
+    </AppBar>
+  );
+}

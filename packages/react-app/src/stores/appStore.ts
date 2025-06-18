@@ -15,6 +15,7 @@ export type View =
   | 'dashboard'
   | 'portfolio'
   | 'analyticsPage'
+  | 'accountsPage'
   | 'tradesList'
   | 'watchlist'
   | 'settings'
@@ -32,7 +33,45 @@ interface AppViewParams {
 
 import type { AnalyticsData } from '../types';
 
+import type { AccountRecord } from '../types';
+
+interface AccountTransactionRecord {
+  transaction_id: number;
+  account_id: number;
+  type: string;
+  amount: number;
+  related_trade_id?: number | null;
+  memo?: string | null;
+  created_at: string;
+}
+
 interface AppState {
+  // --- Settings ---
+  riskFreeRate: number;
+  setRiskFreeRate: (rate: number) => void;
+  // --- Account state ---
+  accounts: AccountRecord[];
+
+  // Aggregates the balances of all non-archived, non-deleted accounts
+  getTotalBuyingPower: () => number;
+  accountTransactions: AccountTransactionRecord[];
+  selectedAccountId: number | null;
+  isLoadingAccounts: boolean;
+  errorLoadingAccounts: string | null;
+  isLoadingAccountTransactions: boolean;
+  errorLoadingAccountTransactions: string | null;
+  fetchAccounts: () => Promise<void>;
+  selectAccount: (accountId: number) => void;
+  fetchAccountTransactions: (accountId: number) => Promise<void>;
+  createAccount: (opts: { name: string; type?: string }) => Promise<{ success: boolean; id?: number; message?: string }>;
+  renameAccount: (opts: { accountId: number; newName: string }) => Promise<{ success: boolean; message?: string }>;
+  archiveAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
+  unarchiveAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
+  deleteAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
+  addAccountTransaction: (opts: { accountId: number; type: string; amount: number; relatedTradeId?: number | null; memo?: string | null }) => Promise<{ success: boolean; id?: number; message?: string }>;
+  getAccountBalance: (accountId: number) => Promise<any>;
+  getAccountTimeSeries: (accountId: number) => Promise<any>;
+
   currentView: View;
   editingTradeId: number | null;
   trades: TradeListView[];
@@ -70,6 +109,116 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
+  // --- Settings ---
+  riskFreeRate: 4.5, // Annual risk-free rate (percent)
+  setRiskFreeRate: (rate: number) => set({ riskFreeRate: rate }),
+  // --- Account state ---
+  accounts: [],
+
+  // --- Derived selectors ---
+  getTotalBuyingPower: () => {
+    const { accounts } = get();
+    // Match the Accounts section: sum balances of all non-archived, non-deleted accounts
+    return accounts
+      .filter(acc => !acc.is_archived && !acc.is_deleted)
+      .reduce((sum, acc) => sum + (typeof acc.balance === 'number' ? acc.balance : 0), 0);
+  },
+
+  accountTransactions: [],
+  selectedAccountId: null,
+  isLoadingAccounts: false,
+  errorLoadingAccounts: null,
+  isLoadingAccountTransactions: false,
+  errorLoadingAccountTransactions: null,
+
+  fetchAccounts: async () => {
+    set({ isLoadingAccounts: true, errorLoadingAccounts: null });
+    try {
+      const result = await window.electronAPI.getAccounts();
+      let accounts: AccountRecord[] = Array.isArray(result) ? result : (result || []);
+      // Fetch balances for each account in parallel
+      const accountsWithBalances = await Promise.all(
+        accounts.map(async (acc) => {
+          try {
+            const balance = await window.electronAPI.getAccountBalance(acc.account_id);
+            return { ...acc, balance: typeof balance === 'number' ? balance : 0 };
+          } catch {
+            return { ...acc, balance: 0 };
+          }
+        })
+      );
+      set({ accounts: accountsWithBalances });
+    } catch (error) {
+      set({ errorLoadingAccounts: (error as Error).message, accounts: [] });
+    } finally {
+      set({ isLoadingAccounts: false });
+    }
+  },
+
+  selectAccount: (accountId) => {
+    set({ selectedAccountId: accountId });
+    get().fetchAccountTransactions(accountId);
+  },
+
+  fetchAccountTransactions: async (accountId) => {
+    set({ isLoadingAccountTransactions: true, errorLoadingAccountTransactions: null });
+    try {
+      const result = await window.electronAPI.getAccountTransactions({ accountId });
+      if (Array.isArray(result)) {
+        set({ accountTransactions: result });
+      } else if (result && result.success === false) {
+        throw new Error(result.message || 'Failed to fetch account transactions');
+      } else {
+        set({ accountTransactions: result || [] });
+      }
+    } catch (error) {
+      set({ errorLoadingAccountTransactions: (error as Error).message, accountTransactions: [] });
+    } finally {
+      set({ isLoadingAccountTransactions: false });
+    }
+  },
+
+  createAccount: async (opts) => {
+    const result = await window.electronAPI.createAccount(opts);
+    if (result.success) await get().fetchAccounts();
+    return result;
+  },
+  renameAccount: async (opts) => {
+    const result = await window.electronAPI.renameAccount(opts);
+    if (result.success) await get().fetchAccounts();
+    return result;
+  },
+  archiveAccount: async (opts) => {
+    const result = await window.electronAPI.archiveAccount(opts);
+    if (result.success) await get().fetchAccounts();
+    return result;
+  },
+  unarchiveAccount: async (opts) => {
+    const result = await window.electronAPI.unarchiveAccount(opts);
+    if (result.success) await get().fetchAccounts();
+    return result;
+  },
+  deleteAccount: async (opts) => {
+    const result = await window.electronAPI.deleteAccount(opts);
+    if (result.success) await get().fetchAccounts();
+    return result;
+  },
+  addAccountTransaction: async (opts) => {
+    const result = await window.electronAPI.addAccountTransaction(opts);
+    if (result.success) {
+      // Always refresh accounts (and thus balances) after deposit/withdrawal/transaction
+      await get().fetchAccounts();
+      if (opts.accountId) await get().fetchAccountTransactions(opts.accountId);
+    }
+    return result;
+  },
+  getAccountBalance: async (accountId) => {
+    return window.electronAPI.getAccountBalance(accountId);
+  },
+  getAccountTimeSeries: async (accountId) => {
+    return window.electronAPI.getAccountTimeSeries(accountId);
+  },
+
   // --- Loading/Error states for trades ---
   isLoadingTrades: false,
   errorLoadingTrades: null,
@@ -124,8 +273,10 @@ export const useAppStore = create<AppState>((set, get) => ({
         window.electronAPI.testDbConnection(),
         window.electronAPI.getTrades(),
         window.electronAPI.getEmotions(),
-        window.electronAPI.getAppVersion(),
+        window.electronAPI.getAppVersion()
       ]);
+      // Always call fetchAccounts so the store is updated the same way everywhere
+      const accounts = await get().fetchAccounts();
 
       let dbStatusMessage = 'DB status response not recognized.';
       if (typeof dbTestResult === 'string') {
@@ -141,6 +292,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         availableEmotions: emotions || [],
         appVersion: appVersion || 'N/A',
         dbStatus: dbStatusMessage,
+        accounts: Array.isArray(accounts) ? accounts : [],
         isLoadingInitialData: false,
       });
     } catch (error) {

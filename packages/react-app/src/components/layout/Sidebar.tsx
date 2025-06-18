@@ -1,16 +1,26 @@
-import { BarChart3, LineChart, Settings, Home, LayoutDashboard, Wallet, Star } from 'lucide-react';
+// packages/react-app/src/components/layout/Sidebar.tsx
+import {
+  LayoutDashboard,
+  
+  BarChart3 as AnalyticsIcon,
+  ListCollapse as TradesIcon,
+  Wallet as AccountsIcon,
+  Settings,
+  Home,
+} from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useAppStore } from '../../stores/appStore';
 import type { View } from '../../stores/appStore';
+import { colors, typography, spacing } from '../../styles/design-tokens'; // Import tokens
+import { alpha } from '@mui/material/styles';
 
-// Remove Link import - navigation is handled via navigateTo
 
 const navItems = [
   { name: 'Dashboard', view: 'dashboard', icon: LayoutDashboard },
-  { name: 'Portfolio', view: 'portfolio', icon: Wallet },
-  { name: 'Analytics', view: 'analyticsPage', icon: BarChart3 },
-  { name: 'Trades', view: 'tradesList', icon: LineChart },
-  { name: 'Watchlist', view: 'watchlist', icon: Star },
+  { name: 'Analytics', view: 'analyticsPage', icon: AnalyticsIcon },
+  { name: 'Trades', view: 'tradesList', icon: TradesIcon },
+  { name: 'Accounts', view: 'accountsPage', icon: AccountsIcon },
+  // { name: 'Watchlist', view: 'watchlist', icon: WatchlistIcon }, // Assuming 'watchlist' view exists
 ];
 
 interface SidebarProps {
@@ -20,43 +30,59 @@ interface SidebarProps {
 
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const { currentView, navigateTo } = useAppStore();
-  // Sidebar is always visible on md+, only shown on mobile if open
-  const sidebarClass = [
-    "h-full w-64 md:w-56 flex flex-col bg-surface border-r border-card-stroke z-50 transition-transform duration-200",
-    open ? "fixed top-0 left-0 md:static md:translate-x-0 translate-x-0" : "-translate-x-full md:translate-x-0 md:static hidden md:flex",
-    "md:h-full md:relative md:flex"
-  ].join(' ');
 
-  // Helper to close sidebar on mobile
-  const handleNavClick = () => {
-    if (onClose && window.innerWidth < 768) onClose();
-  };
+  const sidebarClass = cn(
+    "h-full flex flex-col z-40 transition-transform duration-300 ease-in-out",
+    "border-r", // Use Tailwind for border color controlled by theme
+    `w-[${spacing.sidebarWidth}]`, // Use spacing token
+    {
+      "translate-x-0": open,
+      "-translate-x-full": !open && true, // `true` is a placeholder for mobile, desktop is handled by md:static
+      "fixed md:static": true, // Fixed on mobile, static on desktop
+    }
+  );
+  
+  const navItemBaseClass = "flex items-center gap-3 px-3 mx-2 py-2.5 rounded-md w-[calc(100%-1rem)] text-left transition-colors duration-150 ease-in-out";
+  const navItemTextStyle = `text-[${typography.fontSize.sm}] font-[${typography.fontWeight.medium}]`;
 
   return (
     <aside
       className={sidebarClass}
+      style={{
+        backgroundColor: colors.sidebarBackground, // Use design token
+        borderColor: colors.border, // Use design token
+      }}
       role="navigation"
       aria-label="Sidebar"
       tabIndex={open ? 0 : -1}
     >
-      <div className="p-4 border-b border-card-stroke flex items-center justify-between">
+      <div
+        className="p-4 flex items-center justify-between"
+        style={{
+          borderBottom: `1px solid ${colors.border}`,
+          height: spacing.topBarHeight, // Match TopBar height
+        }}
+      >
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-8 h-8 rounded-md bg-primary text-on-primary">
-            <Home size={16} />
+          <div
+            className="flex items-center justify-center w-8 h-8 rounded-md"
+            style={{ backgroundColor: colors.primary, color: colors.onPrimary }}
+          >
+            <Home size={18} />
           </div>
-          <h1 className="text-lg font-semibold hidden md:block text-on-surface">Trade Journal</h1>
+          <h1
+            className="text-lg font-semibold"
+            style={{ color: colors.onSurface }}
+          >
+            TradeJournal
+          </h1>
         </div>
-        {/* Close button on mobile */}
-        <button
-          className="md:hidden p-2 ml-auto text-on-surface-variant hover:text-primary focus:outline-none"
-          aria-label="Close sidebar"
-          onClick={onClose}
-        >
-          <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-        </button>
+        {/* Optional: Close button for mobile if sidebar overlays content and doesn't push it */}
+        {/* <button className="md:hidden" onClick={onClose}>Close</button> */}
       </div>
-      <nav className="flex-1 py-4">
-        <ul className="space-y-1 px-2">
+
+      <nav className="flex-1 py-4 overflow-y-auto">
+        <ul className="space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.view;
@@ -64,31 +90,53 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
               <li key={item.view}>
                 <button
                   type="button"
-                  onClick={() => { navigateTo(item.view as View); handleNavClick(); }}
-                  className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg w-full text-left transition-colors',
-                    isActive ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-variant'
-                  )}
+                  onClick={() => {
+                    navigateTo(item.view as View);
+                    if (onClose) onClose(); // Close sidebar on mobile after navigation
+                  }}
+                  className={cn(navItemBaseClass, navItemTextStyle, {
+                    [`bg-[${alpha(colors.primary, 0.1)}] text-[${colors.primary}]`]: isActive, // Active state
+                    [`text-[${colors.textSecondary}] hover:bg-[${colors.surfaceVariant}] hover:text-[${colors.onSurface}]`]: !isActive, // Inactive state
+                  })}
+                  style={isActive ? {
+                    backgroundColor: colors.activeNavBackground,
+                    color: colors.activeNavText,
+                  } : {
+                    color: colors.textSecondary,
+                  }}
                 >
-                  <Icon size={18} />
-                  <span className="hidden md:inline">{item.name}</span>
+                  <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
+                  <span>{item.name}</span>
                 </button>
               </li>
             );
           })}
         </ul>
       </nav>
-      <div className="p-4 mt-auto border-t border-card-stroke">
+
+      <div
+        className="p-3 mt-auto"
+        style={{ borderTop: `1px solid ${colors.border}` }}
+      >
         <button
           type="button"
-          onClick={() => { navigateTo('settings'); handleNavClick(); }}
-          className={cn(
-            'flex items-center gap-3 px-3 py-2 rounded-lg w-full text-left transition-colors',
-            currentView === 'settings' ? 'bg-primary/10 text-primary' : 'text-on-surface-variant hover:bg-surface-variant'
-          )}
+          onClick={() => {
+            navigateTo('settings'); // Assuming 'settings' view exists
+            if (onClose) onClose();
+          }}
+          className={cn(navItemBaseClass, navItemTextStyle, {
+            [`bg-[${alpha(colors.primary, 0.1)}] text-[${colors.primary}]`]: currentView === 'settings',
+            [`text-[${colors.textSecondary}] hover:bg-[${colors.surfaceVariant}] hover:text-[${colors.onSurface}]`]: currentView !== 'settings',
+          })}
+           style={currentView === 'settings' ? {
+            backgroundColor: colors.activeNavBackground,
+            color: colors.activeNavText,
+          } : {
+            color: colors.textSecondary,
+          }}
         >
-          <Settings size={18} />
-          <span className="hidden md:inline">Settings</span>
+          <Settings size={20} strokeWidth={currentView === 'settings' ? 2.5 : 2} />
+          <span>Settings</span>
         </button>
       </div>
     </aside>

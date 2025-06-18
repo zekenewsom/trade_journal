@@ -1,9 +1,11 @@
 // File: zekenewsom-trade_journal/packages/react-app/src/views/TradesListPage.tsx
 // Modified for Stage 6: Add onMarkPriceUpdate callback to TradesTable
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import TradesTable from '../components/trades/TradesTable';
+import TransactionsTable from '../components/transactions/TransactionsTable';
 import { useAppStore } from '../stores/appStore';
+import { TransactionRecord } from '../types';
 
 interface TradesListPageProps {
   onEditTrade: (tradeId: number) => void;
@@ -11,8 +13,70 @@ interface TradesListPageProps {
 }
 
 const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade, onLogTransaction }) => {
-  const { trades, isLoadingTrades, errorLoadingTrades, deleteFullTradeInStore } = useAppStore();
+  const { trades, isLoadingTrades, errorLoadingTrades, deleteFullTradeInStore, refreshTrades } = useAppStore();
   const [filterText, setFilterText] = useState('');
+  const [allTransactions, setAllTransactions] = useState<TransactionRecord[]>([]);
+
+  const handleDeleteTransaction = async (transactionId: number) => {
+    if (window.confirm(`Are you sure you want to delete transaction ID ${transactionId}? This action cannot be undone.`)) {
+      try {
+        const result = await window.electronAPI.deleteSingleTransaction(transactionId);
+        if (result && result.success) {
+          if (typeof refreshTrades === 'function') {
+            await refreshTrades();
+          }
+        } else {
+          alert(result?.message || 'Failed to delete transaction.');
+        }
+      } catch (err) {
+        alert('Failed to delete transaction.');
+      }
+    }
+  };
+
+  // Debug: log trades
+  useEffect(() => {
+    console.log('[TradesListPage DEBUG] trades:', trades);
+  }, [trades]);
+
+  // Fetch all transactions for all trades
+  useEffect(() => {
+    async function fetchAllTransactions() {
+      if (!Array.isArray(trades) || trades.length === 0) {
+        setAllTransactions([]);
+        return;
+      }
+      try {
+        // Fetch each trade in full (with transactions)
+        const results = await Promise.all(
+          trades.map(async (trade: any) => {
+            if (!trade.trade_id) return [];
+            try {
+              const fullTrade = await window.electronAPI.getTradeWithTransactions(trade.trade_id);
+              // Inject ticker and exchange from parent trade into each transaction
+              if (!Array.isArray(fullTrade?.transactions)) return [];
+              // Debug: log trade object and ticker
+              console.log('[DEBUG] trade object for transaction mapping:', trade);
+              return fullTrade.transactions.map((tx: any) => ({
+                ...tx,
+                ticker: trade.instrument_ticker, // Use correct field
+                exchange: trade.exchange,
+              }));
+            } catch (err) {
+              console.error('Failed to fetch full trade', trade.trade_id, err);
+              return [];
+            }
+          })
+        );
+        // Flatten
+        setAllTransactions(results.flat());
+      } catch (err) {
+        console.error('Error fetching all transactions:', err);
+        setAllTransactions([]);
+      }
+    }
+    fetchAllTransactions();
+  }, [trades]);
 
   const handleDeleteFullTrade = async (tradeId: number) => {
     if (window.confirm(`Are you sure you want to delete the ENTIRE trade ID ${tradeId} and all its transactions? This action cannot be undone.`)) {
@@ -69,6 +133,12 @@ const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade, onLogTrans
       ) : (
         <p>No trades match your filter, or no trades have been logged yet.</p>
       )}
+      {/* Transactions Table: show all fetched transactions */}
+      <TransactionsTable
+        transactions={allTransactions}
+        onEditTrade={onEditTrade}
+        onDeleteTransaction={handleDeleteTransaction}
+      />
     </div>
   );
 };

@@ -2,7 +2,7 @@
 // New file for Stage 5 - A small form for editing a single transaction (e.g., in a modal)
 
 import React, { useState } from 'react';
-import { colors } from '/src/styles/design-tokens';
+
 import type { EditTransactionFormData, EmotionRecord } from '../../types';
 
 interface EditTransactionFormProps {

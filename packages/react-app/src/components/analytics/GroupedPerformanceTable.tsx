@@ -38,9 +38,6 @@ const GroupedPerformanceTable: React.FC<Props> = ({ title, data }) => {
                 <td className="px-4 py-3 text-sm border-b text-success border-card-stroke">{item.wins}</td>
                 <td className="px-4 py-3 text-sm border-b text-error border-card-stroke">{item.losses}</td>
                 <td className="px-4 py-3 text-sm border-b text-on-surface border-card-stroke">{item.breakEvens}</td>
-                <td className="px-4 py-3 text-sm border-b text-success border-card-stroke">{item.wins}</td>
-                <td className="px-4 py-3 text-sm border-b text-error border-card-stroke">{item.losses}</td>
-                <td className="px-4 py-3 text-sm border-b text-on-surface border-card-stroke">{item.breakEvens}</td>
               </tr>
             ))}
           </tbody>

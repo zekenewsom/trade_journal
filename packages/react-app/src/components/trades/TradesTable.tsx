@@ -27,7 +27,7 @@ const TradesTable: React.FC<TradesTableProps> = ({ trades, onEdit, onDelete }) =
     
   const [markPrices, setMarkPrices] = useState<Record<number, string>>({}); // tradeId -> price string
 
-  const handleSort = (_: SortKey) => {
+  const handleSort = (key: SortKey) => {
   // Sorting logic can be implemented here if needed
 };
   const sortedTrades = useMemo(() => { /* ... same ... */ return trades || []; }, [trades]);

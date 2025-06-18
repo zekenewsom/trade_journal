@@ -1,31 +1,55 @@
-/* Font declarations for local usage instead of Google Fonts */
+/* packages/react-app/src/fonts.css */
+/* Ensure this file correctly loads Inter and Roboto Mono as per your project */
 
 @font-face {
   font-family: 'Inter';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 300; /* Light */
+  src: local('Inter Light'), local('Inter-Light'),
+       url('/fonts/Inter-Light.woff2') format('woff2'); /* Assuming you'll add Inter-Light.woff2 */
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400; /* Regular */
   src: local('Inter Regular'), local('Inter-Regular'),
        url('/fonts/Inter-Regular.woff2') format('woff2');
   font-display: swap;
 }
 
-
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500; /* Medium */
+  src: local('Inter Medium'), local('Inter-Medium'),
+       url('/fonts/Inter-Medium.woff2') format('woff2');
+  font-display: swap;
+}
 
 @font-face {
   font-family: 'Inter';
   font-style: normal;
-  font-weight: 600;
+  font-weight: 600; /* SemiBold */
   src: local('Inter SemiBold'), local('Inter-SemiBold'),
        url('/fonts/Inter-SemiBold.woff2') format('woff2');
   font-display: swap;
 }
 
-
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700; /* Bold */
+  src: local('Inter Bold'), local('Inter-Bold'),
+       url('/fonts/Inter-Bold.woff2') format('woff2');
+  font-display: swap;
+}
 
 @font-face {
   font-family: 'Roboto Mono';
   font-style: normal;
-  font-weight: 400;
+  font-weight: 400; /* Regular */
   src: local('Roboto Mono Regular'), local('RobotoMono-Regular'),
        url('/fonts/RobotoMono-Regular.ttf') format('truetype');
   font-display: swap;
@@ -34,8 +58,18 @@
 @font-face {
   font-family: 'Roboto Mono';
   font-style: normal;
-  font-weight: 600;
-  src: local('Roboto Mono SemiBold'), local('RobotoMono-SemiBold'),
-       url('/fonts/RobotoMono-SemiBold.ttf') format('truetype');
+  font-weight: 500; /* Medium - Assuming you have or will get JetBrainsMono-Medium.woff2 if target is JetBrains, otherwise stick to Roboto or add JetBrains */
+  src: local('JetBrainsMono Medium'), local('JetBrainsMono-Medium'),
+       url('/fonts/JetBrainsMono-Medium.woff2') format('woff2');
+  font-display: swap;
+}
+
+/* If you need JetBrains Mono Regular as well for consistency with target */
+@font-face {
+  font-family: 'Roboto Mono'; /* Or 'JetBrains Mono' if you plan to differentiate */
+  font-style: normal;
+  font-weight: 400; /* Regular */
+  src: local('JetBrainsMono Regular'), local('JetBrainsMono-Regular'),
+       url('/fonts/JetBrainsMono-Regular.woff2') format('woff2');
   font-display: swap;
 }

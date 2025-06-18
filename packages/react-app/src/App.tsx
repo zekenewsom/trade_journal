@@ -2,13 +2,13 @@
 // Modified for Stage 6: Add navigation to AnalyticsPage, update ElectronAPI type if needed
 
 import { useEffect } from 'react';
-import { colors } from '/src/styles/design-tokens';
 import { useAppStore } from './stores/appStore';
 import LogTransactionPage from './views/LogTransactionPage';
 import EditTradeDetailsPage from './views/EditTradeDetailsPage';
 import TradesListPage from './views/TradesListPage';
 import DashboardMetrics from './components/dashboard/DashboardMetrics';
 import AnalyticsPage from './views/AnalyticsPage';
+import AccountsPage from './views/AccountsPage';
 import { AppShell } from './components/layout/AppShell';
 // Types now imported in the store as needed
 
@@ -83,20 +83,19 @@ function App() {
         />;
       case 'analyticsPage':
         return <AnalyticsPage />;
+      case 'accountsPage':
+        return <AccountsPage />;
       case 'dashboard':
       default:
         return (
           <div>
-            <h1>Trade Journal - Dashboard</h1>
-            <p>Electron App Version: {appVersion || 'Loading...'}</p>
-            <p>Database Status: {dbStatus || 'Testing DB...'}</p>
-            <hr className="my-5" />
             <DashboardMetrics />
             <hr className="my-5" />
             <div className="flex gap-2.5 justify-center mt-5">
               <button onClick={() => navigateTo('logTransactionForm', { navTimestamp: Date.now() })} className="px-4 py-2.5">Log New Transaction</button>
               <button onClick={() => navigateTo('tradesList')} className="px-4 py-2.5">View All Trades</button>
               <button onClick={() => navigateTo('analyticsPage')} className="px-4 py-2.5">View Analytics</button>
+              <button onClick={() => navigateTo('accountsPage')} className="px-4 py-2.5">Manage Accounts</button>
             </div>
           </div>
         );
