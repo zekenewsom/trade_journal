@@ -58,10 +58,12 @@ function getDb() {
 
 function closeDatabase() {
   if (db && db.open) {
-    db.close((err) => {
-      if (err) console.error('[CONNECTION] Error closing the database connection:', err.message);
-      else console.log('[CONNECTION] Database connection closed successfully.');
-    });
+    try {
+      db.close();
+      console.log('[CONNECTION] Database connection closed successfully.');
+    } catch (err) {
+      console.error('[CONNECTION] Error closing the database connection:', err instanceof Error ? err.message : err);
+    }
     db = null;
   }
 }

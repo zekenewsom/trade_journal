@@ -70,7 +70,7 @@ export function RiskScatterChart({ data, height = '100%' }: RiskScatterChartProp
           }}
           itemStyle={{ color: colors.textSecondary }}
           labelStyle={{ color: colors.onSurface, fontWeight: typography.fontWeight.medium }}
-          formatter={(value: number, name: string, entry: any) => {
+          formatter={(value: number, name: string, entry: { payload?: RiskReturnDataPoint }) => {
             if (name === "Return (%)") return [`${value.toFixed(2)}%`, name];
             if (name === "Risk (e.g., $ Stop)") return [value.toFixed(2), name];
             if (name === "Trade Volume" && entry.payload?.tradeVolume) return [formatCurrency(entry.payload.tradeVolume), name];

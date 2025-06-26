@@ -100,9 +100,15 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
             name="Trades"
             data={formattedData}
             fillOpacity={0.7}
-            shape={(point: { cx?: number; cy?: number; payload?: { [key: string]: unknown } }) => {
-              const { cx, cy, payload } = point as { cx?: number; cy?: number; payload?: any };
-              if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
+            shape={(point: { cx?: number; cy?: number; payload?: DurationPerformanceData & { [key: string]: unknown } }) => {
+              const { cx, cy, payload } = point;
+              if (
+                typeof cx !== 'number' ||
+                typeof cy !== 'number' ||
+                isNaN(cx) ||
+                isNaN(cy) ||
+                !payload
+              ) {
                 // Return an invisible circle to satisfy type
                 return <circle cx={0} cy={0} r={0} fill="none" />;
               }

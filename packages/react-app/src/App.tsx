@@ -17,8 +17,6 @@ function App() {
     currentView,
     editingTradeId,
     trades,
-    appVersion,
-    dbStatus,
     fetchInitialAppData,
     navigateTo,
     setEditingTradeId,

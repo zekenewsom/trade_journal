@@ -28,7 +28,7 @@ const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade, onLogTrans
         } else {
           alert(result?.message || 'Failed to delete transaction.');
         }
-      } catch (err) {
+      } catch {
         alert('Failed to delete transaction.');
       }
     }
@@ -49,7 +49,7 @@ const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade, onLogTrans
       try {
         // Fetch each trade in full (with transactions)
         const results = await Promise.all(
-          trades.map(async (trade: any) => {
+          trades.map(async (trade: TradeListView) => {
             if (!trade.trade_id) return [];
             try {
               const fullTrade = await window.electronAPI.getTradeWithTransactions(trade.trade_id);
@@ -57,7 +57,7 @@ const TradesListPage: React.FC<TradesListPageProps> = ({ onEditTrade, onLogTrans
               if (!Array.isArray(fullTrade?.transactions)) return [];
               // Debug: log trade object and ticker
               console.log('[DEBUG] trade object for transaction mapping:', trade);
-              return fullTrade.transactions.map((tx: any) => ({
+              return fullTrade.transactions.map((tx: TransactionRecord) => ({
                 ...tx,
                 ticker: trade.instrument_ticker, // Use correct field
                 exchange: trade.exchange,

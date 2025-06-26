@@ -69,8 +69,8 @@ interface AppState {
   unarchiveAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
   deleteAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
   addAccountTransaction: (opts: { accountId: number; type: string; amount: number; relatedTradeId?: number | null; memo?: string | null }) => Promise<{ success: boolean; id?: number; message?: string }>;
-  getAccountBalance: (accountId: number) => Promise<any>;
-  getAccountTimeSeries: (accountId: number) => Promise<any>;
+  getAccountBalance: (accountId: number) => Promise<unknown>;
+  getAccountTimeSeries: (accountId: number) => Promise<unknown>;
 
   currentView: View;
   editingTradeId: number | null;
@@ -135,7 +135,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ isLoadingAccounts: true, errorLoadingAccounts: null });
     try {
       const result = await window.electronAPI.getAccounts();
-      let accounts: AccountRecord[] = Array.isArray(result) ? result : (result || []);
+      const accounts: AccountRecord[] = Array.isArray(result) ? result : (result || []);
       // Fetch balances for each account in parallel
       const accountsWithBalances = await Promise.all(
         accounts.map(async (acc) => {

@@ -8,7 +8,6 @@ import {
   ResponsiveContainer
 } from 'recharts'; // Legend import not present, nothing to remove.
 import type { TooltipProps } from 'recharts';
-import { MetricCard } from '../ui/MetricCard';
 import { useTheme } from '@mui/material/styles';
 import { format } from 'date-fns';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
