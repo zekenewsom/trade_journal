@@ -16,6 +16,8 @@ module.exports = {
   testDbConnection: connection.testDbConnection,
   backupDatabase: connection.backupDatabase,
   restoreDatabase: connection.restoreDatabase,
+  isInMaintenanceMode: connection.isInMaintenanceMode,
+  setMaintenanceMode: connection.setMaintenanceMode,
 
   // Trade Service
   fetchTradesForListView: tradeService.fetchTradesForListView,

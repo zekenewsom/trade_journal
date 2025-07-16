@@ -2,6 +2,7 @@
 const { getDb } = require('./connection');
 const tradeService = require('./tradeService'); // To call _recalculateTradeState
 const accountService = require('./accountService');
+const { decimal, toNumber, isGreaterThan, isValidFinancialNumber } = require('./financialUtils');
 
 function addTransactionAndManageTrade(transactionData) {
   // Accepts optional account_id; fallback to first available cash account if not provided
@@ -75,22 +76,23 @@ function addTransactionAndManageTrade(transactionData) {
       position_trade_direction = trade.trade_direction;
     }
 
-    // Check position size before exiting
+    // Check position size before exiting using precise decimal arithmetic
     const transactionsForThisTrade = db.prepare('SELECT action, quantity FROM transactions WHERE trade_id = ?').all(current_trade_id);
-    let currentOpenPositionSize = 0;
+    let currentOpenPositionDecimal = decimal(0);
     transactionsForThisTrade.forEach(tx => {
       if (position_trade_direction === 'Long') {
-        currentOpenPositionSize += (tx.action === 'Buy' ? tx.quantity : -tx.quantity);
+        currentOpenPositionDecimal = currentOpenPositionDecimal.plus(tx.action === 'Buy' ? tx.quantity : -tx.quantity);
       } else {
-        currentOpenPositionSize += (tx.action === 'Sell' ? tx.quantity : -tx.quantity);
+        currentOpenPositionDecimal = currentOpenPositionDecimal.plus(tx.action === 'Sell' ? tx.quantity : -tx.quantity);
       }
     });
-    currentOpenPositionSize = parseFloat(currentOpenPositionSize.toFixed(8));
+    const currentOpenPositionSize = toNumber(currentOpenPositionDecimal);
 
     const isExitingAction = (position_trade_direction === 'Long' && action === 'Sell') ||
                            (position_trade_direction === 'Short' && action === 'Buy');
 
-    if (isExitingAction && quantity > currentOpenPositionSize + 0.00000001) {
+    // Use precise comparison instead of arbitrary epsilon
+    if (isExitingAction && isGreaterThan(quantity, currentOpenPositionSize)) {
       throw new Error(`[TRANSACTION_SERVICE] Cannot ${action.toLowerCase()} ${quantity}. Only ${currentOpenPositionSize} effectively open for trade ID ${current_trade_id}.`);
     }
 

@@ -32,5 +32,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAccountTransactions: (opts) => ipcRenderer.invoke('get-account-transactions', opts),
   getAccountBalance: (accountId) => ipcRenderer.invoke('get-account-balance', accountId),
   getAccountTimeSeries: (accountId) => ipcRenderer.invoke('get-account-time-series', accountId),
+  getMaintenanceStatus: () => ipcRenderer.invoke('get-maintenance-status'),
   // Add any new IPC calls here if you add new handlers in main.js
 });

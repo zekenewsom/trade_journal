@@ -3,10 +3,33 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path'); // Only declared once at the top
 // This now requires the new facade db.js
 const dbModule = require('./src/database/db');
+const { isValidFinancialNumber } = require('./src/database/financialUtils');
+const { 
+  ValidationError, 
+  validateAccountData, 
+  validateTransactionData, 
+  validateTradeData,
+  validateInteger,
+  validateFinancialNumber,
+  validateString,
+  validateArray
+} = require('./src/database/validationUtils');
 
 const userDataPath = app.getPath('userData');
 const dbPath = path.join(userDataPath, 'trade_journal.sqlite3');
 console.log('[ELECTRON MAIN] Using DB at:', dbPath);
+
+// Helper function to check maintenance mode and return early if in maintenance
+function checkMaintenanceMode() {
+  const maintenanceStatus = dbModule.isInMaintenanceMode();
+  if (maintenanceStatus.inMaintenance) {
+    return {
+      success: false,
+      message: `Application is currently in maintenance mode (${maintenanceStatus.operation}). Please try again in a moment.`
+    };
+  }
+  return null;
+}
 
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -65,53 +88,74 @@ app.on('activate', () => {
 // --- IPC Handlers ---
 
 // --- Account IPC Handlers ---
-ipcMain.handle('create-account', async (event, { name, type = 'cash' }) => {
+ipcMain.handle('create-account', async (event, data) => {
   try {
-    if (!name) throw new Error('Account name is required');
-    const id = dbModule.createAccount({ name, type });
+    const validatedData = validateAccountData(data);
+    const id = dbModule.createAccount(validatedData);
     return { success: true, id };
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('[IPC:create-account] Validation error:', error);
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Invalid account data provided' 
+    };
   }
 });
 
 ipcMain.handle('rename-account', async (event, { accountId, newName }) => {
   try {
-    if (!accountId || !newName) throw new Error('accountId and newName required');
-    dbModule.renameAccount({ accountId, newName });
+    const validatedAccountId = validateInteger(accountId, 'Account ID', { positive: true });
+    const validatedData = validateAccountData({ name: newName });
+    dbModule.renameAccount({ accountId: validatedAccountId, newName: validatedData.name });
     return { success: true };
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('[IPC:rename-account] Validation error:', error);
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Invalid account data provided' 
+    };
   }
 });
 
 ipcMain.handle('archive-account', async (event, { accountId }) => {
   try {
-    if (!accountId) throw new Error('accountId required');
-    dbModule.archiveAccount({ accountId });
+    const validatedAccountId = validateInteger(accountId, 'Account ID', { positive: true });
+    dbModule.archiveAccount({ accountId: validatedAccountId });
     return { success: true };
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('[IPC:archive-account] Validation error:', error);
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Invalid account ID provided' 
+    };
   }
 });
 
 ipcMain.handle('unarchive-account', async (event, { accountId }) => {
   try {
-    if (!accountId) throw new Error('accountId required');
-    dbModule.unarchiveAccount({ accountId });
+    const validatedAccountId = validateInteger(accountId, 'Account ID', { positive: true });
+    dbModule.unarchiveAccount({ accountId: validatedAccountId });
     return { success: true };
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('[IPC:unarchive-account] Validation error:', error);
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Invalid account ID provided' 
+    };
   }
 });
 
 ipcMain.handle('delete-account', async (event, { accountId }) => {
   try {
-    if (!accountId) throw new Error('accountId required');
-    dbModule.deleteAccount({ accountId });
+    const validatedAccountId = validateInteger(accountId, 'Account ID', { positive: true });
+    dbModule.deleteAccount({ accountId: validatedAccountId });
     return { success: true };
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('[IPC:delete-account] Validation error:', error);
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Invalid account ID provided' 
+    };
   }
 });
 
@@ -125,47 +169,79 @@ ipcMain.handle('get-accounts', async (event, opts = {}) => {
 
 ipcMain.handle('get-account-by-id', async (event, accountId) => {
   try {
-    if (!accountId) throw new Error('accountId required');
-    return dbModule.getAccountById(accountId);
+    const validatedAccountId = validateInteger(accountId, 'Account ID', { positive: true });
+    return dbModule.getAccountById(validatedAccountId);
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('[IPC:get-account-by-id] Validation error:', error);
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Invalid account ID provided' 
+    };
   }
 });
 
-ipcMain.handle('add-account-transaction', async (event, { accountId, type, amount, relatedTradeId = null, memo = null }) => {
+ipcMain.handle('add-account-transaction', async (event, data) => {
   try {
-    if (!accountId || !type || typeof amount !== 'number') throw new Error('accountId, type, and amount required');
-    const id = dbModule.addAccountTransaction({ accountId, type, amount, relatedTradeId, memo });
+    const validatedData = {
+      accountId: validateInteger(data.accountId, 'Account ID', { positive: true }),
+      type: validateString(data.type, 'Transaction type', { 
+        allowedValues: ['deposit', 'withdrawal', 'trade_open', 'trade_close', 'fee', 'adjustment'] 
+      }),
+      amount: validateFinancialNumber(data.amount, 'Amount', { min: -1000000, max: 1000000, allowZero: true }),
+      relatedTradeId: data.relatedTradeId ? validateInteger(data.relatedTradeId, 'Related trade ID', { positive: true }) : null,
+      memo: data.memo ? validateString(data.memo, 'Memo', { required: false, maxLength: 500 }) : null
+    };
+    const id = dbModule.addAccountTransaction(validatedData);
     return { success: true, id };
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('[IPC:add-account-transaction] Validation error:', error);
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Invalid transaction data provided' 
+    };
   }
 });
 
 ipcMain.handle('get-account-transactions', async (event, { accountId, limit = 100, offset = 0 }) => {
   try {
-    if (!accountId) throw new Error('accountId required');
-    return dbModule.getAccountTransactions({ accountId, limit, offset });
+    const validatedParams = {
+      accountId: validateInteger(accountId, 'Account ID', { positive: true }),
+      limit: validateInteger(limit, 'Limit', { min: 1, max: 1000 }),
+      offset: validateInteger(offset, 'Offset', { min: 0 })
+    };
+    return dbModule.getAccountTransactions(validatedParams);
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('[IPC:get-account-transactions] Validation error:', error);
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Invalid request parameters' 
+    };
   }
 });
 
 ipcMain.handle('get-account-balance', async (event, accountId) => {
   try {
-    if (!accountId) throw new Error('accountId required');
-    return dbModule.getAccountBalance(accountId);
+    const validatedAccountId = validateInteger(accountId, 'Account ID', { positive: true });
+    return dbModule.getAccountBalance(validatedAccountId);
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('[IPC:get-account-balance] Validation error:', error);
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Invalid account ID provided' 
+    };
   }
 });
 
 ipcMain.handle('get-account-time-series', async (event, accountId) => {
   try {
-    if (!accountId) throw new Error('accountId required');
-    return dbModule.getAccountTimeSeries(accountId);
+    const validatedAccountId = validateInteger(accountId, 'Account ID', { positive: true });
+    return dbModule.getAccountTimeSeries(validatedAccountId);
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error('[IPC:get-account-time-series] Validation error:', error);
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Invalid account ID provided' 
+    };
   }
 });
 
@@ -258,6 +334,15 @@ ipcMain.handle('get-app-version', () => {
   return app.getVersion();
 });
 
+ipcMain.handle('get-maintenance-status', () => {
+  try {
+    return dbModule.isInMaintenanceMode();
+  } catch (error) {
+    console.error('[IPC:get-maintenance-status] Error:', error);
+    return { inMaintenance: false, operation: null };
+  }
+});
+
 ipcMain.handle('test-db', async () => {
   try {
     return await dbModule.testDbConnection();
@@ -269,7 +354,58 @@ ipcMain.handle('test-db', async () => {
 
 ipcMain.handle('log-transaction', async (event, transactionData) => {
   try {
-    // Input validation can be added here or ensured it's robust in the service
+    // Check maintenance mode first
+    const maintenanceCheck = checkMaintenanceMode();
+    if (maintenanceCheck) return maintenanceCheck;
+    
+    // Comprehensive input validation for financial data
+    const { 
+      instrument_ticker, 
+      asset_class, 
+      exchange, 
+      action, 
+      datetime, 
+      quantity, 
+      price, 
+      fees_for_transaction,
+      account_id
+    } = transactionData;
+    
+    // Validate required string fields
+    if (!instrument_ticker || typeof instrument_ticker !== 'string' || instrument_ticker.trim().length === 0) {
+      throw new Error('Instrument ticker is required and must be a non-empty string');
+    }
+    if (!asset_class || !['Stock', 'Cryptocurrency'].includes(asset_class)) {
+      throw new Error('Asset class must be either "Stock" or "Cryptocurrency"');
+    }
+    if (!exchange || typeof exchange !== 'string' || exchange.trim().length === 0) {
+      throw new Error('Exchange is required and must be a non-empty string');
+    }
+    if (!action || !['Buy', 'Sell'].includes(action)) {
+      throw new Error('Action must be either "Buy" or "Sell"');
+    }
+    
+    // Validate datetime
+    if (!datetime || isNaN(Date.parse(datetime))) {
+      throw new Error('Valid datetime is required');
+    }
+    
+    // Validate financial numbers with precision
+    if (!isValidFinancialNumber(quantity) || quantity <= 0) {
+      throw new Error('Quantity must be a positive number');
+    }
+    if (!isValidFinancialNumber(price) || price <= 0) {
+      throw new Error('Price must be a positive number');
+    }
+    if (!isValidFinancialNumber(fees_for_transaction) || fees_for_transaction < 0) {
+      throw new Error('Fees must be a non-negative number');
+    }
+    
+    // Validate account ID
+    if (!Number.isInteger(account_id) || account_id <= 0) {
+      throw new Error('Account ID must be a positive integer');
+    }
+    
     const result = await dbModule.logTransaction(transactionData); // Calls transactionService via facade
     return result; // Expecting { success: boolean, message: string, ... }
   } catch (err) {
@@ -280,6 +416,10 @@ ipcMain.handle('log-transaction', async (event, transactionData) => {
 
 ipcMain.handle('get-trades', async () => {
   try {
+    // Check maintenance mode first
+    const maintenanceCheck = checkMaintenanceMode();
+    if (maintenanceCheck) return maintenanceCheck;
+    
     const trades = await dbModule.fetchTradesForListView(); // Calls tradeService via facade
     return trades; // Expecting TradeListView[]
   } catch (error) {
@@ -290,61 +430,97 @@ ipcMain.handle('get-trades', async () => {
 
 ipcMain.handle('get-trade-with-transactions', async (event, tradeId) => {
   try {
-    if (typeof tradeId !== 'number') throw new Error("Invalid tradeId provided.");
-    const trade = await dbModule.fetchTradeWithTransactions(tradeId); // Calls tradeService
+    const validatedTradeId = validateInteger(tradeId, 'Trade ID', { positive: true });
+    const trade = await dbModule.fetchTradeWithTransactions(validatedTradeId); // Calls tradeService
     return trade; // Expecting Trade | null
   } catch (error) {
     console.error('[IPC:get-trade-with-transactions] Error:', error);
-    return { error: (error instanceof Error ? error.message : String(error)) || 'Failed to fetch trade details' };
+    return { 
+      error: error instanceof ValidationError ? error.message : 'Failed to fetch trade details' 
+    };
   }
 });
 
 ipcMain.handle('update-trade-details', async (event, data) => {
   try {
-    // Add validation for 'data' if necessary
-    const result = await dbModule.updateTradeMetadata(data); // Calls tradeService
+    const validatedData = validateTradeData(data);
+    const result = await dbModule.updateTradeMetadata(validatedData); // Calls tradeService
     return result; // Expecting { success: boolean, message: string }
   } catch (error) {
     console.error('[IPC:update-trade-details] Error updating trade details:', error);
-    return { success: false, message: (error instanceof Error ? error.message : String(error)) || 'Failed to update trade details.' };
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Failed to update trade details.' 
+    };
   }
 });
 
 ipcMain.handle('update-single-transaction', async (event, data) => {
   try {
-    // Add validation for 'data'
-    const result = await dbModule.updateSingleTransaction(data); // Calls transactionService
+    // Validate transaction data - requires transaction_id plus any updatable fields
+    const validatedData = {
+      transaction_id: validateInteger(data.transaction_id, 'Transaction ID', { positive: true })
+    };
+    
+    // Validate optional fields if they exist
+    if (data.quantity !== undefined) {
+      validatedData.quantity = validateFinancialNumber(data.quantity, 'Quantity');
+    }
+    if (data.price !== undefined) {
+      validatedData.price = validateFinancialNumber(data.price, 'Price');
+    }
+    if (data.fees !== undefined) {
+      validatedData.fees = validateFinancialNumber(data.fees, 'Fees', { allowZero: true });
+    }
+    if (data.notes !== undefined) {
+      validatedData.notes = validateString(data.notes, 'Notes', { required: false, maxLength: 1000 });
+    }
+    
+    const result = await dbModule.updateSingleTransaction(validatedData); // Calls transactionService
     return result;
   } catch (error) {
     console.error('[IPC:update-single-transaction] Error updating transaction:', error);
-    return { success: false, message: (error instanceof Error ? error.message : String(error)) || 'Failed to update transaction.' };
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Failed to update transaction.' 
+    };
   }
 });
 
 ipcMain.handle('delete-single-transaction', async (event, transactionId) => {
   try {
-    if (typeof transactionId !== 'number') throw new Error("Invalid transactionId provided.");
-    const result = await dbModule.deleteSingleTransaction(transactionId); // Calls transactionService
+    const validatedTransactionId = validateInteger(transactionId, 'Transaction ID', { positive: true });
+    const result = await dbModule.deleteSingleTransaction(validatedTransactionId); // Calls transactionService
     return result;
   } catch (error) {
     console.error('[IPC:delete-single-transaction] Error deleting transaction:', error);
-    return { success: false, message: (error instanceof Error ? error.message : String(error)) || 'Failed to delete transaction.' };
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Failed to delete transaction.' 
+    };
   }
 });
 
 ipcMain.handle('delete-full-trade', async (event, tradeId) => {
   try {
-    if (typeof tradeId !== 'number') throw new Error("Invalid tradeId provided.");
-    const result = await dbModule.deleteFullTradeAndTransactions(tradeId); // Calls tradeService
+    const validatedTradeId = validateInteger(tradeId, 'Trade ID', { positive: true });
+    const result = await dbModule.deleteFullTradeAndTransactions(validatedTradeId); // Calls tradeService
     return result;
   } catch (error) {
     console.error('[IPC:delete-full-trade] Error deleting full trade:', error);
-    return { success: false, message: (error instanceof Error ? error.message : String(error)) || 'Failed to delete full trade.' };
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Failed to delete full trade.' 
+    };
   }
 });
 
 ipcMain.handle('get-analytics-data', async (event, filters) => {
   try {
+    // Check maintenance mode first
+    const maintenanceCheck = checkMaintenanceMode();
+    if (maintenanceCheck) return maintenanceCheck;
+    
     // Add validation for 'filters' if necessary
     const result = await dbModule.calculateAnalyticsData(filters); // Calls analyticsService
     return result; // Expecting AnalyticsData | { error: string }
@@ -365,37 +541,59 @@ ipcMain.handle('get-emotions', async () => {
 
 ipcMain.handle('get-trade-emotions', async (event, tradeId) => {
   try {
-    if (typeof tradeId !== 'number') throw new Error("Invalid tradeId provided.");
-    return await dbModule.getEmotionsForTrade(tradeId); // Calls emotionService
+    const validatedTradeId = validateInteger(tradeId, 'Trade ID', { positive: true });
+    return await dbModule.getEmotionsForTrade(validatedTradeId); // Calls emotionService
   } catch (error) {
     console.error('[IPC:get-trade-emotions] Error:', error);
-    return []; // Or an error object
+    return error instanceof ValidationError ? { error: error.message } : [];
   }
 });
 
 ipcMain.handle('save-trade-emotions', async (event, payload) => {
   try {
-    // Add validation for 'payload'
-    const { tradeId, emotionIds } = payload;
-    const result = await dbModule.saveTradeEmotions(tradeId, emotionIds); // Calls emotionService
+    if (!payload || typeof payload !== 'object') {
+      throw new ValidationError('Emotion payload must be an object');
+    }
+    
+    const validatedData = {
+      tradeId: validateInteger(payload.tradeId, 'Trade ID', { positive: true }),
+      emotionIds: validateArray(payload.emotionIds, 'Emotion IDs', {
+        required: false,
+        maxLength: 20,
+        itemValidator: (item) => validateInteger(item, 'Emotion ID', { positive: true })
+      })
+    };
+    
+    const result = await dbModule.saveTradeEmotions(validatedData.tradeId, validatedData.emotionIds); // Calls emotionService
     return result;
   } catch (error) {
     console.error('[IPC:save-trade-emotions] Error saving trade emotions:', error);
-    return { success: false, message: (error instanceof Error ? error.message : String(error)) || 'Failed to save emotions.' };
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Failed to save emotions.' 
+    };
   }
 });
 
 ipcMain.handle('update-mark-price', async (event, payload) => {
   try {
-    const { tradeId, marketPrice } = payload;
-    if (typeof tradeId !== 'number' || typeof marketPrice !== 'number' || marketPrice < 0) {
-        throw new Error("Invalid input for updating mark price.");
+    if (!payload || typeof payload !== 'object') {
+      throw new ValidationError('Mark price payload must be an object');
     }
-    const result = await dbModule.updateMarkToMarketPrice(tradeId, marketPrice); // Calls tradeService
+    
+    const validatedData = {
+      tradeId: validateInteger(payload.tradeId, 'Trade ID', { positive: true }),
+      marketPrice: validateFinancialNumber(payload.marketPrice, 'Market price', { min: 0 })
+    };
+    
+    const result = await dbModule.updateMarkToMarketPrice(validatedData.tradeId, validatedData.marketPrice); // Calls tradeService
     return result; // Expects { success: boolean, message: string, trade_id?, unrealized_pnl?, ... }
   } catch (error) {
     console.error(`[IPC:update-mark-price] Error for trade ${payload?.tradeId}:`, error);
-    return { success: false, message: (error instanceof Error ? error.message : String(error)) || 'Failed to update mark price.' };
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Failed to update mark price.' 
+    };
   }
 });
 

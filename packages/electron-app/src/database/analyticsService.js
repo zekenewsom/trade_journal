@@ -28,13 +28,82 @@ async function calculateAnalyticsData(filters = {}) {
     }
     // Add similar blocks for assetClasses, exchanges, tickers if needed for the main tradesFromDb query
 
-    const tradesFromDb = db.prepare(`
-      SELECT t.*, s.strategy_name
+    // Optimized query: Fetch all trades and their transactions in one go
+    const tradesAndTransactionsResult = db.prepare(`
+      SELECT 
+        t.*, s.strategy_name,
+        tr.transaction_id, tr.action, tr.quantity, tr.price, tr.datetime, 
+        tr.fees, tr.notes, tr.strategy_id as tx_strategy_id, tr.market_conditions,
+        tr.setup_description, tr.reasoning, tr.lessons_learned, tr.r_multiple_initial_risk,
+        tr.created_at as tx_created_at
       FROM trades t
       LEFT JOIN strategies s ON t.strategy_id = s.strategy_id
+      LEFT JOIN transactions tr ON t.trade_id = tr.trade_id
       ${whereClause}
-      ORDER BY COALESCE(t.close_datetime, t.open_datetime, t.created_at) ASC
-    `).all(queryParams); //
+      ORDER BY t.trade_id, tr.datetime ASC, tr.transaction_id ASC
+    `).all(queryParams);
+    
+    console.log(`[ANALYTICS_SERVICE] Fetched ${tradesAndTransactionsResult.length} trade-transaction rows in single query`);
+    
+    // Group transactions by trade_id
+    const tradesMap = new Map();
+    for (const row of tradesAndTransactionsResult) {
+      const tradeId = row.trade_id;
+      
+      if (!tradesMap.has(tradeId)) {
+        // Extract trade data (remove transaction fields)
+        const trade = {
+          trade_id: row.trade_id,
+          instrument_ticker: row.instrument_ticker,
+          asset_class: row.asset_class,
+          exchange: row.exchange,
+          trade_direction: row.trade_direction,
+          status: row.status,
+          open_datetime: row.open_datetime,
+          close_datetime: row.close_datetime,
+          strategy_id: row.strategy_id,
+          strategy_name: row.strategy_name,
+          initial_stop_loss_price: row.initial_stop_loss_price,
+          initial_take_profit_price: row.initial_take_profit_price,
+          r_multiple_initial_risk: row.r_multiple_initial_risk,
+          conviction_score: row.conviction_score,
+          thesis_validation: row.thesis_validation,
+          adherence_to_plan: row.adherence_to_plan,
+          unforeseen_events: row.unforeseen_events,
+          overall_trade_rating: row.overall_trade_rating,
+          current_market_price: row.current_market_price,
+          fees_total: row.fees_total,
+          latest_trade: row.latest_trade,
+          created_at: row.created_at,
+          updated_at: row.updated_at
+        };
+        tradesMap.set(tradeId, { trade, transactions: [] });
+      }
+      
+      // Add transaction if it exists (LEFT JOIN might have null transaction_id)
+      if (row.transaction_id) {
+        const transaction = {
+          transaction_id: row.transaction_id,
+          trade_id: row.trade_id,
+          action: row.action,
+          quantity: row.quantity,
+          price: row.price,
+          datetime: row.datetime,
+          fees: row.fees,
+          notes: row.notes,
+          strategy_id: row.tx_strategy_id,
+          market_conditions: row.market_conditions,
+          setup_description: row.setup_description,
+          reasoning: row.reasoning,
+          lessons_learned: row.lessons_learned,
+          r_multiple_initial_risk: row.r_multiple_initial_risk,
+          created_at: row.tx_created_at
+        };
+        tradesMap.get(tradeId).transactions.push(transaction);
+      }
+    }
+    
+    const tradesFromDb = Array.from(tradesMap.values());
     console.log(`[ANALYTICS_SERVICE] Found ${tradesFromDb.length} trades matching filters`);
 
     const analyticsData = {
@@ -92,8 +161,9 @@ async function calculateAnalyticsData(filters = {}) {
     
     const dailyPnlMap = new Map();
 
-    for (const trade of tradesFromDb) { //
-      const transactions = db.prepare('SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC').all(trade.trade_id);
+    for (const tradeData of tradesFromDb) { //
+      const trade = tradeData.trade;
+      const transactions = tradeData.transactions;
       const pnlDetails = tradeService.calculateTradePnlFifoEnhanced(trade, transactions); //
 
       if (pnlDetails.openQuantity > 0 && pnlDetails.unrealizedGrossPnlOnOpenPortion !== null) { //

@@ -1,13 +1,14 @@
 // packages/electron-app/src/database/tradeService.js
 const { getDb } = require('./connection');
+const { decimal, toNumber, multiply, add, subtract, divide, isEqual, determineTradeOutcome } = require('./financialUtils');
 
-// Consolidated and primary version of P&L calculation
+// Consolidated and primary version of P&L calculation using precise decimal arithmetic
 function calculateTradePnlFifoEnhanced(trade, transactionsForThisTrade) {
-    let realizedGrossPnl = 0;
-    let feesAttributableToClosedPortion = 0;
-    let closedQuantityThisTrade = 0;
-    let totalValueForOpenEntries = 0;
-    let cumulativeEntryQuantityForOpen = 0;
+    let realizedGrossPnlDecimal = decimal(0);
+    let feesAttributableToClosedPortionDecimal = decimal(0);
+    let closedQuantityThisTradeDecimal = decimal(0);
+    let totalValueForOpenEntriesDecimal = decimal(0);
+    let cumulativeEntryQuantityForOpenDecimal = decimal(0);
     let weightedAvgEntryPriceForOpenPortion = null;
 
     const entries = transactionsForThisTrade
@@ -23,36 +24,43 @@ function calculateTradePnlFifoEnhanced(trade, transactionsForThisTrade) {
     const directionMultiplier = trade.trade_direction === 'Long' ? 1 : -1;
     
     for (const exit of exits) {
-        let exitQtyToMatch = exit.quantity;
-        feesAttributableToClosedPortion += (exit.fees || 0);
+        let exitQtyToMatchDecimal = decimal(exit.quantity);
+        feesAttributableToClosedPortionDecimal = feesAttributableToClosedPortionDecimal.plus(exit.fees || 0);
         for (const entry of entries) {
-            if (entry.remainingQuantity === 0 || exitQtyToMatch === 0) continue;
-            const matchedQty = Math.min(exitQtyToMatch, entry.remainingQuantity);
-            const pnl = (exit.price - entry.price) * matchedQty * directionMultiplier;
-            realizedGrossPnl += pnl;
+            if (entry.remainingQuantity === 0 || exitQtyToMatchDecimal.isZero()) continue;
+            const matchedQtyDecimal = decimal(Math.min(toNumber(exitQtyToMatchDecimal), entry.remainingQuantity));
+            const priceDiff = subtract(exit.price, entry.price);
+            const pnl = multiply(multiply(priceDiff, matchedQtyDecimal), directionMultiplier);
+            realizedGrossPnlDecimal = realizedGrossPnlDecimal.plus(pnl);
             if (entry.quantity > 0) { // Ensure entry quantity is not zero to avoid division by zero
-                feesAttributableToClosedPortion += (entry.fees || 0) * (matchedQty / entry.quantity);
+                const feeRatio = divide(matchedQtyDecimal, entry.quantity);
+                const attributableFee = multiply(entry.fees || 0, feeRatio);
+                feesAttributableToClosedPortionDecimal = feesAttributableToClosedPortionDecimal.plus(attributableFee);
             }
-            entry.remainingQuantity -= matchedQty;
-            exitQtyToMatch -= matchedQty;
-            closedQuantityThisTrade += matchedQty;
-            if (exitQtyToMatch === 0) break;
+            entry.remainingQuantity = toNumber(subtract(entry.remainingQuantity, matchedQtyDecimal));
+            exitQtyToMatchDecimal = exitQtyToMatchDecimal.minus(matchedQtyDecimal);
+            closedQuantityThisTradeDecimal = closedQuantityThisTradeDecimal.plus(matchedQtyDecimal);
+            if (exitQtyToMatchDecimal.isZero()) break;
         }
     }
 
     entries.forEach(entry => {
         if(entry.remainingQuantity > 0){
-            totalValueForOpenEntries += entry.price * entry.remainingQuantity;
-            cumulativeEntryQuantityForOpen += entry.remainingQuantity;
+            const entryValue = multiply(entry.price, entry.remainingQuantity);
+            totalValueForOpenEntriesDecimal = totalValueForOpenEntriesDecimal.plus(entryValue);
+            cumulativeEntryQuantityForOpenDecimal = cumulativeEntryQuantityForOpenDecimal.plus(entry.remainingQuantity);
         }
     });
 
-    if(cumulativeEntryQuantityForOpen > 0){
-        weightedAvgEntryPriceForOpenPortion = totalValueForOpenEntries / cumulativeEntryQuantityForOpen;
+    if(cumulativeEntryQuantityForOpenDecimal.gt(0)){
+        weightedAvgEntryPriceForOpenPortion = toNumber(divide(totalValueForOpenEntriesDecimal, cumulativeEntryQuantityForOpenDecimal));
     }
 
-    const realizedNetPnl = realizedGrossPnl - feesAttributableToClosedPortion;
-    const openQuantity = cumulativeEntryQuantityForOpen;
+    const realizedGrossPnl = toNumber(realizedGrossPnlDecimal);
+    const feesAttributableToClosedPortion = toNumber(feesAttributableToClosedPortionDecimal);
+    const realizedNetPnl = toNumber(subtract(realizedGrossPnlDecimal, feesAttributableToClosedPortionDecimal));
+    const openQuantity = toNumber(cumulativeEntryQuantityForOpenDecimal);
+    const closedQuantityThisTrade = toNumber(closedQuantityThisTradeDecimal);
     let unrealizedGrossPnlOnOpenPortion = null;
 
     if (openQuantity > 0 && weightedAvgEntryPriceForOpenPortion !== null && trade.current_market_price !== null && trade.current_market_price !== undefined) {
@@ -72,10 +80,8 @@ function calculateTradePnlFifoEnhanced(trade, transactionsForThisTrade) {
     
     let outcome = null;
     if (trade.status === 'Closed') {
-        const finalNetPnlForOutcome = realizedGrossPnl - (trade.fees_total || 0);
-        if (finalNetPnlForOutcome > 0.000001) outcome = 'Win';
-        else if (finalNetPnlForOutcome < -0.000001) outcome = 'Loss';
-        else outcome = 'Break Even';
+        const finalNetPnlForOutcome = toNumber(subtract(realizedGrossPnl, trade.fees_total || 0));
+        outcome = determineTradeOutcome(finalNetPnlForOutcome);
     }
 
     console.log('[TRADE_SERVICE - P&L CALC DEBUG]', {
@@ -240,8 +246,15 @@ function updateMarkToMarketPrice(tradeId, marketPrice) {
 function fetchTradesForListView() {
   console.log('[TRADE_SERVICE] fetchTradesForListView CALLED');
   const db = getDb();
-  const trades = db.prepare( // Using t1 alias from zekenewsom-trade_journal(1).txt source 2119
-    `SELECT t1.*, s.strategy_name
+  
+  // Optimized query: Get trades with their transactions in one query to avoid N+1 problem
+  const tradesAndTransactionsResult = db.prepare(
+    `SELECT 
+       t1.*, s.strategy_name,
+       tr.transaction_id, tr.action, tr.quantity, tr.price, tr.datetime, 
+       tr.fees, tr.notes, tr.strategy_id as tx_strategy_id, tr.market_conditions,
+       tr.setup_description, tr.reasoning, tr.lessons_learned, tr.r_multiple_initial_risk,
+       tr.created_at as tx_created_at
      FROM trades t1
      LEFT JOIN strategies s ON t1.strategy_id = s.strategy_id
      INNER JOIN (
@@ -253,11 +266,72 @@ function fetchTradesForListView() {
            AND t1.exchange = t2.exchange
            AND t1.trade_direction = t2.trade_direction
            AND t1.latest_trade = t2.max_latest_trade
-     ORDER BY COALESCE(t1.open_datetime, t1.created_at) DESC`
+     LEFT JOIN transactions tr ON t1.trade_id = tr.trade_id
+     ORDER BY COALESCE(t1.open_datetime, t1.created_at) DESC, tr.datetime ASC, tr.transaction_id ASC`
   ).all();
-
-  return trades.map(trade => {
-    const transactions = db.prepare('SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC').all(trade.trade_id);
+  
+  console.log(`[TRADE_SERVICE] Fetched ${tradesAndTransactionsResult.length} trade-transaction rows in single query for list view`);
+  
+  // Group transactions by trade_id
+  const tradesMap = new Map();
+  for (const row of tradesAndTransactionsResult) {
+    const tradeId = row.trade_id;
+    
+    if (!tradesMap.has(tradeId)) {
+      // Extract trade data (remove transaction fields)
+      const trade = {
+        trade_id: row.trade_id,
+        instrument_ticker: row.instrument_ticker,
+        asset_class: row.asset_class,
+        exchange: row.exchange,
+        trade_direction: row.trade_direction,
+        status: row.status,
+        open_datetime: row.open_datetime,
+        close_datetime: row.close_datetime,
+        strategy_id: row.strategy_id,
+        strategy_name: row.strategy_name,
+        initial_stop_loss_price: row.initial_stop_loss_price,
+        initial_take_profit_price: row.initial_take_profit_price,
+        r_multiple_initial_risk: row.r_multiple_initial_risk,
+        conviction_score: row.conviction_score,
+        thesis_validation: row.thesis_validation,
+        adherence_to_plan: row.adherence_to_plan,
+        unforeseen_events: row.unforeseen_events,
+        overall_trade_rating: row.overall_trade_rating,
+        current_market_price: row.current_market_price,
+        fees_total: row.fees_total,
+        latest_trade: row.latest_trade,
+        created_at: row.created_at,
+        updated_at: row.updated_at
+      };
+      tradesMap.set(tradeId, { trade, transactions: [] });
+    }
+    
+    // Add transaction if it exists (LEFT JOIN might have null transaction_id)
+    if (row.transaction_id) {
+      const transaction = {
+        transaction_id: row.transaction_id,
+        trade_id: row.trade_id,
+        action: row.action,
+        quantity: row.quantity,
+        price: row.price,
+        datetime: row.datetime,
+        fees: row.fees,
+        notes: row.notes,
+        strategy_id: row.tx_strategy_id,
+        market_conditions: row.market_conditions,
+        setup_description: row.setup_description,
+        reasoning: row.reasoning,
+        lessons_learned: row.lessons_learned,
+        r_multiple_initial_risk: row.r_multiple_initial_risk,
+        created_at: row.tx_created_at
+      };
+      tradesMap.get(tradeId).transactions.push(transaction);
+    }
+  }
+  
+  // Process each trade with its transactions
+  return Array.from(tradesMap.values()).map(({ trade, transactions }) => {
     const pnl = calculateTradePnlFifoEnhanced(trade, transactions);
     return {
       ...trade,
