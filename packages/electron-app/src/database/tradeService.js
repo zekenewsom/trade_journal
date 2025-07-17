@@ -247,27 +247,18 @@ function fetchTradesForListView() {
   console.log('[TRADE_SERVICE] fetchTradesForListView CALLED');
   const db = getDb();
   
-  // Optimized query: Get trades with their transactions in one query to avoid N+1 problem
+  // Optimized query: Get ALL trades with their transactions in one query to avoid N+1 problem
   const tradesAndTransactionsResult = db.prepare(
     `SELECT 
-       t1.*, s.strategy_name,
+       t.*, s.strategy_name,
        tr.transaction_id, tr.action, tr.quantity, tr.price, tr.datetime, 
        tr.fees, tr.notes, tr.strategy_id as tx_strategy_id, tr.market_conditions,
        tr.setup_description, tr.reasoning, tr.lessons_learned, tr.r_multiple_initial_risk,
        tr.created_at as tx_created_at
-     FROM trades t1
-     LEFT JOIN strategies s ON t1.strategy_id = s.strategy_id
-     INNER JOIN (
-       SELECT instrument_ticker, asset_class, exchange, trade_direction, MAX(latest_trade) AS max_latest_trade
-       FROM trades
-       GROUP BY instrument_ticker, asset_class, exchange, trade_direction
-     ) t2 ON t1.instrument_ticker = t2.instrument_ticker
-           AND t1.asset_class = t2.asset_class
-           AND t1.exchange = t2.exchange
-           AND t1.trade_direction = t2.trade_direction
-           AND t1.latest_trade = t2.max_latest_trade
-     LEFT JOIN transactions tr ON t1.trade_id = tr.trade_id
-     ORDER BY COALESCE(t1.open_datetime, t1.created_at) DESC, tr.datetime ASC, tr.transaction_id ASC`
+     FROM trades t
+     LEFT JOIN strategies s ON t.strategy_id = s.strategy_id
+     LEFT JOIN transactions tr ON t.trade_id = tr.trade_id
+     ORDER BY COALESCE(t.open_datetime, t.created_at) DESC, tr.datetime ASC, tr.transaction_id ASC`
   ).all();
   
   console.log(`[TRADE_SERVICE] Fetched ${tradesAndTransactionsResult.length} trade-transaction rows in single query for list view`);
@@ -449,6 +440,49 @@ function deleteFullTradeAndTransactions(tradeId) {
   }
 }
 
+function getAutocompleteData(field) {
+  const db = getDb();
+  try {
+    const fieldMapping = {
+      'instrument_ticker': 'instrument_ticker',
+      'exchange': 'exchange', 
+      'setup_description': 'setup_description',
+      'market_conditions': 'market_conditions'
+    };
+    
+    const dbField = fieldMapping[field];
+    if (!dbField) {
+      throw new Error(`Invalid field for autocomplete: ${field}`);
+    }
+    
+    let query, values;
+    
+    if (field === 'instrument_ticker' || field === 'exchange') {
+      // Get from trades table
+      query = `SELECT DISTINCT ${dbField} as value 
+               FROM trades 
+               WHERE ${dbField} IS NOT NULL AND ${dbField} != ''
+               ORDER BY ${dbField}`;
+      values = [];
+    } else {
+      // Get from transactions table  
+      query = `SELECT DISTINCT ${dbField} as value 
+               FROM transactions 
+               WHERE ${dbField} IS NOT NULL AND ${dbField} != ''
+               ORDER BY ${dbField}`;
+      values = [];
+    }
+    
+    const stmt = db.prepare(query);
+    const results = stmt.all(values);
+    
+    return results.map(row => row.value);
+  } catch (error) {
+    console.error('[tradeService:getAutocompleteData] Error:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   _recalculateTradeState,
   calculateTradePnlFifoEnhanced,
@@ -457,4 +491,5 @@ module.exports = {
   updateTradeMetadata,
   deleteFullTradeAndTransactions,
   updateMarkToMarketPrice,
+  getAutocompleteData,
 };

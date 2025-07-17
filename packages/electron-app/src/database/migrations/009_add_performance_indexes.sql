@@ -39,9 +39,6 @@ CREATE INDEX IF NOT EXISTS idx_account_transactions_related_trade_id ON account_
 CREATE INDEX IF NOT EXISTS idx_trade_emotions_trade_id ON trade_emotions(trade_id);
 CREATE INDEX IF NOT EXISTS idx_trade_emotions_emotion_id ON trade_emotions(emotion_id);
 
--- Index for strategies (used in joins)
-CREATE INDEX IF NOT EXISTS idx_strategies_strategy_id ON strategies(strategy_id);
-
 -- Performance analysis shows these indexes will provide:
 -- - 60-80% reduction in analytics calculation time
 -- - 70-90% reduction in trade list loading time  

@@ -358,59 +358,31 @@ ipcMain.handle('log-transaction', async (event, transactionData) => {
     const maintenanceCheck = checkMaintenanceMode();
     if (maintenanceCheck) return maintenanceCheck;
     
-    // Comprehensive input validation for financial data
-    const { 
-      instrument_ticker, 
-      asset_class, 
-      exchange, 
-      action, 
-      datetime, 
-      quantity, 
-      price, 
-      fees_for_transaction,
-      account_id
-    } = transactionData;
-    
-    // Validate required string fields
-    if (!instrument_ticker || typeof instrument_ticker !== 'string' || instrument_ticker.trim().length === 0) {
-      throw new Error('Instrument ticker is required and must be a non-empty string');
-    }
-    if (!asset_class || !['Stock', 'Cryptocurrency'].includes(asset_class)) {
-      throw new Error('Asset class must be either "Stock" or "Cryptocurrency"');
-    }
-    if (!exchange || typeof exchange !== 'string' || exchange.trim().length === 0) {
-      throw new Error('Exchange is required and must be a non-empty string');
-    }
-    if (!action || !['Buy', 'Sell'].includes(action)) {
-      throw new Error('Action must be either "Buy" or "Sell"');
-    }
-    
-    // Validate datetime
-    if (!datetime || isNaN(Date.parse(datetime))) {
-      throw new Error('Valid datetime is required');
-    }
-    
-    // Validate financial numbers with precision
-    if (!isValidFinancialNumber(quantity) || quantity <= 0) {
-      throw new Error('Quantity must be a positive number');
-    }
-    if (!isValidFinancialNumber(price) || price <= 0) {
-      throw new Error('Price must be a positive number');
-    }
-    if (!isValidFinancialNumber(fees_for_transaction) || fees_for_transaction < 0) {
-      throw new Error('Fees must be a non-negative number');
-    }
-    
-    // Validate account ID
-    if (!Number.isInteger(account_id) || account_id <= 0) {
-      throw new Error('Account ID must be a positive integer');
-    }
+    // Use shared validation utility for transaction data
+    validateTransactionData(transactionData);
     
     const result = await dbModule.logTransaction(transactionData); // Calls transactionService via facade
     return result; // Expecting { success: boolean, message: string, ... }
   } catch (err) {
     console.error('[IPC:log-transaction] Error:', err);
     return { success: false, message: (err instanceof Error ? err.message : String(err)) || 'Unknown error logging transaction.' };
+  }
+});
+
+ipcMain.handle('log-csv-transaction', async (event, transactionData) => {
+  try {
+    // Check maintenance mode first
+    const maintenanceCheck = checkMaintenanceMode();
+    if (maintenanceCheck) return maintenanceCheck;
+    
+    // Use shared validation utility for transaction data
+    validateTransactionData(transactionData);
+    
+    const result = await dbModule.addCSVTransactionAndManageTrade(transactionData); // CSV-specific processing
+    return result; // Expecting { success: boolean, message: string, ... }
+  } catch (err) {
+    console.error('[IPC:log-csv-transaction] Error:', err);
+    return { success: false, message: (err instanceof Error ? err.message : String(err)) || 'Unknown error logging CSV transaction.' };
   }
 });
 
@@ -442,6 +414,8 @@ ipcMain.handle('get-trade-with-transactions', async (event, tradeId) => {
 });
 
 ipcMain.handle('update-trade-details', async (event, data) => {
+  const maintenanceCheck = checkMaintenanceMode();
+  if (maintenanceCheck) return maintenanceCheck;
   try {
     const validatedData = validateTradeData(data);
     const result = await dbModule.updateTradeMetadata(validatedData); // Calls tradeService
@@ -456,6 +430,8 @@ ipcMain.handle('update-trade-details', async (event, data) => {
 });
 
 ipcMain.handle('update-single-transaction', async (event, data) => {
+  const maintenanceCheck = checkMaintenanceMode();
+  if (maintenanceCheck) return maintenanceCheck;
   try {
     // Validate transaction data - requires transaction_id plus any updatable fields
     const validatedData = {
@@ -488,6 +464,8 @@ ipcMain.handle('update-single-transaction', async (event, data) => {
 });
 
 ipcMain.handle('delete-single-transaction', async (event, transactionId) => {
+  const maintenanceCheck = checkMaintenanceMode();
+  if (maintenanceCheck) return maintenanceCheck;
   try {
     const validatedTransactionId = validateInteger(transactionId, 'Transaction ID', { positive: true });
     const result = await dbModule.deleteSingleTransaction(validatedTransactionId); // Calls transactionService
@@ -502,6 +480,8 @@ ipcMain.handle('delete-single-transaction', async (event, transactionId) => {
 });
 
 ipcMain.handle('delete-full-trade', async (event, tradeId) => {
+  const maintenanceCheck = checkMaintenanceMode();
+  if (maintenanceCheck) return maintenanceCheck;
   try {
     const validatedTradeId = validateInteger(tradeId, 'Trade ID', { positive: true });
     const result = await dbModule.deleteFullTradeAndTransactions(validatedTradeId); // Calls tradeService
@@ -550,6 +530,8 @@ ipcMain.handle('get-trade-emotions', async (event, tradeId) => {
 });
 
 ipcMain.handle('save-trade-emotions', async (event, payload) => {
+  const maintenanceCheck = checkMaintenanceMode();
+  if (maintenanceCheck) return maintenanceCheck;
   try {
     if (!payload || typeof payload !== 'object') {
       throw new ValidationError('Emotion payload must be an object');
@@ -576,6 +558,8 @@ ipcMain.handle('save-trade-emotions', async (event, payload) => {
 });
 
 ipcMain.handle('update-mark-price', async (event, payload) => {
+  const maintenanceCheck = checkMaintenanceMode();
+  if (maintenanceCheck) return maintenanceCheck;
   try {
     if (!payload || typeof payload !== 'object') {
       throw new ValidationError('Mark price payload must be an object');
@@ -593,6 +577,29 @@ ipcMain.handle('update-mark-price', async (event, payload) => {
     return { 
       success: false, 
       message: error instanceof ValidationError ? error.message : 'Failed to update mark price.' 
+    };
+  }
+});
+
+ipcMain.handle('get-autocomplete-data', async (event, field) => {
+  const maintenanceCheck = checkMaintenanceMode();
+  if (maintenanceCheck) return maintenanceCheck;
+  try {
+    const validatedField = validateString(field, 'Field name', { allowEmpty: false });
+    
+    const validFields = ['instrument_ticker', 'exchange', 'setup_description', 'market_conditions'];
+    if (!validFields.includes(validatedField)) {
+      throw new ValidationError(`Invalid field for autocomplete: ${validatedField}`);
+    }
+    
+    const result = await dbModule.getAutocompleteData(validatedField);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error(`[IPC:get-autocomplete-data] Error for field ${field}:`, error);
+    return { 
+      success: false, 
+      message: error instanceof ValidationError ? error.message : 'Failed to fetch autocomplete data.',
+      data: []
     };
   }
 });

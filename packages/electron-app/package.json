@@ -11,7 +11,7 @@
     "@types/react-dom": "^19.1.5",
     "better-sqlite3": "^9.4.5",
     "date-fns": "^4.1.0",
-    "decimal.js": "^10.6.0",
+    "decimal.js": "^10.5.0",
     "electron": "^30.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"

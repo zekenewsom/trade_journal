@@ -40,11 +40,6 @@ export interface LogTransactionPayload {
   reasoning?: string; // Trade Thesis Summary
   lessons_learned?: string; // [cite: 1372]
   r_multiple_initial_risk?: number; // [cite: 1372]
-  conviction_score?: number; // New: 1-10 confidence
-  thesis_validation?: 'Correct' | 'Partially Correct' | 'Incorrect'; // New
-  adherence_to_plan?: 'High' | 'Medium' | 'Low'; // New
-  unforeseen_events?: string; // New
-  overall_trade_rating?: number; // New: 1-10 rating
   emotion_ids: number[]; // [cite: 1372]
 }
 
@@ -144,29 +139,7 @@ export interface Trade {
 }
 
 // Simplified Trade object for list views
-export interface TradeListView extends Omit<Trade,
-  'transactions' |
-  'calculated_pnl_gross' | // [cite: 1384]
-  'calculated_pnl_net' | // [cite: 1384]
-  'outcome' | // [cite: 1384]
-  'market_conditions' | // [cite: 1384]
-  'setup_description' | // [cite: 1384]
-  'reasoning' | // [cite: 1384]
-  'lessons_learned' | // [cite: 1384]
-  'r_multiple_initial_risk' | // [cite: 1384]
-  'strategy_id' | // [cite: 1384]
-  'r_multiple_actual' | // [cite: 1384]
-  'duration_ms' | // [cite: 1385]
-  'emotion_ids' | // [cite: 1385]
-  'average_open_price' | // [cite: 1385]
-  'realized_pnl_for_trade' // [cite: 1385]
-> {
-  // Fields from original TradeListView definition in zekenewsom-trade_journal(9).txt source 750-751
-  current_market_price?: number | null; // [cite: 750]
-  unrealized_pnl?: number | null; // [cite: 750]
-  current_open_quantity?: number | null; // [cite: 751]
-  latest_trade?: string | null; // [cite: 751]
-}
+// [TradeListView interface and related comments removed]
 
 
 // Form data for logging a new transaction from the UI
@@ -187,11 +160,6 @@ export interface LogTransactionFormData {
   reasoning?: string;
   lessons_learned?: string;
   r_multiple_initial_risk?: string;
-  conviction_score?: number; // New: 1-10
-  thesis_validation?: 'Correct' | 'Partially Correct' | 'Incorrect'; // New
-  adherence_to_plan?: 'High' | 'Medium' | 'Low'; // New
-  unforeseen_events?: string; // New
-  overall_trade_rating?: number; // New: 1-10
   emotion_ids: number[];
 }
 
@@ -300,56 +268,114 @@ export interface RiskReturnScatterPoint {
 
 // Comprehensive Analytics Data structure
 export interface AnalyticsData {
-  totalRealizedNetPnl: number; // [cite: 1396]
-  totalRealizedGrossPnl: number; // [cite: 1396]
-  totalFeesPaidOnClosedPortions: number; // [cite: 1396]
-  totalUnrealizedPnl: number | null; // [cite: 1396]
+  // Core Performance Metrics
+  totalRealizedNetPnl: number;
+  totalRealizedGrossPnl: number;
+  totalFeesPaidOnClosedPortions: number;
+  totalUnrealizedPnl: number | null;
 
-  winRateOverall: number | null; // [cite: 1396]
-  avgWinPnlOverall: number | null; // [cite: 1397]
-  avgLossPnlOverall: number | null; // [cite: 1397]
-  largestWinPnl: number | null; // [cite: 1397]
-  largestLossPnl: number | null; // [cite: 1397]
-  longestWinStreak: number; // [cite: 1397]
-  longestLossStreak: number; // [cite: 1398]
-  numberOfWinningTrades: number; // [cite: 1398]
-  numberOfLosingTrades: number; // [cite: 1398]
-  numberOfBreakEvenTrades: number; // [cite: 1398]
-  totalFullyClosedTrades: number; // [cite: 1398]
-  avgRMultiple: number | null; // [cite: 1398]
+  // Basic Trade Statistics
+  winRateOverall: number | null;
+  avgWinPnlOverall: number | null;
+  avgLossPnlOverall: number | null;
+  largestWinPnl: number | null;
+  largestLossPnl: number | null;
+  longestWinStreak: number;
+  longestLossStreak: number;
+  numberOfWinningTrades: number;
+  numberOfLosingTrades: number;
+  numberOfBreakEvenTrades: number;
+  totalFullyClosedTrades: number;
+  avgRMultiple: number | null;
 
-  equityCurve: EquityCurvePoint[]; // [cite: 1398]
-  pnlPerTradeSeries: PnlPerTradePoint[]; // [cite: 1399]
-  winLossBreakEvenCounts: { name: string; value: number }[]; // [cite: 1399]
-  rMultipleDistribution: { range: string; count: number }[]; // [cite: 1399]
-  pnlByMonth: TimePerformanceData[]; // [cite: 1400]
-  pnlByDayOfWeek: TimePerformanceData[]; // [cite: 1400]
-  pnlVsDurationSeries: DurationPerformanceData[]; // [cite: 1400]
+  // Time Series Data
+  equityCurve: EquityCurvePoint[];
+  pnlPerTradeSeries: PnlPerTradePoint[];
+  winLossBreakEvenCounts: { name: string; value: number }[];
+  rMultipleDistribution: { range: string; count: number }[];
+  pnlByMonth: TimePerformanceData[];
+  pnlByDayOfWeek: TimePerformanceData[];
+  pnlVsDurationSeries: DurationPerformanceData[];
 
-  pnlByAssetClass: GroupedPerformance[]; // [cite: 1400]
-  pnlByExchange: GroupedPerformance[]; // [cite: 1400]
-  pnlByStrategy: GroupedPerformance[]; // [cite: 1400]
-  pnlByEmotion: GroupedPerformance[]; // [cite: 1400]
+  // Performance Groupings
+  pnlByAssetClass: GroupedPerformance[];
+  pnlByExchange: GroupedPerformance[];
+  pnlByStrategy: GroupedPerformance[];
+  pnlByEmotion: GroupedPerformance[];
+  pnlByAsset?: GroupedPerformance[];
 
-  maxDrawdownPercentage: number | null; // [cite: 1400]
-
-  // --- NEW FIELDS for target UI, matching previous response ---
+  // Basic Risk Metrics
+  maxDrawdownPercentage: number | null;
   kellyCriterion?: number | null;
-  ulcerIndex?: number | null; // Placeholder
-  valueAtRisk95?: { amount: number | null; percentage: number | null }; // Placeholder
+
+  // Chart Data
   netAccountBalanceTrend?: EquityCurvePoint[];
   dailyPnlForHeatmap?: HeatmapDataPoint[];
   riskReturnScatterData?: RiskReturnScatterPoint[];
-  // --- END NEW FIELDS ---
 
-  availableStrategies?: { strategy_id: number; strategy_name: string }[]; // [cite: 1401]
-  availableExchanges?: string[]; // [cite: 1401]
-  availableAssetClasses?: string[]; // [cite: 1401]
-  availableEmotions?: EmotionRecord[]; // [cite: 1401]
-  availableTickers?: string[]; // [cite: 1401]
+  // --- INSTITUTIONAL-LEVEL RISK METRICS ---
+  // Risk-Adjusted Performance Ratios
+  sharpeRatio?: number | null;
+  sortinoRatio?: number | null;
+  calmarRatio?: number | null;
+  informationRatio?: number | null;
+  treynorRatio?: number | null;
+  omega?: number | null;
+  gainToPainRatio?: number | null;
+  sterlingRatio?: number | null;
+  burkeRatio?: number | null;
+  ulcerIndex?: number | null;
 
-  // --- Grouped performance ---
-  pnlByAsset?: GroupedPerformance[];
+  // Statistical Measures
+  skewness?: number | null;
+  kurtosis?: number | null;
+  annualizedReturn?: number | null;
+  annualizedVolatility?: number | null;
+  downDeviationAnnualized?: number | null;
+
+  // Value at Risk Metrics
+  valueAtRisk95?: number | null;
+  valueAtRisk99?: number | null;
+  conditionalVaR95?: number | null;
+  conditionalVaR99?: number | null;
+
+  // Drawdown Analysis
+  maxDrawdownDuration?: number | null;
+  averageDrawdown?: number | null;
+
+  // Portfolio Concentration Metrics
+  herfindahlIndex?: number | null;
+  concentrationRatio?: number | null;
+  numberOfPositions?: number | null;
+  averagePositionSize?: number | null;
+  largestPositionPercent?: number | null;
+  diversificationRatio?: number | null;
+
+  // Attribution Analysis
+  sectorBreakdown?: GroupedPerformance[];
+  industryBreakdown?: GroupedPerformance[];
+  marketCapBreakdown?: GroupedPerformance[];
+  geographicBreakdown?: GroupedPerformance[];
+
+  // Rolling Window Metrics
+  rollingSharpe?: { date: number; value: number | null }[];
+  rollingVolatility?: { date: number; value: number | null }[];
+  rollingDrawdown?: { date: number; value: number | null }[];
+
+  // Benchmark Comparison (requires benchmark data)
+  alpha?: number | null;
+  beta?: number | null;
+  trackingError?: number | null;
+  upCaptureRatio?: number | null;
+  downCaptureRatio?: number | null;
+  correlation?: number | null;
+
+  // Filter Options
+  availableStrategies?: { strategy_id: number; strategy_name: string }[];
+  availableExchanges?: string[];
+  availableAssetClasses?: string[];
+  availableEmotions?: EmotionRecord[];
+  availableTickers?: string[];
 }
 
 // Defines the contract for IPC communication with Electron main process
@@ -391,10 +417,17 @@ export interface ElectronAPIDefinition {
     tradeId?: number; // [cite: 1406]
     transactionId?: number; // [cite: 1406]
     unrealized_pnl?: number; // [cite: 1406]
+  }>;
+  logCSVTransaction: (data: LogTransactionPayload) => Promise<{
+    success: boolean;
+    message: string;
+    tradeId?: number;
+    transactionId?: number;
+    unrealized_pnl?: number;
     current_open_quantity?: number; // [cite: 1406]
     average_open_price?: number; // [cite: 1406]
   }>;
-  getTrades: () => Promise<TradeListView[]>; // [cite: 1407]
+  getTrades: () => Promise<Trade[]>; // [cite: 1407]
   getTradeWithTransactions: (tradeId: number) => Promise<Trade | null>; // [cite: 1407]
   updateTradeDetails: (data: UpdateTradeDetailsPayload) => Promise<{ success: boolean; message: string }>; // [cite: 1407]
   updateSingleTransaction: (data: UpdateTransactionPayload) => Promise<{ success: boolean; message: string }>; // [cite: 1408]
@@ -412,4 +445,5 @@ export interface ElectronAPIDefinition {
     average_open_price?: number; // [cite: 1413]
     trade_id?: number; // [cite: 1413]
   }>;
+  getAutocompleteData: (field: string) => Promise<{ success: boolean; data: string[]; message?: string }>;
 }

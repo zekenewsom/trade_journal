@@ -25,12 +25,14 @@ module.exports = {
   updateTradeMetadata: tradeService.updateTradeMetadata,
   deleteFullTradeAndTransactions: tradeService.deleteFullTradeAndTransactions,
   updateMarkToMarketPrice: tradeService.updateMarkToMarketPrice,
+  getAutocompleteData: tradeService.getAutocompleteData,
   // _recalculateTradeState is likely internal to tradeService or called by transactionService
   // calculateTradePnlFifoEnhanced is used by tradeService and analyticsService
 
   // Transaction Service
   logTransaction: transactionService.addTransactionAndManageTrade, // Alias
   addTransactionAndManageTrade: transactionService.addTransactionAndManageTrade,
+  addCSVTransactionAndManageTrade: transactionService.addCSVTransactionAndManageTrade,
   updateSingleTransaction: transactionService.updateSingleTransaction,
   deleteSingleTransaction: transactionService.deleteSingleTransaction,
 

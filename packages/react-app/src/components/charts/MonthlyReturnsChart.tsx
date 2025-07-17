@@ -5,17 +5,22 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Toolti
 import { Typography, Box } from '@mui/material';
 import { colors, typography, borderRadius as br } from '../../styles/design-tokens';
 
-interface RMultipleBucket {
-  range: string; // e.g., "<-2R", "-1R to 0R", "1R to 2R"
-  count: number;
+interface TimePerformanceData {
+  period: string; // e.g., "2024-01", "Monday"
+  totalNetPnl: number;
+  tradeCount: number;
+  winRate: number | null;
+  wins?: number;
+  losses?: number;
+  breakEvens?: number;
 }
 
-interface RMultipleHistogramProps {
-  data: RMultipleBucket[];
+interface MonthlyReturnsChartProps {
+  data: TimePerformanceData[];
   height?: number | string;
 }
 
-export function MonthlyReturnsChart({ data, height = '100%' }: RMultipleHistogramProps) { // Renamed prop
+export function MonthlyReturnsChart({ data, height = '100%' }: MonthlyReturnsChartProps) {
   if (!data || data.length === 0) {
     return (
        <Box display="flex" justifyContent="center" alignItems="center" height={height}>
@@ -26,9 +31,9 @@ export function MonthlyReturnsChart({ data, height = '100%' }: RMultipleHistogra
     );
   }
 
-  const getColor = (range: string) => {
-    if (range.includes('-') || range.startsWith('<0') || parseFloat(range) < 0) return colors.chartNegative;
-    if (range.includes('0R to') || range.startsWith('0R') || range === "N/A" || parseFloat(range) === 0) return colors.chartNeutral;
+  const getColor = (totalNetPnl: number) => {
+    if (totalNetPnl < 0) return colors.chartNegative;
+    if (totalNetPnl === 0) return colors.chartNeutral;
     return colors.chartPositive;
   };
 
@@ -37,21 +42,21 @@ export function MonthlyReturnsChart({ data, height = '100%' }: RMultipleHistogra
       <BarChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke={colors.chartGridLines} vertical={false} />
         <XAxis
-          dataKey="range"
+          dataKey="period"
           tick={{ fill: colors.textSecondary, fontSize: typography.fontSize.xs }}
           axisLine={{ stroke: colors.border }}
           tickLine={false}
           interval={0} // Show all labels if space permits
         />
         <YAxis
-          allowDecimals={false}
+          allowDecimals={true}
           tick={{ fill: colors.textSecondary, fontSize: typography.fontSize.xs }}
           axisLine={{ stroke: colors.border }}
           tickLine={{ stroke: colors.border }}
         />
         <Tooltip
-          formatter={(value: number) => value}
-          labelFormatter={(label: string) => `R-Multiple: ${label}`}
+          formatter={(value: number) => [`$${value.toFixed(2)}`, 'Net P&L']}
+          labelFormatter={(label: string) => `Period: ${label}`}
           contentStyle={{
             backgroundColor: colors.surface,
             borderColor: colors.border,
@@ -61,9 +66,9 @@ export function MonthlyReturnsChart({ data, height = '100%' }: RMultipleHistogra
           itemStyle={{ color: colors.textSecondary }}
           labelStyle={{ color: colors.onSurface, fontWeight: typography.fontWeight.medium }}
         />
-        <Bar dataKey="count" name="Trades" barSize={20}>
+        <Bar dataKey="totalNetPnl" name="Net P&L" barSize={20}>
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={getColor(entry.range)} radius={[parseInt(br.sm), parseInt(br.sm), 0, 0]} />
+            <Cell key={`cell-${index}`} fill={getColor(entry.totalNetPnl)} radius={[parseInt(br.sm), parseInt(br.sm), 0, 0]} />
           ))}
         </Bar>
       </BarChart>

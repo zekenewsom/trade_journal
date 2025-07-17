@@ -2,6 +2,7 @@
 const { getDb } = require('./connection');
 const tradeService = require('./tradeService'); // To use calculateTradePnlFifoEnhanced
 const { format } = require('date-fns'); // For date formatting
+const { enhanceAnalyticsWithInstitutional } = require('./institutionalAnalyticsService');
 
 async function calculateAnalyticsData(filters = {}) {
   console.log('[ANALYTICS_SERVICE] calculateAnalyticsData CALLED with filters:', filters);
@@ -420,8 +421,13 @@ async function calculateAnalyticsData(filters = {}) {
     analyticsData.ulcerIndex = null; // Requires more detailed daily % ROR and peak tracking
     analyticsData.valueAtRisk95 = { amount: null, percentage: null }; // Requires historical daily portfolio returns and statistical modeling
 
-    console.log('[ANALYTICS_SERVICE] Analytics data calculated successfully.'); //
-    return analyticsData;
+    console.log('[ANALYTICS_SERVICE] Analytics data calculated successfully.');
+    
+    // Enhance with institutional-level metrics
+    const institutionalAnalytics = enhanceAnalyticsWithInstitutional(analyticsData, 4.5);
+    
+    console.log('[ANALYTICS_SERVICE] Institutional analytics enhancement completed.');
+    return institutionalAnalytics;
   } catch (error) {
     console.error('[ANALYTICS_SERVICE] Error calculating analytics data:', error);
     return { error: (error instanceof Error ? error.message : String(error)) || 'Failed to calculate analytics data' }; //

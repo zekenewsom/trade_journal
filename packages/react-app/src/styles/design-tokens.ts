@@ -25,6 +25,9 @@ export const colors = {
 
   info: '#58A6FF',        // Blue for informational elements (can be same as primary)
   onInfo: '#FFFFFF',
+  
+  accent: '#58A6FF',      // Accent color for highlights, charts (same as primary)
+  onAccent: '#FFFFFF',
 
   // Primitive/UI Element Colors
   border: '#30363D',        // Borders for cards, inputs, dividers

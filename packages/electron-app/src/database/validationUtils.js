@@ -340,7 +340,19 @@ function validateTransactionData(data) {
     }),
     exchange: validateString(data.exchange, 'Exchange', { maxLength: 50 }),
     action: validateString(data.action, 'Action', { 
-      allowedValues: ['Buy', 'Sell'] 
+      allowedValues: [
+        'Buy', 'Sell', 
+        'Open Long', 'Open Short', 
+        'Close Long', 'Close Short',
+        'Market Order Liquidation: Close Long', 
+        'Market Order Liquidation: Close Short',
+        'Liquidation: Close Long', 
+        'Liquidation: Close Short',
+        'Liquidation Close Long', 
+        'Liquidation Close Short',
+        'Liquidation', 
+        'Market Order Liquidation'
+      ] 
     }),
     datetime: validateDateTime(data.datetime, 'Transaction datetime'),
     quantity: validateFinancialNumber(data.quantity, 'Quantity'),

@@ -2,7 +2,7 @@
 // Modified for Stage 6: Add Mark Price input and Unrealized P&L display for open trades
 
 import React, { useState, useMemo } from 'react';
-import type { TradeListView } from '../../types'; // TradeListView now has unrealized_pnl, current_market_price, current_open_quantity
+import type { Trade } from '../../types'; // TradeListView now has unrealized_pnl, current_market_price, current_open_quantity
 
 import { useAppStore } from '../../stores/appStore';
 
@@ -14,12 +14,12 @@ declare global {
 }
 
 interface TradesTableProps {
-  trades: TradeListView[];
+  trades: Trade[];
   onEdit: (tradeId: number) => void;
   onDelete: (tradeId: number) => void;
 }
 
-type SortKey = keyof TradeListView | 'open_datetime' | 'close_datetime' | 'unrealized_pnl' | null;
+type SortKey = keyof Trade | 'open_datetime' | 'close_datetime' | 'unrealized_pnl' | null;
 
 const TradesTable: React.FC<TradesTableProps> = ({ trades, onEdit, onDelete }) => {
   const store = useAppStore();
@@ -71,7 +71,7 @@ const TradesTable: React.FC<TradesTableProps> = ({ trades, onEdit, onDelete }) =
 
   if (!sortedTrades || sortedTrades.length === 0) return <p className="text-on-surface/70">No trades to display.</p>;
   const getSortIndicator = (
-    k: keyof TradeListView | 'open_datetime' | 'close_datetime' | 'unrealized_pnl'
+    k: keyof Trade | 'open_datetime' | 'close_datetime' | 'unrealized_pnl'
   ) => {
     void k;
     return '';

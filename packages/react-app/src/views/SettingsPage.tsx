@@ -1,6 +1,7 @@
 import React from 'react';
 import BackupRestorePage from './BackupRestorePage';
 import SettingsRiskFreeRate from '../components/dashboard/SettingsRiskFreeRate';
+import CSVImportForm from '../components/settings/CSVImportForm';
 
 const SettingsPage = () => {
   return (
@@ -8,6 +9,14 @@ const SettingsPage = () => {
       <h1 className="text-3xl font-bold mb-6 bg-gradient-to-r from-primary-400 to-primary-500 bg-clip-text text-transparent">
         Settings
       </h1>
+      <div className="mb-10">
+        <h2 className="text-xl font-semibold mb-2 text-white">CSV Import</h2>
+        <p className="text-gray-400 mb-4">Import transactions from exchange CSV files. Supports HyperLiquid and other exchanges.</p>
+        <div className="bg-dark-500 rounded-xl p-6 border border-dark-400 shadow-lg">
+          <CSVImportForm />
+        </div>
+      </div>
+      
       <div className="mb-10">
         <h2 className="text-xl font-semibold mb-2 text-white">Backup & Restore</h2>
         <p className="text-gray-400 mb-4">Backup, restore, and export your trade data. For your security, make regular backups!</p>

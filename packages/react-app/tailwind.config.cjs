@@ -53,26 +53,23 @@ module.exports = {
   			}
   		},
   		fontFamily: {
-  			ui: 'typography.fontFamily.ui.split(', ')',
-  			mono: 'typography.fontFamily.mono.split(', ')'
+  			ui: typography.fontFamily.ui.split(', '),
+  			mono: typography.fontFamily.mono.split(', ')
   		},
-  		fontSize: 'typography.fontSize',
+  		fontSize: typography.fontSize,
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
-  		boxShadow: 'shadows',
-  		spacing: 'designSpacings',
-  		letterSpacing: 'typography.letterSpacing',
-  		lineHeight: 'typography.lineHeight',
+  		boxShadow: shadows,
+  		spacing: designSpacings,
+  		letterSpacing: typography.letterSpacing,
+  		lineHeight: typography.lineHeight,
   		borderColor: {
-  			DEFAULT: 'colors.border',
+  			DEFAULT: colors.border,
                 ...colors
-  		},
-  		backgroundColor: '({ theme }) => ({ // Ensure background colors are available\n        ...theme('colors'),\n      })',
-  		textColor: '({ theme }) => ({ // Ensure text colors are available\n        ...theme('colors'),\n      })',
-  		ringColor: '({ theme }) => ({\n        DEFAULT: theme('colors.primary', colors.primary),\n        ...theme('colors'),\n      })'
+  		}
   	}
   },
   plugins: [
