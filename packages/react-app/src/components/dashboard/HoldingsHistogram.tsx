@@ -1,17 +1,6 @@
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
-import type { TooltipProps } from 'recharts';
-import { MetricCard } from '../ui/MetricCard';
-import { colors } from '../../styles/design-tokens';
-import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Cell } from 'recharts';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 
 interface HoldingsHistogramProps {
   data: Array<{
@@ -20,58 +9,64 @@ interface HoldingsHistogramProps {
   }>;
 }
 
-export function HoldingsHistogram({ data }: HoldingsHistogramProps) {
-  const renderTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
-    if (active && payload && payload.length) {
-      const isPositive = Number(label) >= 0;
-      
-      return (
-        <div style={{ background: colors.surface, border: `1px solid ${colors.cardStroke}` }} className="p-2 rounded shadow-lg">
-          <p className="text-xs" style={{ color: colors.textSecondary }}>{`R-Multiple: ${label}R`}</p>
-          <p className="text-sm font-medium" style={{ color: isPositive ? colors.success : colors.error }}>
-            {payload[0].value} trades
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+const chartConfig = {
+  value: {
+    label: "Trades",
+    color: "hsl(var(--chart-1))",
+  },
+}
 
+export function HoldingsHistogram({ data }: HoldingsHistogramProps) {
   return (
-    <MetricCard title="R-Multiple Histogram (Last 100 Trades)" size="sm" className="col-span-3 row-span-2">
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
+    <Card className="col-span-3 row-span-2">
+      <CardHeader>
+        <CardTitle>R-Multiple Histogram</CardTitle>
+        <CardDescription>Distribution of trade returns (Last 100 Trades)</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={chartConfig}>
           <BarChart
             data={data}
             margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
             barGap={0}
+            height={256}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke={colors.cardStroke} vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis
               dataKey="r"
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: colors.textSecondary }}
               tickCount={data.length}
             />
             <YAxis
               axisLine={false}
               tickLine={false}
-              tick={{ fontSize: 10, fill: colors.textSecondary }}
             />
-            <Tooltip content={renderTooltip} />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  formatter={(value: any, name: any, item: any) => [
+                    `${value} trades`,
+                    `R-Multiple: ${item.payload?.r}R`
+                  ]}
+                />
+              }
+            />
             <Bar
               dataKey="value"
               barSize={12}
               radius={[2, 2, 0, 0]}
             >
               {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={Number(entry.r) >= 0 ? colors.success : colors.error} />
+                <Cell
+                  key={`cell-${index}`}
+                  fill={Number(entry.r) >= 0 ? "hsl(var(--chart-1))" : "hsl(var(--chart-2))"}
+                />
               ))}
             </Bar>
           </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </MetricCard>
+        </ChartContainer>
+      </CardContent>
+    </Card>
   );
 } 

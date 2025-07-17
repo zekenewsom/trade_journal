@@ -1,11 +1,9 @@
-// File: zekenewsom-trade_journal/packages/react-app/src/components/analytics/PnlVsDurationScatterPlot.tsx
-// New File for Stage 6
-
 import React from 'react';
-import { colors } from '/src/styles/design-tokens';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 
 import type { DurationPerformanceData } from '../../types';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 function useIsMobile() {
   if (typeof window === 'undefined') return false;
@@ -14,6 +12,17 @@ function useIsMobile() {
 
 interface PnlVsDurationScatterPlotProps {
   data: DurationPerformanceData[];
+}
+
+const chartConfig = {
+  netPnl: {
+    label: "Net P&L",
+    color: "hsl(142 76% 36%)",
+  },
+  durationHours: {
+    label: "Duration",
+    color: "hsl(0 84% 60%)",
+  },
 }
 
 const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props: PnlVsDurationScatterPlotProps) => {
@@ -27,7 +36,14 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
   // Validate input data
   const { data } = props;
   if (!data || !Array.isArray(data) || data.length === 0) {
-    return <p>No data for P&L vs. Duration scatter plot.</p>;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>P&L vs Duration</CardTitle>
+          <CardDescription>No data for P&L vs. Duration scatter plot.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
   }
 
   // Filter out invalid data points and format the data
@@ -58,68 +74,70 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
 
   // If no valid data points after filtering, show message
   if (formattedData.length === 0) {
-    return <p>No valid data points for P&L vs. Duration scatter plot.</p>;
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>P&L vs Duration</CardTitle>
+          <CardDescription>No valid data points for P&L vs. Duration scatter plot.</CardDescription>
+        </CardHeader>
+      </Card>
+    );
   }
 
   return (
-    <div>
-      
-      <ResponsiveContainer width="100%" height={isMobile ? 240 : 400}>
-        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-          <CartesianGrid stroke="var(--color-card-stroke)" />
-          <XAxis 
-            type="number" 
-            dataKey="durationHours" 
-            name="Duration (Hours)" 
-            unit="h" 
-            domain={[0, Math.max(...formattedData.map(d => d.durationHours), 1)]}
-            tick={{ fontSize: 10, fill: 'var(--color-on-surface-variant)' }}
-            label={{ value: "Duration (Hours)", position: "insideBottom", offset: -15, fill: 'var(--color-on-surface-variant)', fontSize: 10 }}
-          />
-          <YAxis 
-            type="number" 
-            dataKey="netPnl" 
-            name="Net P&L" 
-            unit="$" 
-            tickFormatter={(value) => `$${value.toFixed(0)}`}
-            tick={{ fontSize: 10, fill: 'var(--color-on-surface-variant)' }}
-            label={{ value: "Net P&L ($)", angle: -90, position: "insideLeft", fill: 'var(--color-on-surface-variant)', fontSize: 10 }}
-          />
-          {/* ZAxis can be used for bubble size if we have another metric like volume */}
-          {/* <ZAxis dataKey="rMultiple" range={[10, 500]} name="R-Multiple" unit="R"/> */}
-          <Tooltip 
-            cursor={{ strokeDasharray: '3 3' }} 
-            formatter={(value: number, name: string) => {
-              if (name === 'Net P&L') return `$${value.toFixed(2)}`;
-              if (name === 'Duration (Hours)') return `${value.toFixed(1)} hrs`;
-              return value;
-            }}
-          />
-          {!isMobile && <Legend />}
-          <Scatter
-            name="Trades"
+    <Card>
+      <CardHeader>
+        <CardTitle>P&L vs Duration</CardTitle>
+        <CardDescription>Trade performance plotted against holding duration</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ChartContainer config={chartConfig}>
+          <ScatterChart
             data={formattedData}
-            fillOpacity={0.7}
-            shape={(point: { cx?: number; cy?: number; payload?: DurationPerformanceData & { [key: string]: unknown } }) => {
-              const { cx, cy, payload } = point;
-              if (
-                typeof cx !== 'number' ||
-                typeof cy !== 'number' ||
-                isNaN(cx) ||
-                isNaN(cy) ||
-                !payload
-              ) {
-                // Return an invisible circle to satisfy type
-                return <circle cx={0} cy={0} r={0} fill="none" />;
+            margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+            height={isMobile ? 240 : 400}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              type="number" 
+              dataKey="durationHours" 
+              name="Duration (Hours)" 
+              unit="h" 
+              domain={[0, Math.max(...formattedData.map(d => d.durationHours), 1)]}
+              label={{ value: "Duration (Hours)", position: "insideBottom", offset: -15 }}
+            />
+            <YAxis 
+              type="number" 
+              dataKey="netPnl" 
+              name="Net P&L" 
+              unit="$" 
+              tickFormatter={(value) => `$${value.toFixed(0)}`}
+              label={{ value: "Net P&L ($)", angle: -90, position: "insideLeft" }}
+            />
+            <ChartTooltip
+              content={
+                <ChartTooltipContent
+                  formatter={(value: any, name: any) => {
+                    const numValue = Number(value);
+                    if (name === 'netPnl') return [`$${numValue.toFixed(2)}`, 'Net P&L'];
+                    if (name === 'durationHours') return [`${numValue.toFixed(1)} hrs`, 'Duration'];
+                    return [value, name];
+                  }}
+                />
               }
-              // Use theme color constants for fill
-              const color = payload.netPnl >= 0 ? colors.success : colors.error;
-              return <circle cx={cx} cy={cy} r={6} fill={color} />;
-            }}
-          />
-        </ScatterChart>
-      </ResponsiveContainer>
-    </div>
+            />
+            {!isMobile && (
+              <ChartLegend content={<ChartLegendContent />} />
+            )}
+            <Scatter
+              name="Trades"
+              data={formattedData}
+              fill="var(--color-netPnl)"
+            />
+          </ScatterChart>
+        </ChartContainer>
+      </CardContent>
+    </Card>
   );
 };
 
