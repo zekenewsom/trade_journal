@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
-import { AreaChart, XAxis, YAxis, CartesianGrid, Area } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { AreaChart, XAxis, YAxis, CartesianGrid, Area, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useTheme } from '@mui/material/styles';
+import type { TooltipProps } from 'recharts';
+import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 import type { EquityCurvePoint } from '../../types';
 
 function useIsMobile() {
@@ -13,19 +14,10 @@ interface Props {
   equityCurve: EquityCurvePoint[];
 }
 
-const chartConfig = {
-  equity: {
-    label: "Equity",
-    color: "hsl(142 76% 36%)", // Green color for equity
-  },
-  drawdown: {
-    label: "Drawdown", 
-    color: "hsl(0 84% 60%)", // Red color for drawdown
-  },
-}
-
 const EquityCurveChart: React.FC<Props> = ({ equityCurve }: Props) => {
+  const theme = useTheme();
   const isMobile = useIsMobile();
+  
   const equityData = useMemo(() => {
     let peak = -Infinity;
     return equityCurve.map((point: EquityCurvePoint) => {
@@ -40,96 +32,111 @@ const EquityCurveChart: React.FC<Props> = ({ equityCurve }: Props) => {
     });
   }, [equityCurve]);
 
+  const renderTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="p-2 rounded shadow-lg bg-white border border-gray-200">
+          <p className="text-xs text-secondary">{new Date(label).toLocaleDateString()}</p>
+          {payload.map((entry, index) => (
+            <p key={index} className="text-sm font-medium" style={{ color: entry.color }}>
+              {entry.dataKey === 'equity' ? `$${Number(entry.value).toFixed(2)}` : `${Number(entry.value).toFixed(2)}%`}
+              {' '}
+              {entry.dataKey === 'equity' ? 'Equity' : 'Drawdown'}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (!equityCurve || equityCurve.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Equity Curve</CardTitle>
-          <CardDescription>No equity curve data available.</CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="h-full w-full flex items-center justify-center">
+        <p className="text-muted-foreground">No equity curve data available</p>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Equity Curve</CardTitle>
-        <CardDescription>Portfolio equity and drawdown over time</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig}>
-          <AreaChart
-            data={equityData}
-            margin={{ top: 20, right: 50, left: 20, bottom: 20 }}
-            height={isMobile ? 300 : 500}
-          >
-            <defs>
-              <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-equity)" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="var(--color-equity)" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-drawdown)" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="var(--color-drawdown)" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="date" 
-              tickFormatter={(value) => {
-                const date = new Date(value);
-                return isMobile ? date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) : 
-                                 date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-              }}
-              interval={Math.max(Math.floor(equityData.length / 8), 1)}
-            />
-            <YAxis 
-              yAxisId="equity"
-              orientation="left"
-              tickFormatter={(value) => `$${value.toFixed(0)}`}
-            />
-            <YAxis 
-              yAxisId="drawdown"
-              orientation="right"
-              tickFormatter={(value) => `${value.toFixed(1)}%`}
-            />
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  formatter={(value: any, name: any) => {
-                    const numValue = Number(value);
-                    if (name === 'equity') return [`$${numValue.toFixed(2)}`, 'Equity'];
-                    if (name === 'drawdown') return [`${numValue.toFixed(2)}%`, 'Drawdown'];
-                    return [value, name];
-                  }}
-                  labelFormatter={(label) => new Date(label).toLocaleDateString()}
-                />
-              }
-            />
-            {!isMobile && (
-              <ChartLegend content={<ChartLegendContent />} />
-            )}
-            <Area
-              yAxisId="equity"
-              type="monotone"
-              dataKey="equity"
-              stroke="var(--color-equity)"
-              fillOpacity={1}
-              fill="url(#equityGradient)"
-            />
-            <Area
-              yAxisId="drawdown"
-              type="monotone"
-              dataKey="drawdown"
-              stroke="var(--color-drawdown)"
-              fillOpacity={1}
-              fill="url(#drawdownGradient)"
-            />
-          </AreaChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+      <AreaChart
+        data={equityData}
+        margin={{ top: 20, right: 60, left: 60, bottom: 60 }}
+      >
+        <defs>
+          <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={theme.palette.success.main} stopOpacity={0.3} />
+            <stop offset="95%" stopColor={theme.palette.success.main} stopOpacity={0.05} />
+          </linearGradient>
+          <linearGradient id="drawdownGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={theme.palette.error.main} stopOpacity={0.3} />
+            <stop offset="95%" stopColor={theme.palette.error.main} stopOpacity={0.05} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+        <XAxis 
+          dataKey="date" 
+          tickFormatter={(value) => {
+            const date = new Date(value);
+            return isMobile ? date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) : 
+                             date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          }}
+          interval={Math.max(Math.floor(equityData.length / 6), 1)}
+          tick={{ fontSize: 12, fill: theme.palette.text.primary }}
+          axisLine={{ stroke: theme.palette.divider }}
+          tickLine={{ stroke: theme.palette.divider }}
+          angle={-45}
+          textAnchor="end"
+          height={70}
+        />
+        <YAxis 
+          yAxisId="equity"
+          orientation="left"
+          tickFormatter={(value) => `$${Math.round(value)}`}
+          tick={{ fontSize: 12, fill: theme.palette.text.primary }}
+          axisLine={{ stroke: theme.palette.divider }}
+          tickLine={{ stroke: theme.palette.divider }}
+          width={50}
+        />
+        <YAxis 
+          yAxisId="drawdown"
+          orientation="right"
+          tickFormatter={(value) => `${value.toFixed(1)}%`}
+          tick={{ fontSize: 12, fill: theme.palette.text.primary }}
+          axisLine={{ stroke: theme.palette.divider }}
+          tickLine={{ stroke: theme.palette.divider }}
+          width={50}
+        />
+        <Tooltip content={renderTooltip} />
+        {!isMobile && (
+          <Legend 
+            wrapperStyle={{ paddingTop: '20px' }}
+            iconType="line"
+          />
+        )}
+        <Area
+          yAxisId="equity"
+          type="monotone"
+          dataKey="equity"
+          stroke={theme.palette.success.main}
+          strokeWidth={2}
+          fillOpacity={1}
+          fill="url(#equityGradient)"
+          name="Portfolio Equity"
+        />
+        <Area
+          yAxisId="drawdown"
+          type="monotone"
+          dataKey="drawdown"
+          stroke={theme.palette.error.main}
+          strokeWidth={2}
+          fillOpacity={1}
+          fill="url(#drawdownGradient)"
+          name="Drawdown %"
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 };
 

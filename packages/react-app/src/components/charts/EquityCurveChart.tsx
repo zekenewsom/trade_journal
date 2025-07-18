@@ -30,22 +30,29 @@ export function EquityCurveChart({ data }: EquityCurveChartProps = {}) {
               <stop offset="95%" stopColor={colors.accent} stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke={colors.cardStroke} />
+          <CartesianGrid strokeDasharray="3 3" stroke={colors.border} />
           <XAxis 
             dataKey="date" 
             tick={{ fill: colors.textSecondary, fontSize: 12 }}
-            axisLine={{ stroke: colors.cardStroke }}
+            axisLine={{ stroke: colors.border }}
             tickLine={false}
           />
           <YAxis 
             tick={{ fill: colors.textSecondary, fontSize: 12 }}
-            axisLine={{ stroke: colors.cardStroke }}
+            axisLine={{ stroke: colors.border }}
             tickLine={false}
             tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
           />
           <Tooltip 
-            contentStyle={{ backgroundColor: colors.surface, borderColor: colors.cardStroke }}
+            contentStyle={{ 
+              backgroundColor: colors.surface, 
+              borderColor: colors.border,
+              border: `1px solid ${colors.border}`,
+              borderRadius: '6px',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+            }}
             itemStyle={{ color: colors.onSurface }}
+            labelStyle={{ color: colors.textSecondary }}
             formatter={(value: number) => [`$${value.toLocaleString()}`, 'Balance']}
             labelFormatter={(label) => `Date: ${label}`}
           />

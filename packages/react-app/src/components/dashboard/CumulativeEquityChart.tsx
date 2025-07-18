@@ -1,7 +1,8 @@
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useTheme } from '@mui/material/styles';
 import { format } from 'date-fns';
+import type { TooltipProps } from 'recharts';
+import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 
 interface CumulativeEquityChartProps {
   data: Array<{
@@ -10,68 +11,64 @@ interface CumulativeEquityChartProps {
   }>;
 }
 
-const chartConfig = {
-  value: {
-    label: "Cumulative Equity",
-    color: "hsl(142 76% 36%)", // Green color for equity
-  },
-}
-
 export function CumulativeEquityChart({ data }: CumulativeEquityChartProps) {
+  const theme = useTheme();
+  
+  const renderTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameType>) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="p-2 rounded shadow-lg bg-white border border-gray-200">
+          <p className="text-xs text-secondary">{format(new Date(label), 'MMM d, yyyy')}</p>
+          <p className="text-sm font-medium text-primary">
+            ${Number(payload[0].value)?.toLocaleString()}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Cumulative Equity</CardTitle>
-        <CardDescription>Portfolio value over time</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer config={chartConfig}>
-          <AreaChart
-            data={data}
-            margin={{ top: 20, right: 20, left: 20, bottom: 20 }}
-            height={400}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis
-              dataKey="date"
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(value) => format(new Date(value), 'MMM dd')}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(value) => `$${value}`}
-            />
-            <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  formatter={(value: any) => [
-                    `$${value?.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`,
-                    "Cumulative Equity"
-                  ]}
-                  labelFormatter={(label) => format(new Date(label), 'MMM d, yyyy')}
-                />
-              }
-            />
-            <defs>
-              <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--color-value)" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="var(--color-value)" stopOpacity={0.01} />
-              </linearGradient>
-            </defs>
-            <Area
-              type="monotone"
-              dataKey="value"
-              stroke="var(--color-value)"
-              strokeWidth={2}
-              fill="url(#equityGradient)"
-              fillOpacity={1}
-            />
-          </AreaChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+      <AreaChart
+        data={data}
+        margin={{ top: 20, right: 30, left: 60, bottom: 60 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+        <XAxis
+          dataKey="date"
+          axisLine={{ stroke: theme.palette.divider }}
+          tickLine={{ stroke: theme.palette.divider }}
+          tickFormatter={(value) => format(new Date(value), 'MMM dd')}
+          interval={Math.max(Math.floor(data.length / 5), 1)}
+          tick={{ fontSize: 12, fill: theme.palette.text.primary }}
+          angle={-45}
+          textAnchor="end"
+          height={70}
+        />
+        <YAxis
+          axisLine={{ stroke: theme.palette.divider }}
+          tickLine={{ stroke: theme.palette.divider }}
+          tickFormatter={(value) => `$${Math.round(value)}`}
+          tick={{ fontSize: 12, fill: theme.palette.text.primary }}
+          width={50}
+        />
+        <Tooltip content={renderTooltip} />
+        <defs>
+          <linearGradient id="cumulativeEquityGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={theme.palette.success.main} stopOpacity={0.3} />
+            <stop offset="95%" stopColor={theme.palette.success.main} stopOpacity={0.05} />
+          </linearGradient>
+        </defs>
+        <Area
+          type="monotone"
+          dataKey="value"
+          stroke={theme.palette.success.main}
+          strokeWidth={2}
+          fill="url(#cumulativeEquityGradient)"
+          fillOpacity={1}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
   );
 }

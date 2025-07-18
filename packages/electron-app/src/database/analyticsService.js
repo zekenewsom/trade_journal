@@ -367,13 +367,79 @@ async function calculateAnalyticsData(filters = {}) {
 
     analyticsData.rMultipleDistribution = Object.entries(rMultipleBuckets).map(([range, count]) => ({ range, count })).filter(item => item.count > 0 || item.range === "N/A"); //
     
-    let cumulativePnlForEquity = 0;
-    analyticsData.equityCurve = analyticsData.pnlPerTradeSeries
-        .sort((a, b) => a.date - b.date)
-        .map(point => {
+    // Calculate initial portfolio value
+    // For leverage trading, this should be the starting portfolio value, not necessarily account cash balance
+    let initialPortfolioValue = 0;
+    
+    try {
+        const accountService = require('./accountService');
+        
+        // Check if we have any leveraged trades to determine the right starting point
+        const leveragedTradesCount = db.prepare('SELECT COUNT(*) as count FROM trades WHERE is_leveraged = 1').get();
+        const hasLeveragedTrades = leveragedTradesCount && leveragedTradesCount.count > 0;
+        
+        if (hasLeveragedTrades) {
+            // For leveraged trading, use account balance as starting portfolio value
+            // This represents the initial collateral/margin used
+            const accounts = db.prepare('SELECT id FROM accounts WHERE archived = 0 AND deleted = 0').all();
+            if (accounts.length > 0) {
+                for (const account of accounts) {
+                    const accountBalance = accountService.getAccountBalance(account.id);
+                    initialPortfolioValue += accountBalance || 0;
+                }
+            }
+            
+            // If no account balance but we have trades, estimate from first trade size
+            if (initialPortfolioValue === 0 && analyticsData.pnlPerTradeSeries.length > 0) {
+                console.log('[ANALYTICS_SERVICE] No account balance found, estimating portfolio value from trade data');
+                // Use a reasonable default based on trade sizes - this is an approximation
+                initialPortfolioValue = Math.abs(analyticsData.totalRealizedNetPnl) * 2 || 10000;
+            }
+        } else {
+            // For spot trading, account balance represents actual portfolio value
+            const accounts = db.prepare('SELECT id FROM accounts WHERE archived = 0 AND deleted = 0').all();
+            if (accounts.length > 0) {
+                for (const account of accounts) {
+                    const accountBalance = accountService.getAccountBalance(account.id);
+                    initialPortfolioValue += accountBalance || 0;
+                }
+            }
+        }
+        
+        console.log('[ANALYTICS_SERVICE] Initial portfolio value:', initialPortfolioValue, '(leveraged trades:', hasLeveragedTrades, ')');
+    } catch (accountError) {
+        console.log('[ANALYTICS_SERVICE] Error calculating portfolio value, using fallback:', accountError.message);
+        // Fallback: estimate from trade P&L patterns
+        initialPortfolioValue = Math.max(Math.abs(analyticsData.totalRealizedNetPnl) * 2, 10000);
+    }
+    
+    // Generate equity curve representing portfolio value progression
+    if (analyticsData.pnlPerTradeSeries.length === 0) {
+        // No trades, use current portfolio value as equity
+        analyticsData.equityCurve = [{
+            date: new Date().getTime(),
+            equity: initialPortfolioValue
+        }];
+    } else {
+        // Generate equity curve starting from initial portfolio value
+        let cumulativePnlForEquity = 0;
+        const sortedTrades = analyticsData.pnlPerTradeSeries.sort((a, b) => a.date - b.date);
+        
+        analyticsData.equityCurve = sortedTrades.map(point => {
             cumulativePnlForEquity += point.pnl;
-            return { date: point.date, equity: cumulativePnlForEquity };
-        }); //
+            return { date: point.date, equity: initialPortfolioValue + cumulativePnlForEquity };
+        });
+        
+        // Add starting point before first trade
+        if (analyticsData.equityCurve.length > 0) {
+            analyticsData.equityCurve.unshift({
+                date: analyticsData.equityCurve[0].date - 86400000, // 1 day before first trade
+                equity: initialPortfolioValue
+            });
+        }
+        
+        console.log('[ANALYTICS_SERVICE] Generated equity curve with', analyticsData.equityCurve.length, 'points');
+    }
 
     if (analyticsData.totalFullyClosedTrades > 0) { //
       analyticsData.winRateOverall = analyticsData.numberOfWinningTrades / analyticsData.totalFullyClosedTrades;
@@ -396,9 +462,10 @@ async function calculateAnalyticsData(filters = {}) {
     analyticsData.pnlByMonth.sort((a,b) => a.period.localeCompare(b.period)); //
     analyticsData.pnlByAsset.sort((a, b) => b.totalNetPnl - a.totalNetPnl); // Sort descending by P&L
 
-    let peakEquity = 0; let maxDrawdownRatio = 0; //
+    let peakEquity = initialPortfolioValue; let maxDrawdownRatio = 0; //
     if (analyticsData.equityCurve.length > 0) {
-        peakEquity = Math.max(0, analyticsData.equityCurve[0].equity); //
+        // Start with the same initial portfolio value used for equity curve
+        peakEquity = initialPortfolioValue;
         for (const point of analyticsData.equityCurve) { //
             if (point.equity > peakEquity) peakEquity = point.equity;
             const currentDrawdown = (peakEquity > 0) ? (point.equity - peakEquity) / peakEquity : 0; //

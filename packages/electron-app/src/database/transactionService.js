@@ -16,7 +16,8 @@ function addTransactionAndManageTrade(transactionData) {
     action: rawAction, quantity, price, datetime,
     fees_for_transaction = 0, notes_for_transaction = null,
     // Include other potential fields from LogTransactionPayload if they are to be stored directly on transaction
-    strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk, emotion_ids = []
+    strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk, emotion_ids = [],
+    closedPnl = null
   } = transactionData;
 
   if (!instrument_ticker || !asset_class || !exchange || !rawAction || quantity <= 0 || price <= 0 || !datetime) {
@@ -39,33 +40,39 @@ function addTransactionAndManageTrade(transactionData) {
     if (positionAnalysis.shouldCreateNewTrade) {
       console.log(`[TRANSACTION_SERVICE] Creating new trade: ${positionAnalysis.processingReason}`);
       
+      // Determine if this is a leveraged trade based on exchange and closedPnl presence
+      const isLeveraged = exchange === 'HyperLiquid' || closedPnl !== null;
+      
       const newTradeStmt = db.prepare(
         `INSERT INTO trades (
           instrument_ticker, asset_class, exchange, trade_direction, status, open_datetime, 
-          fees_total, created_at, updated_at, latest_trade
+          fees_total, is_leveraged, leverage_ratio, created_at, updated_at, latest_trade
         ) VALUES (
           @instrument_ticker, @asset_class, @exchange, @trade_direction, 'Open', @open_datetime, 
-          0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, @datetime
+          0, @is_leveraged, @leverage_ratio, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, @datetime
         ) RETURNING trade_id`
       );
       const newTradeResult = newTradeStmt.get({
         instrument_ticker, asset_class, exchange,
         trade_direction: position_trade_direction, 
         open_datetime: datetime, 
-        datetime
+        datetime,
+        is_leveraged: isLeveraged ? 1 : 0,
+        leverage_ratio: isLeveraged ? 1.0 : null
       });
       current_trade_id = newTradeResult.trade_id;
       if (!current_trade_id) throw new Error("[TRANSACTION_SERVICE] DB error: Failed to create new trade.");
       
-      // On new trade (first transaction), subtract initial cost from account as "trade_open"
-      const openAmount = -1 * (quantity * price + (fees_for_transaction || 0));
-      accountService.addAccountTransaction({
-        accountId: account_id,
-        type: 'trade_open',
-        amount: openAmount,
-        relatedTradeId: current_trade_id,
-        memo: `Open trade for ${instrument_ticker} (${positionAnalysis.processingReason})`
-      });
+      // Record cash flow when closedPnl is provided (from HyperLiquid CSV)
+      if (closedPnl !== null && closedPnl !== undefined && parseFloat(closedPnl) !== 0) {
+        accountService.addAccountTransaction({
+          accountId: account_id,
+          type: 'trade_transaction',
+          amount: parseFloat(closedPnl),
+          relatedTradeId: current_trade_id,
+          memo: `${finalAction} ${quantity} ${instrument_ticker} @ ${price} (Realized P&L: ${closedPnl})`
+        });
+      }
     } else {
       // Use existing trade
       current_trade_id = positionAnalysis.trade_id;
@@ -109,13 +116,13 @@ function addTransactionAndManageTrade(transactionData) {
     const transactionInsertStmt = db.prepare(
       `INSERT INTO transactions (
          trade_id, action, quantity, price, datetime, fees, notes, 
-         strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING transaction_id`
+         strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk, closed_pnl
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING transaction_id`
     );
     const transactionResult = transactionInsertStmt.get(
       current_trade_id, finalAction, quantity, price, datetime, fees_for_transaction, 
       notes_for_transaction || `${positionAnalysis.processingReason}${positionAnalysis.isLiquidation ? ' (Liquidation)' : ''}`,
-      strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk
+      strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk, closedPnl
     );
     if (!transactionResult || !transactionResult.transaction_id) throw new Error("[TRANSACTION_SERVICE] DB error: Failed to insert transaction.");
     
@@ -127,15 +134,14 @@ function addTransactionAndManageTrade(transactionData) {
         }
     }
 
-    // Credit account for every closing transaction (partial or full close)
-    if (isExitingAction) {
-      const proceeds = quantity * price - (fees_for_transaction || 0);
+    // Record cash flow when closedPnl is provided (from HyperLiquid CSV)
+    if (closedPnl !== null && closedPnl !== undefined && parseFloat(closedPnl) !== 0) {
       accountService.addAccountTransaction({
         accountId: account_id,
-        type: 'trade_close',
-        amount: proceeds,
+        type: 'trade_transaction',
+        amount: parseFloat(closedPnl),
         relatedTradeId: current_trade_id,
-        memo: `Close ${positionAnalysis.isLiquidation ? '(Liquidation) ' : ''}for ${instrument_ticker}`
+        memo: `${finalAction} ${quantity} ${instrument_ticker} @ ${price} (Realized P&L: ${closedPnl})`
       });
     }
 
@@ -172,7 +178,8 @@ function addCSVTransactionAndManageTrade(transactionData) {
     instrument_ticker, asset_class, exchange,
     action: rawAction, quantity, price, datetime,
     fees_for_transaction = 0, notes_for_transaction = null,
-    strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk, emotion_ids = []
+    strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk, emotion_ids = [],
+    closedPnl = null
   } = transactionData;
 
   if (!instrument_ticker || !asset_class || !exchange || !rawAction || quantity <= 0 || price <= 0 || !datetime) {
@@ -195,33 +202,28 @@ function addCSVTransactionAndManageTrade(transactionData) {
     if (positionAnalysis.shouldCreateNewTrade) {
       console.log(`[TRANSACTION_SERVICE] Creating new trade for CSV: ${positionAnalysis.processingReason}`);
       
+      // Determine if this is a leveraged trade based on exchange and closedPnl presence
+      const isLeveraged = exchange === 'HyperLiquid' || closedPnl !== null;
+      
       const newTradeStmt = db.prepare(
         `INSERT INTO trades (
           instrument_ticker, asset_class, exchange, trade_direction, status, open_datetime, 
-          fees_total, created_at, updated_at, latest_trade
+          fees_total, is_leveraged, leverage_ratio, created_at, updated_at, latest_trade
         ) VALUES (
           @instrument_ticker, @asset_class, @exchange, @trade_direction, 'Open', @open_datetime, 
-          0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, @datetime
+          0, @is_leveraged, @leverage_ratio, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, @datetime
         ) RETURNING trade_id`
       );
       const newTradeResult = newTradeStmt.get({
         instrument_ticker, asset_class, exchange,
         trade_direction: position_trade_direction, 
         open_datetime: datetime, 
-        datetime
+        datetime,
+        is_leveraged: isLeveraged ? 1 : 0,
+        leverage_ratio: isLeveraged ? 1.0 : null
       });
       current_trade_id = newTradeResult.trade_id;
       if (!current_trade_id) throw new Error("[TRANSACTION_SERVICE] DB error: Failed to create new trade for CSV.");
-      
-      // On new trade (first transaction), subtract initial cost from account as "trade_open"
-      const openAmount = -1 * (quantity * price + (fees_for_transaction || 0));
-      accountService.addAccountTransaction({
-        accountId: account_id,
-        type: 'trade_open',
-        amount: openAmount,
-        relatedTradeId: current_trade_id,
-        memo: `CSV Import: Open trade for ${instrument_ticker} (${positionAnalysis.processingReason})`
-      });
     } else {
       // Use existing trade
       current_trade_id = positionAnalysis.trade_id;
@@ -241,13 +243,13 @@ function addCSVTransactionAndManageTrade(transactionData) {
     const transactionInsertStmt = db.prepare(
       `INSERT INTO transactions (
          trade_id, action, quantity, price, datetime, fees, notes, 
-         strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING transaction_id`
+         strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk, closed_pnl
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING transaction_id`
     );
     const transactionResult = transactionInsertStmt.get(
       current_trade_id, finalAction, quantity, price, datetime, fees_for_transaction, 
       notes_for_transaction || `CSV Import: ${positionAnalysis.processingReason}${positionAnalysis.isLiquidation ? ' (Liquidation)' : ''}`,
-      strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk
+      strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk, closedPnl
     );
     if (!transactionResult || !transactionResult.transaction_id) throw new Error("[TRANSACTION_SERVICE] DB error: Failed to insert CSV transaction.");
     
@@ -259,17 +261,14 @@ function addCSVTransactionAndManageTrade(transactionData) {
         }
     }
 
-    // Credit account for every closing transaction (partial or full close)
-    const isExitingAction = (position_trade_direction === 'Long' && finalAction === 'Sell') ||
-                           (position_trade_direction === 'Short' && finalAction === 'Buy');
-    if (isExitingAction) {
-      const proceeds = quantity * price - (fees_for_transaction || 0);
+    // Record cash flow when closedPnl is provided (from HyperLiquid CSV)
+    if (closedPnl !== null && closedPnl !== undefined && parseFloat(closedPnl) !== 0) {
       accountService.addAccountTransaction({
         accountId: account_id,
-        type: 'trade_close',
-        amount: proceeds,
+        type: 'trade_transaction',
+        amount: parseFloat(closedPnl),
         relatedTradeId: current_trade_id,
-        memo: `CSV Import: Close ${positionAnalysis.isLiquidation ? '(Liquidation) ' : ''}for ${instrument_ticker}`
+        memo: `${finalAction} ${quantity} ${instrument_ticker} @ ${price} (Realized P&L: ${closedPnl})`
       });
     }
 
@@ -302,7 +301,8 @@ function updateSingleTransaction(data) {
   try {
     const {
       transaction_id, quantity, price, datetime, fees, notes,
-      strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk, emotion_ids = []
+      strategy_id, market_conditions, setup_description, reasoning, lessons_learned, r_multiple_initial_risk, emotion_ids = [],
+      closedPnl = null
     } = data;
 
     const txDetails = db.prepare('SELECT trade_id FROM transactions WHERE transaction_id = ?').get(transaction_id);
@@ -315,7 +315,8 @@ function updateSingleTransaction(data) {
         UPDATE transactions SET 
           quantity = @quantity, price = @price, datetime = @datetime, fees = @fees, notes = @notes,
           strategy_id = @strategy_id, market_conditions = @market_conditions, setup_description = @setup_description,
-          reasoning = @reasoning, lessons_learned = @lessons_learned, r_multiple_initial_risk = @r_multiple_initial_risk
+          reasoning = @reasoning, lessons_learned = @lessons_learned, r_multiple_initial_risk = @r_multiple_initial_risk,
+          closed_pnl = @closed_pnl
         WHERE transaction_id = @transaction_id
       `);
       stmt.run({
@@ -326,6 +327,7 @@ function updateSingleTransaction(data) {
         reasoning: reasoning === undefined ? null : reasoning,
         lessons_learned: lessons_learned === undefined ? null : lessons_learned,
         r_multiple_initial_risk: (r_multiple_initial_risk === undefined || r_multiple_initial_risk === null || isNaN(parseFloat(r_multiple_initial_risk))) ? null : parseFloat(r_multiple_initial_risk),
+        closed_pnl: closedPnl === undefined ? null : closedPnl,
         transaction_id
       });
 

@@ -5,6 +5,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Variables for shadcn/ui charts */
+:root {
+  --background: #0D1117;
+  --foreground: #E6EDF3;
+  --card: #161B22;
+  --card-foreground: #E6EDF3;
+  --popover: #161B22;
+  --popover-foreground: #E6EDF3;
+  --primary: #58A6FF;
+  --primary-foreground: #FFFFFF;
+  --secondary: #3FB950;
+  --secondary-foreground: #FFFFFF;
+  --muted: #21262D;
+  --muted-foreground: #8B949E;
+  --accent: #58A6FF;
+  --accent-foreground: #FFFFFF;
+  --destructive: #F85149;
+  --destructive-foreground: #FFFFFF;
+  --border: #30363D;
+  --input: #21262D;
+  --ring: #58A6FF;
+}
+
 body {
   font-family: theme('fontFamily.ui'); /* Use Inter from Tailwind config */
   background-color: theme('colors.background');
@@ -58,4 +81,57 @@ body {
 
 .recharts-tooltip-item {
    color: theme('colors.textSecondary') !important;
+}
+
+/* Chart specific overrides for better dark theme support */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--border) !important;
+  opacity: 0.3 !important;
+}
+
+.recharts-cartesian-axis-line {
+  stroke: var(--border) !important;
+}
+
+.recharts-cartesian-axis-tick-line {
+  stroke: var(--border) !important;
+}
+
+/* Ensure chart areas and lines use proper colors */
+.recharts-area-curve,
+.recharts-line-curve {
+  filter: none !important;
+}
+
+/* Override shadcn chart container styles for better visibility */
+[data-chart] {
+  --muted-foreground: #8B949E !important;
+  --border: #30363D !important;
+  --color-equity: #3FB950 !important;
+  --color-drawdown: #F85149 !important;
+  --color-value: #3FB950 !important;
+  --color-profits: #3FB950 !important;
+  --color-losses: #F85149 !important;
+  --color-netPnl: #58A6FF !important;
+  
+  /* Remove any default aspect ratio for better integration */
+  aspect-ratio: unset !important;
+}
+
+/* Fix chart container styling within Material-UI Paper components */
+.MuiPaper-root [data-chart] {
+  height: 100% !important;
+  aspect-ratio: unset !important;
+}
+
+/* Improve X-axis text readability */
+.recharts-xAxis .recharts-cartesian-axis-tick-value {
+  font-size: 11px !important;
+  fill: #8B949E !important;
+}
+
+.recharts-yAxis .recharts-cartesian-axis-tick-value {
+  font-size: 11px !important;
+  fill: #8B949E !important;
 }

@@ -34,6 +34,10 @@ const requiredFields = [
   { key: 'fees', label: 'Fees', description: 'Transaction fees (optional)' }
 ];
 
+const optionalFields = [
+  { key: 'closedPnl', label: 'Closed P&L', description: 'Actual profit/loss for leveraged positions (optional)' }
+];
+
 const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
   const accounts = useAppStore(s => s.accounts);
   const selectedAccountId = useAppStore(s => s.selectedAccountId);
@@ -60,10 +64,10 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
       else if (lowerHeader === 'sz') mapping[header] = 'quantity';
       else if (lowerHeader === 'px') mapping[header] = 'price';
       else if (lowerHeader === 'fee') mapping[header] = 'fees';
+      else if (lowerHeader === 'closedpnl') mapping[header] = 'closedPnl';
       // Skip calculated fields - these are computed automatically by the program:
       // - 'ntl' (notional) = quantity × price
-      // - 'closedpnl' = calculated using FIFO methodology with precise decimal arithmetic
-      else if (lowerHeader === 'ntl' || lowerHeader === 'closedpnl') mapping[header] = null;
+      else if (lowerHeader === 'ntl') mapping[header] = null;
       else mapping[header] = null;
     });
     
