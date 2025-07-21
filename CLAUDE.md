@@ -18,6 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Testing
 - Backend tests: Run Jest from `packages/electron-app/` directory
 - No specific test runner configured at root level
+- TypeScript checking: `cd packages/react-app && npx tsc --noEmit`
 
 ## Architecture Overview
 
@@ -26,6 +27,12 @@ This is a **pnpm monorepo** containing an **Electron desktop application** for t
 ### Package Structure
 - **`packages/electron-app/`** - Electron backend (Node.js + SQLite)
 - **`packages/react-app/`** - React frontend (TypeScript + Vite + Material-UI + Tailwind)
+
+### Frontend Codebase State
+- **TypeScript Migration Complete**: All React components now use `.tsx` extensions
+- **71 TypeScript React Files**: Fully typed component architecture
+- **Single Remaining JS File**: `components/analytics/riskMetricsConfig.jsx` (configuration file)
+- **Cleanup History**: 44 duplicate `.js`/`.jsx` files removed in December 2024
 
 ### Key Architecture Patterns
 
@@ -52,6 +59,8 @@ This is a **pnpm monorepo** containing an **Electron desktop application** for t
 #### Frontend State Management
 - **Zustand Store** (`react-app/src/stores/appStore.ts`): Global state management
 - **Component Structure**: Feature-based organization (analytics, dashboard, trades, transactions)
+- **TypeScript Integration**: All components use proper TypeScript interfaces and type definitions
+- **Module Resolution**: `.tsx` files take precedence; avoid mixing `.js`/`.jsx` with `.tsx` equivalents
 
 ### Critical Integration Points
 
@@ -115,6 +124,13 @@ When making changes that affect multiple layers:
 - **Domain-Specific Validation**: Account, transaction, and trade data validators
 - **Location**: `validationUtils.js`, validation integrated throughout `main.js`
 
+### Codebase Cleanup & TypeScript Migration (Fix #5)
+- **Duplicate File Elimination**: Removed 44 duplicate `.js`/`.jsx` files in favor of `.tsx` versions
+- **TypeScript Consistency**: All React components now use TypeScript with proper type definitions
+- **50% File Reduction**: Eliminated redundant React component files for cleaner codebase
+- **Module Resolution Optimization**: Predictable import paths with TypeScript-first architecture
+- **Location**: `packages/react-app/src/` - all components, views, and utilities now TypeScript
+
 ## Development Best Practices
 
 ### Financial Calculations
@@ -132,3 +148,16 @@ When making changes that affect multiple layers:
 - **Avoid N+1 queries**: Use JOIN operations to fetch related data in single queries
 - **Use prepared statements**: All database operations use better-sqlite3 prepared statements
 - **Leverage indexes**: Query patterns are optimized with database indexes
+
+### TypeScript Development
+- **Always use `.tsx` extensions** for React components (migration complete)
+- **Proper type definitions**: Import types from `src/types/index.ts`
+- **Component interfaces**: Use React.FC or explicit prop interfaces
+- **Avoid JavaScript files**: All new React components must be TypeScript
+- **Type-safe IPC**: Use `ElectronAPIDefinition` interface for backend communication
+
+### File Organization
+- **No duplicate extensions**: Never create both `.js`/`.jsx` and `.tsx` versions of the same component
+- **TypeScript-first**: All React code should be TypeScript unless there's a specific configuration reason
+- **Clean imports**: Use relative imports and avoid file extensions in import statements
+- **Feature-based structure**: Organize components by feature (analytics, dashboard, trades, etc.)
