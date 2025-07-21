@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Ignore compiled JS artifacts in src (from TypeScript)
+src/**/*.js
+src/**/*.js.map
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

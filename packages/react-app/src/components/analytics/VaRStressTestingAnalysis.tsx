@@ -160,10 +160,10 @@ const VaRStressTestingAnalysis: React.FC<VaRStressTestingAnalysisProps> = ({ ana
     
     // Create histogram bins
     const bins = [];
-    for (let i = 0; i >= -0.5; i -= 0.05) {
+    for (let i = 0; i > -0.5; i -= 0.05) {
       const binStart = i;
       const binEnd = i - 0.05;
-      const count = drawdowns.filter(dd => dd <= binStart && dd > binEnd).length;
+      const count = drawdowns.filter(dd => dd <= binStart && dd >= binEnd).length;
       bins.push({
         range: `${(binStart * 100).toFixed(1)}% to ${(binEnd * 100).toFixed(1)}%`,
         count,

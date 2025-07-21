@@ -4,16 +4,7 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Cell } from 'recharts';
 import { Typography, Box } from '@mui/material';
 import { colors, typography, borderRadius as br } from '../../styles/design-tokens';
-
-interface TimePerformanceData {
-  period: string; // e.g., "2024-01", "Monday"
-  totalNetPnl: number;
-  tradeCount: number;
-  winRate: number | null;
-  wins?: number;
-  losses?: number;
-  breakEvens?: number;
-}
+import type { TimePerformanceData } from '../../types/index';
 
 interface MonthlyReturnsChartProps {
   data: TimePerformanceData[];

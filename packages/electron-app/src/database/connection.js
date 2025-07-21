@@ -20,7 +20,22 @@ function seedInitialData(currentDbInstance) {
   } catch (error) {
     console.error("[CONNECTION] Error seeding emotions:", error);
   }
-  // Add other seed data here if needed
+
+  // Seed default account if no accounts exist
+  try {
+    const accountCheck = currentDbInstance.prepare('SELECT COUNT(*) as count FROM accounts').get();
+    if (accountCheck.count === 0) {
+      const insertAccount = currentDbInstance.prepare(`
+        INSERT INTO accounts (account_name, account_type, initial_balance)
+        VALUES (?, ?, ?)
+      `);
+      insertAccount.run('Default Cash Account', 'cash', 0);
+      console.log('[CONNECTION] Default cash account created.');
+    }
+  } catch (error) {
+    // Accounts table might not exist yet (migration not run), that's okay
+    console.log('[CONNECTION] Accounts table not ready yet, skipping default account creation.');
+  }
 }
 
 function initializeDatabase(dbFilePath) {

@@ -1,6 +1,10 @@
 -- 010_add_trade_transaction_type.sql
 -- Add 'trade_transaction' to the account_transactions type check constraint
 
+-- Pre-migration validation: count rows and check for invalid types
+-- SELECT COUNT(*) AS pre_migration_count FROM account_transactions;
+-- SELECT COUNT(*) AS invalid_types_pre FROM account_transactions WHERE type NOT IN ('deposit', 'withdrawal', 'trade_open', 'trade_close', 'fee', 'adjustment');
+
 -- Drop the existing check constraint and recreate it with the new type
 -- SQLite doesn't support ALTER TABLE for check constraints, so we need to recreate the table
 
@@ -31,3 +35,7 @@ ALTER TABLE account_transactions_temp RENAME TO account_transactions;
 -- Recreate the index if it exists
 CREATE INDEX IF NOT EXISTS idx_account_transactions_account_id ON account_transactions(account_id);
 CREATE INDEX IF NOT EXISTS idx_account_transactions_related_trade_id ON account_transactions(related_trade_id);
+
+-- Post-migration validation: count rows and check for invalid types (should be 0)
+-- SELECT COUNT(*) AS post_migration_count FROM account_transactions;
+-- SELECT COUNT(*) AS invalid_types_post FROM account_transactions WHERE type NOT IN ('deposit', 'withdrawal', 'trade_open', 'trade_close', 'fee', 'adjustment', 'trade_transaction');

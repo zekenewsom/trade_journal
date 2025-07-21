@@ -59,7 +59,6 @@ function App() {
                 return _jsx(AnalyticsPage, {});
             case 'accountsPage':
                 return _jsx(AccountsPage, {});
-            case 'dashboard':
             default:
                 return (_jsxs("div", { children: [_jsx(DashboardMetrics, {}), _jsx("hr", { className: "my-5" }), _jsxs("div", { className: "flex gap-2.5 justify-center mt-5", children: [_jsx("button", { onClick: () => navigateTo('logTransactionForm', { navTimestamp: Date.now() }), className: "px-4 py-2.5", children: "Log New Transaction" }), _jsx("button", { onClick: () => navigateTo('tradesList'), className: "px-4 py-2.5", children: "View All Trades" }), _jsx("button", { onClick: () => navigateTo('analyticsPage'), className: "px-4 py-2.5", children: "View Analytics" }), _jsx("button", { onClick: () => navigateTo('accountsPage'), className: "px-4 py-2.5", children: "Manage Accounts" })] })] }));
         }

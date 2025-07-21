@@ -64,15 +64,15 @@ function addTransactionAndManageTrade(transactionData) {
       if (!current_trade_id) throw new Error("[TRANSACTION_SERVICE] DB error: Failed to create new trade.");
       
       // Record cash flow when closedPnl is provided (from HyperLiquid CSV)
-      if (closedPnl !== null && closedPnl !== undefined && parseFloat(closedPnl) !== 0) {
-        accountService.addAccountTransaction({
-          accountId: account_id,
-          type: 'trade_transaction',
-          amount: parseFloat(closedPnl),
-          relatedTradeId: current_trade_id,
-          memo: `${finalAction} ${quantity} ${instrument_ticker} @ ${price} (Realized P&L: ${closedPnl})`
-        });
-      }
+      // if (closedPnl !== null && closedPnl !== undefined && parseFloat(closedPnl) !== 0) {
+      //   accountService.addAccountTransaction({
+      //     accountId: account_id,
+      //     type: 'trade_transaction',
+      //     amount: parseFloat(closedPnl),
+      //     relatedTradeId: current_trade_id,
+      //     memo: `${finalAction} ${quantity} ${instrument_ticker} @ ${price} (Realized P&L: ${closedPnl})`
+      //   });
+      // }
     } else {
       // Use existing trade
       current_trade_id = positionAnalysis.trade_id;

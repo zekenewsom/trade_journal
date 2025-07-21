@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../stores/appStore';
 import { Upload, FileText, AlertCircle, CheckCircle } from 'lucide-react';
+import Papa from 'papaparse';
 
 interface CSVImportFormProps {
   onImportComplete?: () => void;
@@ -74,6 +75,21 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
     return mapping;
   };
 
+  // Helper to parse HyperLiquid date strings
+  function parseHyperLiquidDate(dateStr: string): Date {
+    const [datePart, timePart] = dateStr.split(' - ');
+    const [month, day, year] = datePart.split('/');
+    const [hours, minutes, seconds] = timePart.split(':');
+    return new Date(
+      parseInt(year, 10),
+      parseInt(month, 10) - 1,
+      parseInt(day, 10),
+      parseInt(hours, 10),
+      parseInt(minutes, 10),
+      parseInt(seconds, 10)
+    );
+  }
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -88,26 +104,19 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
     
     reader.onload = (e) => {
       const text = e.target?.result as string;
-      const lines = text.split('\n').filter(line => line.trim());
-      
-      if (lines.length < 2) {
+      const result = Papa.parse(text, { header: true, skipEmptyLines: true });
+      if (result.errors && result.errors.length > 0) {
+        setImportStatus({ message: `CSV parsing error: ${result.errors[0].message}`, type: 'error' });
+        return;
+      }
+      const data = result.data as CSVRow[];
+      if (!data.length) {
         setImportStatus({ message: 'CSV file must contain at least a header row and one data row', type: 'error' });
         return;
       }
-
-      const headers = lines[0].split(',').map(h => h.trim());
-      const data = lines.slice(1).map(line => {
-        const values = line.split(',').map(v => v.trim());
-        const row: CSVRow = {};
-        headers.forEach((header, index) => {
-          row[header] = values[index] || '';
-        });
-        return row;
-      });
-
+      const headers = result.meta.fields || [];
       setCsvHeaders(headers);
       setCsvData(data);
-      
       // Auto-set field mapping based on selected exchange
       if (selectedExchange === 'hyperliquid') {
         setFieldMapping(getHyperLiquidMapping(headers));
@@ -119,11 +128,9 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
         });
         setFieldMapping(emptyMapping);
       }
-
       setImportStep('mapping');
       setImportStatus(null);
     };
-
     reader.readAsText(file);
   };
 
@@ -172,14 +179,6 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
         const bDateTime = b[dateTimeField];
         
         if (selectedExchange === 'hyperliquid') {
-          // Parse HyperLiquid datetime format: "7/12/2025 - 09:37:01"
-          const parseHyperLiquidDate = (dateStr: string) => {
-            const [datePart, timePart] = dateStr.split(' - ');
-            const [month, day, year] = datePart.split('/');
-            const [hours, minutes, seconds] = timePart.split(':');
-            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes), parseInt(seconds));
-          };
-          
           const aDate = parseHyperLiquidDate(aDateTime);
           const bDate = parseHyperLiquidDate(bDateTime);
           return aDate.getTime() - bDate.getTime();
@@ -222,10 +221,7 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
                 case 'datetime':
                   // Parse HyperLiquid datetime format: "7/12/2025 - 09:37:01"
                   if (selectedExchange === 'hyperliquid') {
-                    const [datePart, timePart] = value.split(' - ');
-                    const [month, day, year] = datePart.split('/');
-                    const [hours, minutes, seconds] = timePart.split(':');
-                    const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours), parseInt(minutes), parseInt(seconds));
+                    const date = parseHyperLiquidDate(value);
                     transformedData.datetime = date.toISOString().slice(0, 16);
                   } else {
                     transformedData.datetime = value;

@@ -4,6 +4,8 @@ const tradeService = require('./tradeService'); // To use calculateTradePnlFifoE
 const { format } = require('date-fns'); // For date formatting
 const { enhanceAnalyticsWithInstitutional } = require('./institutionalAnalyticsService');
 
+const DEFAULT_RISK_FREE_RATE = 4.5;
+
 async function calculateAnalyticsData(filters = {}) {
   console.log('[ANALYTICS_SERVICE] calculateAnalyticsData CALLED with filters:', filters);
   try {
@@ -491,10 +493,16 @@ async function calculateAnalyticsData(filters = {}) {
     console.log('[ANALYTICS_SERVICE] Analytics data calculated successfully.');
     
     // Enhance with institutional-level metrics
-    const institutionalAnalytics = enhanceAnalyticsWithInstitutional(analyticsData, 4.5);
-    
-    console.log('[ANALYTICS_SERVICE] Institutional analytics enhancement completed.');
-    return institutionalAnalytics;
+    const riskFreeRate = (filters && typeof filters.riskFreeRate === 'number') ? filters.riskFreeRate : DEFAULT_RISK_FREE_RATE;
+    let institutionalAnalytics;
+    try {
+      institutionalAnalytics = enhanceAnalyticsWithInstitutional(analyticsData, riskFreeRate);
+      console.log('[ANALYTICS_SERVICE] Institutional analytics enhancement completed.');
+      return institutionalAnalytics;
+    } catch (enhanceError) {
+      console.error('[ANALYTICS_SERVICE] Error enhancing analytics with institutional metrics:', enhanceError);
+      return analyticsData;
+    }
   } catch (error) {
     console.error('[ANALYTICS_SERVICE] Error calculating analytics data:', error);
     return { error: (error instanceof Error ? error.message : String(error)) || 'Failed to calculate analytics data' }; //

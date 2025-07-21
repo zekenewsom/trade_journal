@@ -15,22 +15,7 @@ import { CumulativeEquityChart } from './CumulativeEquityChart';
 import PnlHeatmapCalendar from './charts/PnlHeatmapCalendar';
 
 import { colors } from '../../styles/design-tokens';
-
-export const formatCurrency = (value: number | null | undefined, showSign = false): string => {
-  if (value === null || value === undefined || isNaN(value)) return 'N/A';
-  const sign = value > 0 && showSign ? '+' : '';
-  return `${sign}${value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`;
-};
-
-export const formatPercentage = (value: number | null | undefined, decimals = 1): string => {
-  if (value === null || value === undefined || isNaN(value)) return 'N/A';
-  return `${value.toFixed(decimals)}%`;
-};
-
-export const formatNumber = (value: number | null | undefined, decimals = 2): string => {
-  if (value === null || value === undefined || isNaN(value)) return 'N/A';
-  return value.toFixed(decimals);
-};
+import { formatCurrency, formatPercentage, formatNumber } from '../../utils/formatters';
 
 const DashboardMetrics: React.FC = () => {
   const totalBuyingPower = useAppStore(s => s.getTotalBuyingPower());
@@ -45,9 +30,6 @@ const DashboardMetrics: React.FC = () => {
   const sharpeRatio = React.useMemo(() => {
     if (!analytics || !analytics.totalRealizedNetPnl || !analytics.totalFullyClosedTrades) return null;
     
-    const avgReturn = analytics.totalRealizedNetPnl / analytics.totalFullyClosedTrades;
-    const riskFreeReturn = riskFreeRate / 100;
-    
     // Simple approximation for volatility using equity curve
     if (!analytics.equityCurve || analytics.equityCurve.length < 2) return null;
     
@@ -56,7 +38,10 @@ const DashboardMetrics: React.FC = () => {
       return prevPoint.equity !== 0 ? (point.equity - prevPoint.equity) / prevPoint.equity : 0;
     });
     
-    const avgDailyReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
+    const avgReturn = returns.length > 0 ? returns.reduce((sum, r) => sum + r, 0) / returns.length : 0;
+    const riskFreeReturn = riskFreeRate / 100;
+    
+    const avgDailyReturn = avgReturn;
     const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - avgDailyReturn, 2), 0) / returns.length;
     const volatility = Math.sqrt(variance);
     
@@ -67,15 +52,15 @@ const DashboardMetrics: React.FC = () => {
   const sortinoRatio = React.useMemo(() => {
     if (!analytics || !analytics.totalRealizedNetPnl || !analytics.totalFullyClosedTrades) return null;
     
-    const avgReturn = analytics.totalRealizedNetPnl / analytics.totalFullyClosedTrades;
-    const riskFreeReturn = riskFreeRate / 100;
-    
     if (!analytics.equityCurve || analytics.equityCurve.length < 2) return null;
     
     const returns = analytics.equityCurve.slice(1).map((point, i) => {
       const prevPoint = analytics.equityCurve[i];
       return prevPoint.equity !== 0 ? (point.equity - prevPoint.equity) / prevPoint.equity : 0;
     });
+    
+    const avgReturn = returns.length > 0 ? returns.reduce((sum, r) => sum + r, 0) / returns.length : 0;
+    const riskFreeReturn = riskFreeRate / 100;
     
     const downside = returns.filter(ret => ret < 0);
     if (downside.length === 0) return null;

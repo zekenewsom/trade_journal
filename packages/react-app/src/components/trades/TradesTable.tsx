@@ -21,17 +21,52 @@ interface TradesTableProps {
 
 type SortKey = keyof Trade | 'open_datetime' | 'close_datetime' | 'unrealized_pnl' | null;
 
+type SortDirection = 'asc' | 'desc';
+
 const TradesTable: React.FC<TradesTableProps> = ({ trades, onEdit, onDelete }) => {
   const store = useAppStore();
   const updateMarkPriceInStore = store && typeof store === 'object' && 'updateMarkPriceInStore' in store ? (store as { updateMarkPriceInStore?: (tradeId: number, marketPrice: number, unrealizedPnl: number, currentOpenQuantity: number) => void }).updateMarkPriceInStore : undefined;
     
   const [markPrices, setMarkPrices] = useState<Record<number, string>>({}); // tradeId -> price string
+  const [sortKey, setSortKey] = useState<SortKey>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   const handleSort = (key: SortKey) => {
-    void key; // placeholder to satisfy lint
-    // Sorting logic can be implemented here if needed
+    if (sortKey === key) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
   };
-  const sortedTrades = useMemo(() => { /* ... same ... */ return trades || []; }, [trades]);
+
+  const sortedTrades = useMemo(() => {
+    if (!trades) return [];
+    if (!sortKey) return trades;
+    const sorted = [...trades].sort((a, b) => {
+      let aValue = a[sortKey as keyof Trade];
+      let bValue = b[sortKey as keyof Trade];
+      // Special handling for custom keys
+      if (sortKey === 'open_datetime' || sortKey === 'close_datetime' || sortKey === 'latest_trade') {
+        aValue = a[sortKey as keyof Trade] ? new Date(a[sortKey as keyof Trade] as string).getTime() : 0;
+        bValue = b[sortKey as keyof Trade] ? new Date(b[sortKey as keyof Trade] as string).getTime() : 0;
+      }
+      if (sortKey === 'unrealized_pnl') {
+        aValue = (a as any).unrealized_pnl ?? 0;
+        bValue = (b as any).unrealized_pnl ?? 0;
+      }
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc'
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      return 0;
+    });
+    return sorted;
+  }, [trades, sortKey, sortDirection]);
 
   const handleMarkPriceChange = (tradeId: number, value: string) => {
     setMarkPrices(prev => ({ ...prev, [tradeId]: value }));
@@ -73,8 +108,8 @@ const TradesTable: React.FC<TradesTableProps> = ({ trades, onEdit, onDelete }) =
   const getSortIndicator = (
     k: keyof Trade | 'open_datetime' | 'close_datetime' | 'unrealized_pnl'
   ) => {
-    void k;
-    return '';
+    if (sortKey !== k) return '';
+    return sortDirection === 'asc' ? ' ▲' : ' ▼';
   };
 
   return (

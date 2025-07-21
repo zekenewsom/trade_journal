@@ -27,6 +27,7 @@ interface RiskMetricCardProps {
   };
   format?: 'number' | 'percentage' | 'ratio';
   precision?: number;
+  reverseScale?: boolean;
 }
 
 const RiskMetricCard: React.FC<RiskMetricCardProps> = ({
@@ -36,7 +37,8 @@ const RiskMetricCard: React.FC<RiskMetricCardProps> = ({
   benchmark,
   interpretation,
   format = 'number',
-  precision = 2
+  precision = 2,
+  reverseScale = false
 }) => {
   const formatValue = (val: number | null): string => {
     if (val === null || val === undefined || isNaN(val)) return 'N/A';
@@ -53,20 +55,32 @@ const RiskMetricCard: React.FC<RiskMetricCardProps> = ({
 
   const getPerformanceColor = (val: number | null): string => {
     if (val === null || val === undefined || isNaN(val)) return colors.textSecondary;
-    
-    if (val >= interpretation.excellent) return colors.success;
-    if (val >= interpretation.good) return '#4CAF50';
-    if (val >= interpretation.fair) return '#FF9800';
-    return colors.error;
+    if (!reverseScale) {
+      if (val >= interpretation.excellent) return colors.success;
+      if (val >= interpretation.good) return '#4CAF50';
+      if (val >= interpretation.fair) return '#FF9800';
+      return colors.error;
+    } else {
+      if (val <= interpretation.excellent) return colors.success;
+      if (val <= interpretation.good) return '#4CAF50';
+      if (val <= interpretation.fair) return '#FF9800';
+      return colors.error;
+    }
   };
 
   const getPerformanceLabel = (val: number | null): string => {
     if (val === null || val === undefined || isNaN(val)) return 'N/A';
-    
-    if (val >= interpretation.excellent) return 'Excellent';
-    if (val >= interpretation.good) return 'Good';
-    if (val >= interpretation.fair) return 'Fair';
-    return 'Poor';
+    if (!reverseScale) {
+      if (val >= interpretation.excellent) return 'Excellent';
+      if (val >= interpretation.good) return 'Good';
+      if (val >= interpretation.fair) return 'Fair';
+      return 'Poor';
+    } else {
+      if (val <= interpretation.excellent) return 'Excellent';
+      if (val <= interpretation.good) return 'Good';
+      if (val <= interpretation.fair) return 'Fair';
+      return 'Poor';
+    }
   };
 
   return (
@@ -146,6 +160,9 @@ const RiskMetricCard: React.FC<RiskMetricCardProps> = ({
   );
 };
 
+const safeMetricValue = (val: unknown): number | null =>
+  typeof val === 'number' ? val : null;
+
 const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ analytics }) => {
   if (!analytics) {
     return (
@@ -163,7 +180,10 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
       benchmark: {
         label: 'Hedge Fund Avg',
         value: 0.8,
-        comparison: analytics.sharpeRatio && analytics.sharpeRatio > 0.8 ? 'higher' : 'lower' as const
+        comparison:
+          analytics.sharpeRatio !== null && analytics.sharpeRatio !== undefined && analytics.sharpeRatio > 0.8
+            ? 'higher'
+            : 'lower' as const
       },
       interpretation: {
         excellent: 1.5,
@@ -181,7 +201,10 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
       benchmark: {
         label: 'Hedge Fund Avg',
         value: 1.2,
-        comparison: analytics.sortinoRatio && analytics.sortinoRatio > 1.2 ? 'higher' : 'lower' as const
+        comparison:
+          analytics.sortinoRatio !== null && analytics.sortinoRatio !== undefined && analytics.sortinoRatio > 1.2
+            ? 'higher'
+            : 'lower' as const
       },
       interpretation: {
         excellent: 2.0,
@@ -199,7 +222,10 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
       benchmark: {
         label: 'Hedge Fund Avg',
         value: 0.5,
-        comparison: analytics.calmarRatio && analytics.calmarRatio > 0.5 ? 'higher' : 'lower' as const
+        comparison:
+          analytics.calmarRatio !== null && analytics.calmarRatio !== undefined && analytics.calmarRatio > 0.5
+            ? 'higher'
+            : 'lower' as const
       },
       interpretation: {
         excellent: 1.0,
@@ -212,7 +238,7 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
     },
     {
       title: 'Ulcer Index',
-      value: analytics.ulcerIndex,
+      value: safeMetricValue(analytics.ulcerIndex),
       description: 'Measures depth and duration of drawdowns. Lower values are better.',
       interpretation: {
         excellent: 0.05,
@@ -221,7 +247,8 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
         poor: 1.0
       },
       format: 'percentage' as const,
-      precision: 1
+      precision: 1,
+      reverseScale: true
     },
     {
       title: 'Omega Ratio',
@@ -230,7 +257,10 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
       benchmark: {
         label: 'Benchmark',
         value: 1.0,
-        comparison: analytics.omega && analytics.omega > 1.0 ? 'higher' : 'lower' as const
+        comparison:
+          analytics.omega !== null && analytics.omega !== undefined && analytics.omega > 1.0
+            ? 'higher'
+            : 'lower' as const
       },
       interpretation: {
         excellent: 2.0,
@@ -248,7 +278,10 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
       benchmark: {
         label: 'Neutral',
         value: 0,
-        comparison: analytics.skewness && analytics.skewness > 0 ? 'higher' : 'lower' as const
+        comparison:
+          analytics.skewness !== null && analytics.skewness !== undefined && analytics.skewness > 0
+            ? 'higher'
+            : 'lower' as const
       },
       interpretation: {
         excellent: 0.5,
@@ -279,29 +312,31 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
     },
     {
       title: 'Value at Risk (95%)',
-      value: analytics.valueAtRisk95,
+      value: safeMetricValue(analytics.valueAtRisk95),
       description: 'Maximum expected loss at 95% confidence level. Lower absolute values are better.',
       interpretation: {
-        excellent: -0.01,
-        good: -0.02,
-        fair: -0.05,
-        poor: -0.10
+        excellent: -0.10,
+        good: -0.05,
+        fair: -0.02,
+        poor: -0.01
       },
       format: 'percentage' as const,
-      precision: 1
+      precision: 1,
+      reverseScale: true
     },
     {
       title: 'Conditional VaR (95%)',
-      value: analytics.conditionalVaR95,
+      value: safeMetricValue(analytics.conditionalVaR95),
       description: 'Expected loss beyond VaR threshold. Lower absolute values are better.',
       interpretation: {
-        excellent: -0.02,
-        good: -0.03,
-        fair: -0.07,
-        poor: -0.15
+        excellent: -0.15,
+        good: -0.07,
+        fair: -0.03,
+        poor: -0.02
       },
       format: 'percentage' as const,
-      precision: 1
+      precision: 1,
+      reverseScale: true
     },
     {
       title: 'Annualized Return',
@@ -310,7 +345,10 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
       benchmark: {
         label: 'S&P 500',
         value: 0.10,
-        comparison: analytics.annualizedReturn && analytics.annualizedReturn > 0.10 ? 'higher' : 'lower' as const
+        comparison:
+          analytics.annualizedReturn !== null && analytics.annualizedReturn !== undefined && analytics.annualizedReturn > 0.10
+            ? 'higher'
+            : 'lower' as const
       },
       interpretation: {
         excellent: 0.20,
@@ -341,7 +379,7 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
     },
     {
       title: 'Max Drawdown Duration',
-      value: analytics.maxDrawdownDuration,
+      value: safeMetricValue(analytics.maxDrawdownDuration),
       description: 'Longest drawdown period in days. Lower values are better.',
       interpretation: {
         excellent: 30,
@@ -350,7 +388,8 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
         poor: 365
       },
       format: 'number' as const,
-      precision: 0
+      precision: 0,
+      reverseScale: true
     }
   ];
 

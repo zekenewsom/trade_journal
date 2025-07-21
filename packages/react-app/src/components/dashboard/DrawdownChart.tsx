@@ -40,9 +40,6 @@ export function DrawdownChart({ data }: DrawdownChartProps) {
   const drawdownData = React.useMemo(() => {
     if (!data || data.length === 0) return [];
     
-    // Debug: Log the equity data
-    console.log('Drawdown Chart - Equity Data:', data);
-    
     let peak = data[0].value;
     const result = data.map(point => {
       // Update peak if current value is higher
@@ -57,7 +54,6 @@ export function DrawdownChart({ data }: DrawdownChartProps) {
       };
     });
     
-    console.log('Drawdown Chart - Calculated Drawdown:', result);
     return result;
   }, [data]);
 

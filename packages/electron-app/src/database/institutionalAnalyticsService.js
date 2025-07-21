@@ -52,7 +52,7 @@ function calculateInstitutionalRiskMetrics(equityCurve, riskFreeRate = 4.5, trad
     const prev = equityCurve[i - 1];
     const curr = equityCurve[i];
     if (prev.equity !== 0) {
-      const dailyReturn = (curr.equity - prev.equity) / Math.abs(prev.equity);
+      const dailyReturn = (curr.equity - prev.equity) / prev.equity;
       dailyReturns.push(dailyReturn);
     }
   }
@@ -90,6 +90,39 @@ function calculateInstitutionalRiskMetrics(equityCurve, riskFreeRate = 4.5, trad
   let maxDrawdownDuration = 0;
   let currentDrawdownDuration = 0;
   const drawdowns = [];
+
+  // Validate initial peakEquity
+  if (peakEquity <= 0) {
+    // If initial equity is zero or negative, skip drawdown calculation to avoid invalid results
+    return {
+      sharpeRatio,
+      sortinoRatio,
+      calmarRatio: null,
+      informationRatio: null,
+      treynorRatio: null,
+      omega: null,
+      gainToPainRatio: null,
+      sterlingRatio: null,
+      burkeRatio: null,
+      ulcerIndex: null,
+      skewness: null,
+      kurtosis: null,
+      valueAtRisk95: null,
+      valueAtRisk99: null,
+      conditionalVaR95: null,
+      conditionalVaR99: null,
+      annualizedReturn,
+      annualizedVolatility,
+      maxDrawdownDuration: 0,
+      averageDrawdown: 0,
+      downDeviationAnnualized,
+      upCaptureRatio: null,
+      downCaptureRatio: null,
+      trackingError: null,
+      alpha: null,
+      beta: null
+    };
+  }
 
   for (let i = 1; i < equityCurve.length; i++) {
     const currentEquity = equityCurve[i].equity;
@@ -364,6 +397,27 @@ function calculateRollingMetrics(equityCurve, windowSize = 30) {
         value: annualizedVolatility
       });
     }
+
+    // Calculate rolling max drawdown for this window
+    let peak = windowData[0].equity;
+    let maxDrawdown = 0;
+    for (let j = 1; j < windowData.length; j++) {
+      if (windowData[j].equity > peak) peak = windowData[j].equity;
+      const drawdown = (peak > 0) ? (windowData[j].equity - peak) / peak : 0;
+      if (drawdown < maxDrawdown) maxDrawdown = drawdown;
+    }
+    rollingMetrics.rollingDrawdown.push({
+      date: equityCurve[i].date,
+      value: Math.abs(maxDrawdown)
+    });
+
+    // Calculate rolling win rate for this window
+    const numWins = returns.filter(r => r > 0).length;
+    const winRate = returns.length > 0 ? numWins / returns.length : null;
+    rollingMetrics.rollingWinRate.push({
+      date: equityCurve[i].date,
+      value: winRate
+    });
   }
 
   return rollingMetrics;

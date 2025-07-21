@@ -32,18 +32,25 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
 
   // Fetch autocomplete data on mount
   useEffect(() => {
+    let mounted = true;
     const fetchAutocompleteData = async () => {
       try {
+        // For large datasets, consider implementing server-side filtering:
+        // Pass the current value as a search term to the fetch function and fetch filtered results only.
         const result = await window.electronAPI.getAutocompleteData(field);
-        if (result.success) {
+        if (mounted && result.success) {
           setAllOptions(result.data);
         }
       } catch (error) {
-        console.error('Error fetching autocomplete data:', error);
+        if (mounted) {
+          console.error('Error fetching autocomplete data:', error);
+        }
       }
     };
-
     fetchAutocompleteData();
+    return () => {
+      mounted = false;
+    };
   }, [field]);
 
   // Filter suggestions based on input value
@@ -130,16 +137,30 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({
         required={required}
         className={className}
         autoComplete="off"
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={showSuggestions && suggestions.length > 0}
+        aria-controls={`${id}-suggestions-listbox`}
+        aria-activedescendant={
+          showSuggestions && activeSuggestion >= 0
+            ? `${id}-suggestion-${activeSuggestion}`
+            : undefined
+        }
       />
       
       {showSuggestions && suggestions.length > 0 && (
         <div
           ref={suggestionsRef}
+          id={`${id}-suggestions-listbox`}
+          role="listbox"
           className="absolute z-50 w-full bg-surface border border-card-stroke rounded mt-1 max-h-40 overflow-y-auto shadow-lg"
         >
           {suggestions.map((suggestion, index) => (
             <div
               key={suggestion}
+              id={`${id}-suggestion-${index}`}
+              role="option"
+              aria-selected={index === activeSuggestion}
               className={`p-2 cursor-pointer text-on-surface hover:bg-surface-variant ${
                 index === activeSuggestion ? 'bg-surface-variant' : ''
               }`}

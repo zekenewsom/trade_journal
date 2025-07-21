@@ -3,13 +3,24 @@
 -- This migration removes account transactions that should not have been recorded
 -- for leveraged positions without actual realized P&L
 
+-- Step 0: Verify foreign key constraints exist between tables
+-- Check account_transactions.related_trade_id -> trades.trade_id
+-- Check trades.trade_id -> transactions.trade_id
+-- If any constraint is missing, raise an error and rollback
+
+-- Check for account_transactions.related_trade_id foreign key
+-- SELECT CASE WHEN COUNT(*) = 0 THEN RAISE(ABORT, 'Missing foreign key: account_transactions.related_trade_id -> trades.trade_id') END
+-- FROM pragma_foreign_key_list('account_transactions')
+-- WHERE table = 'trades' AND from = 'related_trade_id' AND to = 'trade_id';
+
+-- Check for trades.trade_id foreign key
+-- SELECT CASE WHEN COUNT(*) = 0 THEN RAISE(ABORT, 'Missing foreign key: trades.trade_id -> transactions.trade_id') END
+-- FROM pragma_foreign_key_list('trades')
+-- WHERE table = 'transactions' AND from = 'trade_id' AND to = 'trade_id';
+
 -- Step 1: Identify and remove account transactions for leveraged trading
 -- that don't have a corresponding closedPnl value
 -- These were incorrectly recorded as if they were spot trades
-
--- First, let's identify the problematic transactions
--- These are account_transactions of type 'trade_transaction' where the related transaction
--- doesn't have a closedPnl value (indicating it was treated as spot trading)
 
 -- Create a temporary table to track transactions that should be removed
 CREATE TEMPORARY TABLE IF NOT EXISTS transactions_to_remove AS

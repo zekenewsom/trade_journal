@@ -74,12 +74,25 @@ export function ReturnScatterChart({ data }: ReturnScatterChartProps) {
               <ChartTooltip
                 content={
                   <ChartTooltipContent
-                    formatter={(value: any, name: any, item: any) => [
-                      name === 'x' ? `Risk: ${value.toFixed(2)}` :
-                      name === 'y' ? `Return: ${value >= 0 ? '+' : ''}${value.toFixed(2)}%` :
-                      value,
-                      item.payload?.ticker || 'Trade'
-                    ]}
+                    formatter={(value: any, name: any, item: any) => {
+                      if (name === 'x') {
+                        return [
+                          (typeof value === 'number' && !isNaN(value))
+                            ? `Risk: ${value.toFixed(2)}`
+                            : 'Risk: N/A',
+                          name
+                        ];
+                      } else if (name === 'y') {
+                        return [
+                          (typeof value === 'number' && !isNaN(value))
+                            ? `Return: ${value >= 0 ? '+' : ''}${value.toFixed(2)}%`
+                            : 'Return: N/A',
+                          name
+                        ];
+                      }
+                      return [String(value), name];
+                    }}
+                    labelFormatter={(_label: any, payload: any[]) => payload?.[0]?.payload?.ticker || 'Trade'}
                   />
                 }
               />

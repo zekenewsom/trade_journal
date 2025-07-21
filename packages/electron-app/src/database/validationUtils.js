@@ -3,6 +3,16 @@
 
 const { isValidFinancialNumber } = require('./financialUtils');
 
+// Shared constant for liquidation action strings
+const LIQUIDATION_ACTIONS = [
+  'Close Long',
+  'Close Short',
+  'Market Order Liquidation: Close Long',
+  'Market Order Liquidation: Close Short',
+  'Liquidation: Close Long',
+  'Liquidation: Close Short'
+];
+
 /**
  * ValidationError class for consistent error handling
  */
@@ -107,16 +117,10 @@ function validateInteger(value, fieldName, options = {}) {
     return null;
   }
 
-  // Check if it's a valid integer
-  if (!Number.isInteger(value) && !Number.isInteger(Number(value))) {
+  // Convert to number and check if it's a valid integer
+  const intValue = Number(value);
+  if (!Number.isInteger(intValue) || isNaN(intValue)) {
     throw new ValidationError(`${fieldName} must be an integer`, fieldName);
-  }
-
-  const intValue = Number.isInteger(value) ? value : Number(value);
-
-  // Check for NaN
-  if (isNaN(intValue)) {
-    throw new ValidationError(`${fieldName} must be a valid number`, fieldName);
   }
 
   // Check positive constraint
@@ -344,14 +348,7 @@ function validateTransactionData(data) {
         'Buy', 'Sell', 
         'Open Long', 'Open Short', 
         'Close Long', 'Close Short',
-        'Market Order Liquidation: Close Long', 
-        'Market Order Liquidation: Close Short',
-        'Liquidation: Close Long', 
-        'Liquidation: Close Short',
-        'Liquidation Close Long', 
-        'Liquidation Close Short',
-        'Liquidation', 
-        'Market Order Liquidation'
+        ...LIQUIDATION_ACTIONS
       ] 
     }),
     datetime: validateDateTime(data.datetime, 'Transaction datetime'),
