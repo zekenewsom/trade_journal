@@ -245,7 +245,7 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
                     const date = parseHyperLiquidDate(value);
                     if (!date) {
                       results.errors.push(`Row ${sortedCsvData.indexOf(row) + 1}: Could not parse HyperLiquid datetime: ${value}`);
-                      continue; // Skip this row
+                      return; // Skip this row in forEach
                     }
                     transformedData.datetime = date.toISOString().slice(0, 16);
                   } else {
