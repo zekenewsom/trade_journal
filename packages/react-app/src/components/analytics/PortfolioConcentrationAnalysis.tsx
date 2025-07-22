@@ -12,7 +12,7 @@ interface PortfolioConcentrationAnalysisProps {
 
 interface ConcentrationMetricProps {
   title: string;
-  value: number | null;
+  value: number | null | undefined;
   format: 'percentage' | 'number' | 'ratio';
   description: string;
   benchmark?: {
@@ -53,7 +53,7 @@ const ConcentrationMetric: React.FC<ConcentrationMetricProps> = ({
     if (val === null || val === undefined || isNaN(val)) return colors.textSecondary;
     
     if (val >= interpretation.excellent) return colors.success;
-    if (val >= interpretation.good) return '#4CAF50';
+    if (val >= interpretation.good) return colors.successLight;
     if (val >= interpretation.fair) return '#FF9800';
     return colors.error;
   };
@@ -66,6 +66,8 @@ const ConcentrationMetric: React.FC<ConcentrationMetricProps> = ({
     if (val >= interpretation.fair) return 'Fair';
     return 'Poor';
   };
+
+  const safeValue = value == null ? null : value;
 
   return (
     <Paper 
@@ -84,20 +86,20 @@ const ConcentrationMetric: React.FC<ConcentrationMetricProps> = ({
       <Typography 
         variant="h4" 
         sx={{ 
-          color: getPerformanceColor(value), 
+          color: getPerformanceColor(safeValue), 
           fontWeight: 'bold',
           mb: 1
         }}
       >
-        {formatValue(value)}
+        {formatValue(safeValue)}
       </Typography>
       
       <Chip 
-        label={getPerformanceLabel(value)}
+        label={getPerformanceLabel(safeValue)}
         size="small"
         sx={{ 
-          backgroundColor: `${getPerformanceColor(value)}15`,
-          color: getPerformanceColor(value),
+          backgroundColor: `${getPerformanceColor(safeValue)}15`,
+          color: getPerformanceColor(safeValue),
           fontWeight: 600,
           mb: 1
         }}

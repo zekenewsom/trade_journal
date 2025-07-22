@@ -393,7 +393,7 @@ ipcMain.handle('get-trades', async () => {
     if (maintenanceCheck) return maintenanceCheck;
     
     const trades = await dbModule.fetchTradesForListView(); // Calls tradeService via facade
-    return trades; // Expecting TradeListView[]
+    return trades; // Expecting Trade[]
   } catch (error) {
     console.error('[IPC:get-trades] Error:', error);
     return { error: (error instanceof Error ? error.message : String(error)) || 'Failed to fetch trades' }; // Frontend expects an object with error key on failure

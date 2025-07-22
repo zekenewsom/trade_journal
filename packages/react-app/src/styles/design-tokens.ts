@@ -29,6 +29,8 @@ export const colors = {
   accent: '#58A6FF',      // Accent color for highlights, charts (same as primary)
   onAccent: '#FFFFFF',
 
+  successLight: '#4CAF50', // Light green for success backgrounds/highlights
+
   // Primitive/UI Element Colors
   border: '#30363D',        // Borders for cards, inputs, dividers
   cardStroke: '#30363D',    // Specific for card borders if different from general border

@@ -214,7 +214,7 @@ async function restoreDatabase() {
     if (backupBeforeRestore && fs.existsSync(backupBeforeRestore) && originalDbPath) {
       try {
         console.log('[CONNECTION] Attempting to rollback to pre-restore state');
-        if (db && db.open) {
+        if (db?.open) {
           db.close();
         }
         fs.copyFileSync(backupBeforeRestore, originalDbPath);

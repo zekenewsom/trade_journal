@@ -45,7 +45,7 @@ const DashboardMetrics: React.FC = () => {
     const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - avgDailyReturn, 2), 0) / returns.length;
     const volatility = Math.sqrt(variance);
     
-    return volatility !== 0 ? (avgReturn - riskFreeReturn) / volatility : null;
+    return volatility !== 0 ? ((avgReturn - riskFreeReturn) / volatility) * Math.sqrt(252) : null;
   }, [analytics, riskFreeRate]);
 
   // Calculate Sortino Ratio

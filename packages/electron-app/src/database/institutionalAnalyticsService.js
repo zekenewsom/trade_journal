@@ -51,7 +51,8 @@ function calculateInstitutionalRiskMetrics(equityCurve, riskFreeRate = 4.5, trad
   for (let i = 1; i < equityCurve.length; i++) {
     const prev = equityCurve[i - 1];
     const curr = equityCurve[i];
-    if (prev.equity !== 0) {
+    const EPSILON = 1e-8;
+    if (Math.abs(prev.equity) > EPSILON) {
       const dailyReturn = (curr.equity - prev.equity) / prev.equity;
       dailyReturns.push(dailyReturn);
     }
@@ -373,7 +374,7 @@ function calculateRollingMetrics(equityCurve, windowSize = 30) {
       const prev = windowData[j - 1];
       const curr = windowData[j];
       if (prev.equity !== 0) {
-        returns.push((curr.equity - prev.equity) / Math.abs(prev.equity));
+        returns.push((curr.equity - prev.equity) / prev.equity);
       }
     }
     

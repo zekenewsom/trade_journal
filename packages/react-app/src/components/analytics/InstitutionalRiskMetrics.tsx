@@ -172,183 +172,123 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
     );
   }
 
-  const riskMetrics = [
+  const safeHerfindahlIndex = safeMetricValue(analytics.herfindahlIndex);
+  const safeConcentrationRatio = safeMetricValue(analytics.concentrationRatio);
+  const safeNumberOfPositions = safeMetricValue(analytics.numberOfPositions);
+  const safeAveragePositionSize = safeMetricValue(analytics.averagePositionSize);
+  const safeLargestPositionPercent = safeMetricValue(analytics.largestPositionPercent);
+  const safeDiversificationRatio = safeMetricValue(analytics.diversificationRatio);
+  const safeAnnualizedReturn = safeMetricValue(analytics.annualizedReturn);
+  const safeMaxDrawdownDuration = safeMetricValue(analytics.maxDrawdownDuration);
+  const safeSharpeRatio = safeMetricValue(analytics.sharpeRatio);
+  const safeSortinoRatio = safeMetricValue(analytics.sortinoRatio);
+  const safeCalmarRatio = safeMetricValue(analytics.calmarRatio);
+  const safeOmega = safeMetricValue(analytics.omega);
+  const safeSkewness = safeMetricValue(analytics.skewness);
+  const safeAnnualizedVolatility = safeMetricValue(analytics.annualizedVolatility);
+
+  const riskMetrics: RiskMetricCardProps[] = [
     {
-      title: 'Sharpe Ratio',
-      value: analytics.sharpeRatio,
-      description: 'Risk-adjusted return measure. Higher values indicate better risk-adjusted performance.',
+      title: 'Herfindahl Index',
+      value: safeHerfindahlIndex,
+      description: 'Portfolio concentration. Lower values indicate better diversification.',
       benchmark: {
-        label: 'Hedge Fund Avg',
-        value: 0.8,
-        comparison:
-          analytics.sharpeRatio !== null && analytics.sharpeRatio !== undefined && analytics.sharpeRatio > 0.8
-            ? 'higher'
-            : 'lower' as const
+        label: 'Ideal',
+        value: 0.10,
+        comparison: safeHerfindahlIndex !== null && safeHerfindahlIndex < 0.10 ? 'lower' : 'higher' as const
       },
       interpretation: {
-        excellent: 1.5,
-        good: 1.0,
-        fair: 0.5,
-        poor: 0
+        excellent: 0.10,
+        good: 0.15,
+        fair: 0.20,
+        poor: 0.30
       },
-      format: 'ratio' as const,
+      format: 'number' as const,
       precision: 2
     },
     {
-      title: 'Sortino Ratio',
-      value: analytics.sortinoRatio,
-      description: 'Downside risk-adjusted return. Only considers negative volatility.',
+      title: 'Concentration Ratio',
+      value: safeConcentrationRatio,
+      description: 'Top 5 assets as % of portfolio. Lower values are better.',
       benchmark: {
-        label: 'Hedge Fund Avg',
-        value: 1.2,
-        comparison:
-          analytics.sortinoRatio !== null && analytics.sortinoRatio !== undefined && analytics.sortinoRatio > 1.2
-            ? 'higher'
-            : 'lower' as const
+        label: 'Ideal',
+        value: 0.40,
+        comparison: safeConcentrationRatio !== null && safeConcentrationRatio < 0.40 ? 'lower' : 'higher' as const
       },
       interpretation: {
-        excellent: 2.0,
-        good: 1.5,
-        fair: 1.0,
-        poor: 0
+        excellent: 0.20,
+        good: 0.30,
+        fair: 0.40,
+        poor: 0.50
       },
-      format: 'ratio' as const,
-      precision: 2
+      format: 'percentage' as const,
+      precision: 1
     },
     {
-      title: 'Calmar Ratio',
-      value: analytics.calmarRatio,
-      description: 'Annual return divided by maximum drawdown. Higher is better.',
+      title: 'Number of Positions',
+      value: safeNumberOfPositions,
+      description: 'Total unique assets held. Higher values indicate more diversification.',
       benchmark: {
-        label: 'Hedge Fund Avg',
-        value: 0.5,
-        comparison:
-          analytics.calmarRatio !== null && analytics.calmarRatio !== undefined && analytics.calmarRatio > 0.5
-            ? 'higher'
-            : 'lower' as const
+        label: 'Ideal',
+        value: 10,
+        comparison: safeNumberOfPositions !== null && safeNumberOfPositions > 10 ? 'higher' : 'lower' as const
       },
       interpretation: {
-        excellent: 1.0,
-        good: 0.5,
-        fair: 0.2,
-        poor: 0
+        excellent: 20,
+        good: 15,
+        fair: 10,
+        poor: 5
       },
-      format: 'ratio' as const,
-      precision: 2
+      format: 'number' as const,
+      precision: 0
     },
     {
-      title: 'Ulcer Index',
-      value: safeMetricValue(analytics.ulcerIndex),
-      description: 'Measures depth and duration of drawdowns. Lower values are better.',
+      title: 'Average Position Size',
+      value: safeAveragePositionSize,
+      description: 'Mean % of portfolio per asset. Lower values are better.',
       interpretation: {
         excellent: 0.05,
         good: 0.10,
-        fair: 0.20,
-        poor: 1.0
+        fair: 0.15,
+        poor: 0.20
       },
       format: 'percentage' as const,
-      precision: 1,
-      reverseScale: true
+      precision: 1
     },
     {
-      title: 'Omega Ratio',
-      value: analytics.omega,
-      description: 'Probability-weighted ratio of gains to losses. Higher is better.',
-      benchmark: {
-        label: 'Benchmark',
-        value: 1.0,
-        comparison:
-          analytics.omega !== null && analytics.omega !== undefined && analytics.omega > 1.0
-            ? 'higher'
-            : 'lower' as const
+      title: 'Largest Position %',
+      value: safeLargestPositionPercent,
+      description: 'Largest single asset as % of portfolio. Lower values are better.',
+      interpretation: {
+        excellent: 0.10,
+        good: 0.15,
+        fair: 0.20,
+        poor: 0.30
       },
+      format: 'percentage' as const,
+      precision: 1
+    },
+    {
+      title: 'Diversification Ratio',
+      value: safeDiversificationRatio,
+      description: 'Risk-weighted diversification. Higher values are better.',
       interpretation: {
         excellent: 2.0,
         good: 1.5,
-        fair: 1.0,
-        poor: 0
+        fair: 1.2,
+        poor: 1.0
       },
       format: 'ratio' as const,
       precision: 2
     },
     {
-      title: 'Skewness',
-      value: analytics.skewness,
-      description: 'Measures asymmetry of returns. Positive skewness is preferred.',
-      benchmark: {
-        label: 'Neutral',
-        value: 0,
-        comparison:
-          analytics.skewness !== null && analytics.skewness !== undefined && analytics.skewness > 0
-            ? 'higher'
-            : 'lower' as const
-      },
-      interpretation: {
-        excellent: 0.5,
-        good: 0.2,
-        fair: 0,
-        poor: -0.5
-      },
-      format: 'number' as const,
-      precision: 2
-    },
-    {
-      title: 'Kurtosis',
-      value: analytics.kurtosis,
-      description: 'Measures tail risk. Values near 0 indicate normal distribution.',
-      benchmark: {
-        label: 'Normal',
-        value: 0,
-        comparison: 'neutral' as const
-      },
-      interpretation: {
-        excellent: 0.5,
-        good: 1.0,
-        fair: 2.0,
-        poor: 5.0
-      },
-      format: 'number' as const,
-      precision: 2
-    },
-    {
-      title: 'Value at Risk (95%)',
-      value: safeMetricValue(analytics.valueAtRisk95),
-      description: 'Maximum expected loss at 95% confidence level. Lower absolute values are better.',
-      interpretation: {
-        excellent: -0.10,
-        good: -0.05,
-        fair: -0.02,
-        poor: -0.01
-      },
-      format: 'percentage' as const,
-      precision: 1,
-      reverseScale: true
-    },
-    {
-      title: 'Conditional VaR (95%)',
-      value: safeMetricValue(analytics.conditionalVaR95),
-      description: 'Expected loss beyond VaR threshold. Lower absolute values are better.',
-      interpretation: {
-        excellent: -0.15,
-        good: -0.07,
-        fair: -0.03,
-        poor: -0.02
-      },
-      format: 'percentage' as const,
-      precision: 1,
-      reverseScale: true
-    },
-    {
       title: 'Annualized Return',
-      value: analytics.annualizedReturn,
+      value: safeAnnualizedReturn,
       description: 'Annual return rate. Higher positive values are better.',
       benchmark: {
         label: 'S&P 500',
         value: 0.10,
-        comparison:
-          analytics.annualizedReturn !== null && analytics.annualizedReturn !== undefined && analytics.annualizedReturn > 0.10
-            ? 'higher'
-            : 'lower' as const
+        comparison: safeAnnualizedReturn !== null && safeAnnualizedReturn > 0.10 ? 'higher' : 'lower' as const
       },
       interpretation: {
         excellent: 0.20,
@@ -361,12 +301,12 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
     },
     {
       title: 'Annualized Volatility',
-      value: analytics.annualizedVolatility,
+      value: safeAnnualizedVolatility,
       description: 'Annual volatility measure. Lower values indicate less risk.',
       benchmark: {
         label: 'S&P 500',
         value: 0.16,
-        comparison: analytics.annualizedVolatility && analytics.annualizedVolatility < 0.16 ? 'lower' : 'higher' as const
+        comparison: safeAnnualizedVolatility !== null && safeAnnualizedVolatility < 0.16 ? 'lower' : 'higher' as const
       },
       interpretation: {
         excellent: 0.10,
@@ -378,8 +318,98 @@ const InstitutionalRiskMetrics: React.FC<InstitutionalRiskMetricsProps> = ({ ana
       precision: 1
     },
     {
+      title: 'Sharpe Ratio',
+      value: safeSharpeRatio,
+      description: 'Risk-adjusted return. Higher values are better.',
+      benchmark: {
+        label: 'Ideal',
+        value: 0.8,
+        comparison: safeSharpeRatio !== null && safeSharpeRatio > 0.8 ? 'higher' : 'lower' as const
+      },
+      interpretation: {
+        excellent: 1.5,
+        good: 1.0,
+        fair: 0.8,
+        poor: 0.5
+      },
+      format: 'ratio' as const,
+      precision: 2
+    },
+    {
+      title: 'Sortino Ratio',
+      value: safeSortinoRatio,
+      description: 'Downside risk-adjusted return. Higher values are better.',
+      benchmark: {
+        label: 'Ideal',
+        value: 1.2,
+        comparison: safeSortinoRatio !== null && safeSortinoRatio > 1.2 ? 'higher' : 'lower' as const
+      },
+      interpretation: {
+        excellent: 2.0,
+        good: 1.5,
+        fair: 1.2,
+        poor: 0.8
+      },
+      format: 'ratio' as const,
+      precision: 2
+    },
+    {
+      title: 'Calmar Ratio',
+      value: safeCalmarRatio,
+      description: 'Return vs. drawdown risk. Higher values are better.',
+      benchmark: {
+        label: 'Ideal',
+        value: 0.5,
+        comparison: safeCalmarRatio !== null && safeCalmarRatio > 0.5 ? 'higher' : 'lower' as const
+      },
+      interpretation: {
+        excellent: 1.0,
+        good: 0.7,
+        fair: 0.5,
+        poor: 0.3
+      },
+      format: 'ratio' as const,
+      precision: 2
+    },
+    {
+      title: 'Omega Ratio',
+      value: safeOmega,
+      description: 'Ratio of gains to losses. Higher values are better.',
+      benchmark: {
+        label: 'Ideal',
+        value: 1.0,
+        comparison: safeOmega !== null && safeOmega > 1.0 ? 'higher' : 'lower' as const
+      },
+      interpretation: {
+        excellent: 2.0,
+        good: 1.5,
+        fair: 1.0,
+        poor: 0.8
+      },
+      format: 'ratio' as const,
+      precision: 2
+    },
+    {
+      title: 'Skewness',
+      value: safeSkewness,
+      description: 'Distribution asymmetry. Positive is preferred.',
+      benchmark: {
+        label: 'Ideal',
+        value: 0,
+        comparison: safeSkewness !== null && safeSkewness > 0 ? 'higher' : 'lower' as const
+      },
+      interpretation: {
+        excellent: 1.0,
+        good: 0.5,
+        fair: 0.0,
+        poor: -0.5
+      },
+      format: 'number' as const,
+      precision: 2
+    },
+    {
       title: 'Max Drawdown Duration',
-      value: safeMetricValue(analytics.maxDrawdownDuration),
+      value: safeMaxDrawdownDuration,
       description: 'Longest drawdown period in days. Lower values are better.',
       interpretation: {
         excellent: 30,

@@ -13,12 +13,7 @@ CREATE INDEX IF NOT EXISTS idx_trades_is_leveraged ON trades(is_leveraged);
 -- This is based on the pattern identified in migration 012
 UPDATE trades 
 SET is_leveraged = 1, leverage_ratio = 1.0
-WHERE exchange = 'HyperLiquid' 
-  AND EXISTS (
-    SELECT 1 FROM transactions t 
-    WHERE t.trade_id = trades.trade_id 
-    AND t.closed_pnl IS NOT NULL
-  );
+WHERE exchange = 'HyperLiquid';
 
 -- Add comment to track this migration
 INSERT INTO account_transactions (account_id, type, amount, related_trade_id, memo, timestamp)

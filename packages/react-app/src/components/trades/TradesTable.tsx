@@ -2,7 +2,7 @@
 // Modified for Stage 6: Add Mark Price input and Unrealized P&L display for open trades
 
 import React, { useState, useMemo } from 'react';
-import type { Trade } from '../../types'; // TradeListView now has unrealized_pnl, current_market_price, current_open_quantity
+import type { Trade } from '../../types'; // Trade now has unrealized_pnl, current_market_price, current_open_quantity
 
 import { useAppStore } from '../../stores/appStore';
 
@@ -48,12 +48,16 @@ const TradesTable: React.FC<TradesTableProps> = ({ trades, onEdit, onDelete }) =
       let bValue = b[sortKey as keyof Trade];
       // Special handling for custom keys
       if (sortKey === 'open_datetime' || sortKey === 'close_datetime' || sortKey === 'latest_trade') {
-        aValue = a[sortKey as keyof Trade] ? new Date(a[sortKey as keyof Trade] as string).getTime() : 0;
-        bValue = b[sortKey as keyof Trade] ? new Date(b[sortKey as keyof Trade] as string).getTime() : 0;
+        const aDateStr = a[sortKey as keyof Trade];
+        const bDateStr = b[sortKey as keyof Trade];
+        const aDate = (typeof aDateStr === 'string' && aDateStr) ? new Date(aDateStr) : null;
+        const bDate = (typeof bDateStr === 'string' && bDateStr) ? new Date(bDateStr) : null;
+        aValue = aDate && !isNaN(aDate.getTime()) ? aDate.getTime() : 0;
+        bValue = bDate && !isNaN(bDate.getTime()) ? bDate.getTime() : 0;
       }
       if (sortKey === 'unrealized_pnl') {
-        aValue = (a as any).unrealized_pnl ?? 0;
-        bValue = (b as any).unrealized_pnl ?? 0;
+        aValue = typeof a.unrealized_pnl === 'number' ? a.unrealized_pnl : 0;
+        bValue = typeof b.unrealized_pnl === 'number' ? b.unrealized_pnl : 0;
       }
       if (typeof aValue === 'string' && typeof bValue === 'string') {
         return sortDirection === 'asc'
@@ -125,8 +129,8 @@ const TradesTable: React.FC<TradesTableProps> = ({ trades, onEdit, onDelete }) =
             <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap cursor-pointer" onClick={() => handleSort('status')}>Status{getSortIndicator('status')}</th>
             <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap cursor-pointer" onClick={() => handleSort('open_datetime')}>Open Date{getSortIndicator('open_datetime')}</th>
             <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap cursor-pointer hidden sm:table-cell" onClick={() => handleSort('close_datetime')}>Close Date{getSortIndicator('close_datetime')}</th>
-            <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap cursor-pointer hidden lg:table-cell" onClick={() => handleSort('latest_trade')}>Latest Trade{getSortIndicator('latest_trade')}</th>
-            <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap cursor-pointer hidden md:table-cell" onClick={() => handleSort('current_open_quantity')}>Open Qty{getSortIndicator('current_open_quantity')}</th>
+            <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap hidden lg:table-cell" onClick={() => handleSort('latest_trade')}>Latest Trade{getSortIndicator('latest_trade')}</th>
+            <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap hidden md:table-cell" onClick={() => handleSort('current_open_quantity')}>Open Qty{getSortIndicator('current_open_quantity')}</th>
             <th className="px-3 py-2 border-b-2 border-gray-800 bg-gray-800 whitespace-nowrap cursor-pointer hidden md:table-cell" onClick={() => handleSort('unrealized_pnl')}>Unrealized P&L{getSortIndicator('unrealized_pnl')}</th>
             <th className="px-3 py-2 border-b-2 border-gray-800 bg-gray-800 whitespace-nowrap hidden lg:table-cell">Mark Price</th>
             <th className="px-3 py-2 border-b-2 border-gray-700 bg-gray-800 whitespace-nowrap min-w-[120px]">Actions</th>
