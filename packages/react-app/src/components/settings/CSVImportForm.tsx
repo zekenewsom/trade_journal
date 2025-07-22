@@ -76,18 +76,29 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
   };
 
   // Helper to parse HyperLiquid date strings
-  function parseHyperLiquidDate(dateStr: string): Date {
-    const [datePart, timePart] = dateStr.split(' - ');
-    const [month, day, year] = datePart.split('/');
-    const [hours, minutes, seconds] = timePart.split(':');
-    return new Date(
-      parseInt(year, 10),
-      parseInt(month, 10) - 1,
-      parseInt(day, 10),
-      parseInt(hours, 10),
-      parseInt(minutes, 10),
-      parseInt(seconds, 10)
-    );
+  function parseHyperLiquidDate(dateStr: string): Date | null {
+    if (typeof dateStr !== 'string') return null;
+    const parts = dateStr.split(' - ');
+    if (parts.length !== 2) return null;
+    const [datePart, timePart] = parts;
+    const dateComponents = datePart.split('/');
+    const timeComponents = timePart.split(':');
+    if (dateComponents.length !== 3 || timeComponents.length !== 3) return null;
+    const [month, day, year] = dateComponents;
+    const [hours, minutes, seconds] = timeComponents;
+    if ([month, day, year, hours, minutes, seconds].some(val => isNaN(Number(val)))) return null;
+    try {
+      return new Date(
+        parseInt(year, 10),
+        parseInt(month, 10) - 1,
+        parseInt(day, 10),
+        parseInt(hours, 10),
+        parseInt(minutes, 10),
+        parseInt(seconds, 10)
+      );
+    } catch (e) {
+      return null;
+    }
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -181,10 +192,20 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
         if (selectedExchange === 'hyperliquid') {
           const aDate = parseHyperLiquidDate(aDateTime);
           const bDate = parseHyperLiquidDate(bDateTime);
+          if (!aDate || !bDate) {
+            results.errors.push(`Row ${sortedCsvData.indexOf(a) + 1}: Could not parse date/time for sorting.`);
+            return 0; // Skip this row
+          }
           return aDate.getTime() - bDate.getTime();
         } else {
           // Standard date parsing
-          return new Date(aDateTime).getTime() - new Date(bDateTime).getTime();
+          const aDate = new Date(aDateTime);
+          const bDate = new Date(bDateTime);
+          if (isNaN(aDate.getTime()) || isNaN(bDate.getTime())) {
+            results.errors.push(`Row ${sortedCsvData.indexOf(a) + 1}: Could not parse date/time for sorting.`);
+            return 0; // Skip this row
+          }
+          return aDate.getTime() - bDate.getTime();
         }
       });
 
@@ -222,6 +243,10 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
                   // Parse HyperLiquid datetime format: "7/12/2025 - 09:37:01"
                   if (selectedExchange === 'hyperliquid') {
                     const date = parseHyperLiquidDate(value);
+                    if (!date) {
+                      results.errors.push(`Row ${sortedCsvData.indexOf(row) + 1}: Could not parse HyperLiquid datetime: ${value}`);
+                      continue; // Skip this row
+                    }
                     transformedData.datetime = date.toISOString().slice(0, 16);
                   } else {
                     transformedData.datetime = value;

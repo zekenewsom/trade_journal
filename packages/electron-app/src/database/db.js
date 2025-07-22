@@ -5,6 +5,7 @@ const transactionService = require('./transactionService');
 const emotionService = require('./emotionService');
 const analyticsService = require('./analyticsService');
 const accountService = require('./accountService');
+const { enhanceAnalyticsWithInstitutional } = require('./institutionalAnalyticsService');
 
 console.log('[DB_FACADE] Loaded and re-exporting services.');
 
@@ -43,6 +44,7 @@ module.exports = {
 
   // Analytics Service
   calculateAnalyticsData: analyticsService.calculateAnalyticsData,
+  enhanceAnalyticsWithInstitutional,
 
   // Account Service
   createAccount: accountService.createAccount,

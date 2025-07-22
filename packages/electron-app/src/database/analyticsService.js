@@ -3,6 +3,7 @@ const { getDb } = require('./connection');
 const tradeService = require('./tradeService'); // To use calculateTradePnlFifoEnhanced
 const { format } = require('date-fns'); // For date formatting
 const { enhanceAnalyticsWithInstitutional } = require('./institutionalAnalyticsService');
+const accountService = require('./accountService');
 
 const DEFAULT_RISK_FREE_RATE = 4.5;
 
@@ -374,7 +375,7 @@ async function calculateAnalyticsData(filters = {}) {
     let initialPortfolioValue = 0;
     
     try {
-        const accountService = require('./accountService');
+        // const accountService = require('./accountService'); // Moved to top
         
         // Check if we have any leveraged trades to determine the right starting point
         const leveragedTradesCount = db.prepare('SELECT COUNT(*) as count FROM trades WHERE is_leveraged = 1').get();

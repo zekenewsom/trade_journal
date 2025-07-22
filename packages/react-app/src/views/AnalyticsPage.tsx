@@ -69,11 +69,11 @@ const AnalyticsPage: React.FC = (): React.ReactElement => {
 
   // Fetch analytics data
   useEffect(() => {
-    fetchAnalyticsData(filters);
+    fetchAnalyticsData(filters as any);
   }, [fetchAnalyticsData, filters]);
 
   // Handle filter changes
-  const handleFilterChange = (filterType: string, value: any) => {
+  const handleFilterChange = <K extends keyof PageAnalyticsFilters>(filterType: K, value: PageAnalyticsFilters[K]) => {
     setFilters(prev => ({
       ...prev,
       [filterType]: value
@@ -84,17 +84,17 @@ const AnalyticsPage: React.FC = (): React.ReactElement => {
     setFilters(prev => ({
       ...prev,
       dateRange: {
-        ...prev.dateRange,
-        [field]: value ? value.toISOString().split('T')[0] : null
+        startDate: field === 'startDate' ? (value ? value.toISOString().split('T')[0] : null) : prev.dateRange?.startDate ?? null,
+        endDate: field === 'endDate' ? (value ? value.toISOString().split('T')[0] : null) : prev.dateRange?.endDate ?? null
       }
     }));
   };
 
-  const handleArrayFilterChange = (filterType: string) => (event: SelectChangeEvent<string[]>) => {
+  const handleArrayFilterChange = <K extends keyof PageAnalyticsFilters>(filterType: K) => (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     setFilters(prev => ({
       ...prev,
-      [filterType]: typeof value === 'string' ? value.split(',') : value
+      [filterType]: typeof value === 'string' ? (value.split(',') as PageAnalyticsFilters[K]) : (value as PageAnalyticsFilters[K])
     }));
   };
 
@@ -225,13 +225,6 @@ const AnalyticsPage: React.FC = (): React.ReactElement => {
           </div>
 
           <div className="flex gap-2">
-            <Button
-              variant="contained"
-              onClick={() => fetchAnalyticsData(filters)}
-              size="small"
-            >
-              Apply Filters
-            </Button>
             <Button
               variant="outlined"
               onClick={resetFilters}
