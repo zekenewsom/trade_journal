@@ -44,23 +44,53 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   // Local state for filters - ideally, this would live in Zustand store if global
-  const [startDate, setStartDate] = useState<Date | null>(new Date(2025, 0, 1)); // Example Start Date
-  const [endDate, setEndDate] = useState<Date | null>(new Date(2025, 5, 12));     // Example End Date
+  const [startDate, setStartDate] = useState<Date | null>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30); // default to last 30 days
+    return d;
+  });
+  const [endDate, setEndDate] = useState<Date | null>(new Date());
   const [selectedStrategy, setSelectedStrategy] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   const analytics = useAppStore(state => state.analytics);
+  const fetchAnalyticsData = useAppStore(state => state.fetchAnalyticsData);
   const navigateTo = useAppStore(state => state.navigateTo);
 
+  // Shared function to update analytics data with error handling
+  const updateAnalyticsData = async (dateRange: { startDate: string | null, endDate: string | null }, strategies: number[]) => {
+    try {
+      await fetchAnalyticsData({ dateRange, strategies });
+    } catch (error) {
+      // You can replace this with a toast or alert as needed
+      console.error('Failed to fetch analytics data:', error);
+    }
+  };
+
   const handleStrategyChange = (event: SelectChangeEvent<string>) => {
-    setSelectedStrategy(event.target.value as string);
-    // TODO: Trigger data refetch via appStore action
+    const newStrategy = event.target.value as string;
+    setSelectedStrategy(newStrategy);
+    updateAnalyticsData(
+      {
+        startDate: startDate ? startDate.toISOString() : null,
+        endDate: endDate ? endDate.toISOString() : null,
+      },
+      newStrategy !== 'all' ? [parseInt(newStrategy, 10)] : []
+    );
   };
 
   const handleDateChange = (type: 'start' | 'end') => (date: Date | null) => {
+    const newStart = type === 'start' ? date : startDate;
+    const newEnd = type === 'end' ? date : endDate;
     if (type === 'start') setStartDate(date);
     else setEndDate(date);
-    // TODO: Trigger data refetch via appStore action
+    updateAnalyticsData(
+      {
+        startDate: newStart ? newStart.toISOString() : null,
+        endDate: newEnd ? newEnd.toISOString() : null,
+      },
+      selectedStrategy !== 'all' ? [parseInt(selectedStrategy, 10)] : []
+    );
   };
 
   // Mobile actions menu

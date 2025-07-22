@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../../stores/appStore';
 import type { LogTransactionFormData, LogTransactionPayload } from '../../types';
+import AutocompleteInput from '../common/AutocompleteInput';
 
 interface LogTransactionFormProps {
   onSubmit: (formData: LogTransactionFormData) => Promise<void>;
@@ -39,11 +40,6 @@ const getInitialFormData = (defaultAccountId?: number): LogTransactionFormData =
     reasoning: undefined,
     lessons_learned: undefined,
     r_multiple_initial_risk: undefined,
-    conviction_score: 5,
-    thesis_validation: undefined,
-    adherence_to_plan: undefined,
-    unforeseen_events: '',
-    overall_trade_rating: 5,
     emotion_ids: []
   };
 };
@@ -67,12 +63,8 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
   const [submitting, setSubmitting] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value, type } = e.target;
-    let newValue: any = value;
-    // For sliders (range inputs) and numeric fields
-    if (["conviction_score", "overall_trade_rating"].includes(name)) {
-      newValue = Number(value);
-    }
+    const { name, value } = e.target;
+    let newValue: string | number = value;
     if (name === 'account_id') {
       newValue = Number(value);
     }
@@ -103,13 +95,6 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
     if (isNaN(parseFloat(formData.fees)) || parseFloat(formData.fees) < 0) {
         newErrors.fees = 'Valid Fees are required (0 or more).';
     }
-    // Validate new fields (conviction_score and overall_trade_rating should be 1-10)
-    if (formData.conviction_score !== undefined && (formData.conviction_score < 1 || formData.conviction_score > 10)) {
-      newErrors.conviction_score = 'Conviction score must be between 1 and 10.';
-    }
-    if (formData.overall_trade_rating !== undefined && (formData.overall_trade_rating < 1 || formData.overall_trade_rating > 10)) {
-      newErrors.overall_trade_rating = 'Overall trade rating must be between 1 and 10.';
-    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -138,11 +123,6 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
         reasoning: formData.reasoning,
         lessons_learned: formData.lessons_learned,
         r_multiple_initial_risk: formData.r_multiple_initial_risk ? parseFloat(formData.r_multiple_initial_risk) : undefined,
-        conviction_score: formData.conviction_score,
-        thesis_validation: formData.thesis_validation,
-        adherence_to_plan: formData.adherence_to_plan,
-        unforeseen_events: formData.unforeseen_events,
-        overall_trade_rating: formData.overall_trade_rating,
         emotion_ids: formData.emotion_ids
       };
 
@@ -186,7 +166,16 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
         </div>
         <div className="flex flex-col gap-1 text-left">
           <label htmlFor="instrument_ticker" className="font-medium">Instrument/Ticker:</label>
-          <input type="text" id="instrument_ticker" name="instrument_ticker" value={formData.instrument_ticker} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" required />
+          <AutocompleteInput
+            id="instrument_ticker"
+            name="instrument_ticker"
+            value={formData.instrument_ticker}
+            onChange={handleInputChange}
+            field="instrument_ticker"
+            placeholder="e.g., AAPL, BTC"
+            required
+            className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary"
+          />
           {errors.instrument_ticker && <span className="text-error text-sm mt-1">{errors.instrument_ticker}</span>}
         <label htmlFor="asset_class" className="font-medium">Asset Class:</label>
         <select 
@@ -204,7 +193,16 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
       </div>
       <div className="flex flex-col gap-1 text-left">
         <label htmlFor="exchange" className="font-medium">Exchange:</label>
-        <input type="text" id="exchange" name="exchange" value={formData.exchange} onChange={handleInputChange} className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary" placeholder="e.g., NYSE, Binance" required />
+        <AutocompleteInput
+          id="exchange"
+          name="exchange"
+          value={formData.exchange}
+          onChange={handleInputChange}
+          field="exchange"
+          placeholder="e.g., NYSE, Binance"
+          required
+          className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary"
+        />
         {errors.exchange && <span className="text-error text-sm mt-1">{errors.exchange}</span>}
       </div>
       <div className="flex flex-col gap-1 text-left">
@@ -255,80 +253,6 @@ const LogTransactionForm: React.FC<LogTransactionFormProps> = ({
               />
             </div>
           )}
-        </div>
-        {/* --- NEW FIELDS FOR TRADE REFLECTION --- */}
-        <div className="flex flex-col gap-4 border-t pt-4 mt-4">
-          <div className="flex flex-col gap-1 text-left">
-            <label htmlFor="conviction_score" className="font-medium">Conviction Score (1-10):</label>
-            <input
-              type="range"
-              id="conviction_score"
-              name="conviction_score"
-              min={1}
-              max={10}
-              value={formData.conviction_score ?? 5}
-              onChange={handleInputChange}
-              className="w-full"
-            />
-            <span className="text-sm text-on-surface">{formData.conviction_score}</span>
-            {errors.conviction_score && <span className="text-error text-sm mt-1">{errors.conviction_score}</span>}
-          </div>
-          <div className="flex flex-col gap-1 text-left">
-            <label htmlFor="thesis_validation" className="font-medium">Thesis Validation:</label>
-            <select
-              id="thesis_validation"
-              name="thesis_validation"
-              value={formData.thesis_validation || ''}
-              onChange={handleInputChange}
-              className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">Select</option>
-              <option value="Correct">Correct</option>
-              <option value="Partially Correct">Partially Correct</option>
-              <option value="Incorrect">Incorrect</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-1 text-left">
-            <label htmlFor="adherence_to_plan" className="font-medium">Adherence to Plan:</label>
-            <select
-              id="adherence_to_plan"
-              name="adherence_to_plan"
-              value={formData.adherence_to_plan || ''}
-              onChange={handleInputChange}
-              className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">Select</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-          </div>
-          <div className="flex flex-col gap-1 text-left">
-            <label htmlFor="unforeseen_events" className="font-medium">Unforeseen Events (if any):</label>
-            <textarea
-              id="unforeseen_events"
-              name="unforeseen_events"
-              value={formData.unforeseen_events || ''}
-              onChange={handleInputChange}
-              className="p-2 border border-card-stroke rounded bg-surface text-on-surface w-full min-h-[40px] focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Describe any unexpected events that affected the trade..."
-            />
-          </div>
-          <div className="flex flex-col gap-1 text-left">
-            <label htmlFor="overall_trade_rating" className="font-medium">Overall Trade Rating (1-10):</label>
-            <input
-              type="range"
-              id="overall_trade_rating"
-              name="overall_trade_rating"
-              min={1}
-              max={10}
-              value={formData.overall_trade_rating ?? 5}
-              onChange={handleInputChange}
-              className="w-full"
-            />
-            <span className="text-sm text-on-surface">{formData.overall_trade_rating}</span>
-            {errors.overall_trade_rating && <span className="text-error text-sm mt-1">{errors.overall_trade_rating}</span>}
-          </div>
         </div>
         <div className="flex flex-col gap-2 w-full sm:flex-row sm:gap-3 sm:w-auto mt-2">
           <button type="submit" className="py-2 px-4 bg-primary text-on-primary rounded hover:bg-primary/90 transition-colors disabled:opacity-60 disabled:cursor-not-allowed font-semibold w-full sm:w-auto" disabled={submitting}>

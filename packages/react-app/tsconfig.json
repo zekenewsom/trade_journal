@@ -2,7 +2,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "/src/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "jsx": "react-jsx",          // <-- REQUIRED for React 17+ and MUI v5+
     "esModuleInterop": true,     // <-- REQUIRED for compatibility with many packages

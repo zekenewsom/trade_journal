@@ -1,44 +1,21 @@
 // packages/react-app/src/components/dashboard/DashboardMetrics.tsx
 import React, { useEffect } from 'react';
 import { useAppStore } from '../../stores/appStore';
-import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 import Alert from '@mui/material/Alert';
 import Paper from '@mui/material/Paper';
-import { typography } from '../../styles/design-tokens';
 // Import your new card
 import EnhancedMetricCard from './cards/EnhancedMetricCard';
 // Import necessary charts
 import EquityCurveChart from '../analytics/EquityCurveChart';
 import { DrawdownChart } from './DrawdownChart';
 import { CumulativeEquityChart } from './CumulativeEquityChart';
-import DashboardRMultipleHistogram from './charts/DashboardRMultipleHistogram';
 import PnlHeatmapCalendar from './charts/PnlHeatmapCalendar';
-// Placeholders or components to be implemented/connected to real data:
-// import ReturnVsRiskScatterPlot from './charts/ReturnVsRiskScatterPlot'; // Assuming you'll create/use this
-// import PnlHeatmapCalendar from './charts/PnlHeatmapCalendar'; // Assuming you'll create/use this
-
-// Icons (example, choose as needed)
 
 import { colors } from '../../styles/design-tokens';
-
-export const formatCurrency = (value: number | null | undefined, showSign = false): string => {
-  if (value === null || value === undefined || isNaN(value)) return 'N/A';
-  const sign = value > 0 && showSign ? '+' : '';
-  return `${sign}${value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`;
-};
-
-export const formatPercentage = (value: number | null | undefined, decimals = 1): string => {
-  if (value === null || value === undefined || isNaN(value)) return 'N/A';
-  return `${value.toFixed(decimals)}%`;
-};
-
-export const formatNumber = (value: number | null | undefined, decimals = 2): string => {
-  if (value === null || value === undefined || isNaN(value)) return 'N/A';
-  return value.toFixed(decimals);
-};
+import { formatCurrency, formatPercentage, formatNumber } from '../../utils/formatters';
 
 const DashboardMetrics: React.FC = () => {
   const totalBuyingPower = useAppStore(s => s.getTotalBuyingPower());
@@ -50,87 +27,117 @@ const DashboardMetrics: React.FC = () => {
   const currentViewParams = useAppStore(s => s.currentViewParams);
 
   // Calculate Sharpe Ratio (annualized)
-  let sharpeRatio = 0;
-  let sortinoRatio = 0;
-  if (analytics && analytics.equityCurve && analytics.equityCurve.length > 1) {
-    // Calculate daily returns
-    const returns: number[] = [];
-    for (let i = 1; i < analytics.equityCurve.length; i++) {
-      const prev = analytics.equityCurve[i - 1].equity;
-      const curr = analytics.equityCurve[i].equity;
-      if (prev !== 0) {
-        returns.push((curr - prev) / prev);
-      }
+  const sharpeRatio = React.useMemo(() => {
+    if (!analytics || !analytics.totalRealizedNetPnl || !analytics.totalFullyClosedTrades) return null;
+    
+    // Simple approximation for volatility using equity curve
+    if (!analytics.equityCurve || analytics.equityCurve.length < 2) return null;
+    
+    const returns = analytics.equityCurve.slice(1).map((point, i) => {
+      const prevPoint = analytics.equityCurve[i];
+      return prevPoint.equity !== 0 ? (point.equity - prevPoint.equity) / prevPoint.equity : 0;
+    });
+    
+    const avgReturn = returns.length > 0 ? returns.reduce((sum, r) => sum + r, 0) / returns.length : 0;
+    const riskFreeReturn = riskFreeRate / 100;
+    
+    const avgDailyReturn = avgReturn;
+    const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - avgDailyReturn, 2), 0) / returns.length;
+    const volatility = Math.sqrt(variance);
+    
+    return volatility !== 0 ? (avgReturn - riskFreeReturn) / volatility : null;
+  }, [analytics, riskFreeRate]);
+
+  // Calculate Sortino Ratio
+  const sortinoRatio = React.useMemo(() => {
+    if (!analytics || !analytics.totalRealizedNetPnl || !analytics.totalFullyClosedTrades) return null;
+    
+    if (!analytics.equityCurve || analytics.equityCurve.length < 2) return null;
+    
+    const returns = analytics.equityCurve.slice(1).map((point, i) => {
+      const prevPoint = analytics.equityCurve[i];
+      return prevPoint.equity !== 0 ? (point.equity - prevPoint.equity) / prevPoint.equity : 0;
+    });
+    
+    const avgReturn = returns.length > 0 ? returns.reduce((sum, r) => sum + r, 0) / returns.length : 0;
+    const riskFreeReturn = riskFreeRate / 100;
+    
+    const downside = returns.filter(ret => ret < 0);
+    if (downside.length === 0) return null;
+    
+    const downsideVariance = downside.reduce((sum, ret) => sum + Math.pow(ret, 2), 0) / downside.length;
+    const downsideDeviation = Math.sqrt(downsideVariance);
+    
+    return downsideDeviation !== 0 ? (avgReturn - riskFreeReturn) / downsideDeviation : null;
+  }, [analytics, riskFreeRate]);
+
+  // Calculate P&L change
+  const { pnlChangeValue, pnlChangePercent } = React.useMemo(() => {
+    if (!analytics || !analytics.equityCurve || analytics.equityCurve.length < 2) {
+      return { pnlChangeValue: 0, pnlChangePercent: 0 };
     }
-    if (returns.length > 0) {
-      const avgDailyReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
-      const stdDailyReturn = Math.sqrt(returns.reduce((a, b) => a + Math.pow(b - avgDailyReturn, 2), 0) / returns.length);
-      // Annualize: multiply excess daily return by 252, std by sqrt(252)
-      const annualizedReturn = avgDailyReturn * 252;
-      const annualizedStd = stdDailyReturn * Math.sqrt(252);
-      const rf = (riskFreeRate ?? 0) / 100;
-      sharpeRatio = annualizedStd !== 0 ? (annualizedReturn - rf) / annualizedStd : 0;
+    
+    const latest = analytics.equityCurve[analytics.equityCurve.length - 1];
+    const previous = analytics.equityCurve[analytics.equityCurve.length - 2];
+    
+    const changeValue = latest.equity - previous.equity;
+    const changePercent = previous.equity !== 0 ? (changeValue / Math.abs(previous.equity)) * 100 : 0;
+    
+    return { pnlChangeValue: changeValue, pnlChangePercent: changePercent };
+  }, [analytics]);
 
-      // --- Sortino Ratio Calculation ---
-      // 1. MAR: use risk-free rate (annualized, divided by 252 for daily)
-      const mar = rf / 252;
-      // 2. Downside deviation: only count returns below MAR
-      const downsideDiffs = returns.map(r => r < mar ? Math.pow(r - mar, 2) : 0);
-      const downsideDeviation = Math.sqrt(downsideDiffs.reduce((a, b) => a + b, 0) / returns.length) * Math.sqrt(252); // annualized
-      // 3. Sortino Ratio = (annualizedReturn - rf) / downsideDeviation
-      sortinoRatio = downsideDeviation !== 0 ? (annualizedReturn - rf) / downsideDeviation : 0;
-    }
-  }
-
-  // This effect will run when filters from TopBar (if managed in Zustand) change
-  useEffect(() => {
-    // Assuming currentViewParams might hold filter values passed from TopBar via Zustand
-    // For now, we fetch with default filters or any passed via currentViewParams
-    fetchAnalyticsData(currentViewParams as Record<string, unknown> || {});
-  }, [fetchAnalyticsData, currentViewParams]);
-
-  // Helper to create mini trend data from equity curve for Net Account Balance
-  const getMiniTrendData = (equityCurve: { date: number; equity: number }[] | undefined) => {
-    if (!equityCurve || equityCurve.length === 0) return undefined;
-    // Take last N points for the trend, e.g., last 30
-    const lastN = equityCurve.slice(-30);
-    return lastN.map(p => ({ value: p.equity }));
+  // Generate mini trend data for sparklines
+  const getMiniTrendData = (equityCurve: any[]) => {
+    if (!equityCurve || equityCurve.length < 2) return [];
+    return equityCurve.slice(-10).map(point => point.equity);
   };
 
-  const netAccountBalance = analytics?.totalRealizedNetPnl ?? 0; // Assuming this is the base for change calculation
-  const lastEquityPoint = analytics?.equityCurve && analytics.equityCurve.length > 0 ? analytics.equityCurve[analytics.equityCurve.length - 1].equity : netAccountBalance;
-  const secondLastEquityPoint = analytics?.equityCurve && analytics.equityCurve.length > 1 ? analytics.equityCurve[analytics.equityCurve.length - 2].equity : netAccountBalance;
-  const pnlChangeValue = lastEquityPoint - secondLastEquityPoint;
-  const pnlChangePercent = secondLastEquityPoint !== 0 ? (pnlChangeValue / Math.abs(secondLastEquityPoint)) * 100 : 0;
+  // Fetch analytics data on mount
+  useEffect(() => {
+    if (!analytics) {
+      fetchAnalyticsData();
+    }
+  }, [analytics, fetchAnalyticsData]);
 
+  // Navigate timestamp change should trigger refetch
+  useEffect(() => {
+    if (currentViewParams?.navTimestamp) {
+      fetchAnalyticsData();
+    }
+  }, [currentViewParams?.navTimestamp, fetchAnalyticsData]);
+
+  // Loading state
   if (isLoadingAnalytics) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
+      <Box className="flex justify-center items-center h-64">
         <CircularProgress />
       </Box>
     );
   }
 
+  // Error state
   if (analyticsError) {
     return (
-      <Alert severity="error" sx={{ m: 2, backgroundColor: colors.surface, color: colors.error, border: `1px solid ${colors.border}` }}>
-        Error loading dashboard metrics: {analyticsError}
+      <Alert severity="error" sx={{ mb: 2 }}>
+        Error loading analytics: {analyticsError}
       </Alert>
     );
   }
 
+  // No data state
   if (!analytics) {
-    return <Typography sx={{ m: 2, color: colors.textSecondary }}>No analytics data available for the dashboard.</Typography>;
+    return (
+      <Alert severity="info" sx={{ mb: 2 }}>
+        No analytics data available. Add some trades to see your dashboard.
+      </Alert>
+    );
   }
 
-  // --- Start of the new Grid Layout ---
   return (
-    <Box className="flex-grow"> {/* Removed p-6, min-h-screen from here, AppShell handles padding */}
-      {/* Filter section is now part of TopBar.tsx */}
-
-      <Grid container spacing={2.5}> {/* Use spacing from your design tokens, e.g., 2.5 * 8px = 20px */}
-        {/* Row 1: Key Account Metrics */}
-        <Grid item xs={12} md={6} lg={4}>
+    <div className="flex-grow">
+      {/* Row 1: Key Account Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="col-span-1">
           <EnhancedMetricCard
             title="Net Account Balance"
             value={formatCurrency(analytics.equityCurve.length > 0 ? analytics.equityCurve[analytics.equityCurve.length - 1].equity : analytics.totalRealizedNetPnl)}
@@ -138,232 +145,287 @@ const DashboardMetrics: React.FC = () => {
             changeColor={pnlChangeValue >= 0 ? 'success' : 'error'}
             trendData={getMiniTrendData(analytics.equityCurve)}
             trendColor={pnlChangeValue >= 0 ? colors.success : colors.error}
-            minHeight="160px" // Example min height
+            minHeight="160px"
           />
-        </Grid>
-        <Grid item xs={12} md={6} lg={4}>
-  <EnhancedMetricCard
-    title="Unrealized P&L"
-    value={formatCurrency(analytics.totalUnrealizedPnl)}
-    changeText={(() => {
-      // Calculate unrealized P&L change
-      let unrealizedChange = 0;
-      let unrealizedChangePercent = 0;
-      if (
-        analytics.equityCurve &&
-        analytics.equityCurve.length > 1 &&
-        typeof analytics.totalUnrealizedPnl === 'number'
-      ) {
-        // Estimate previous unrealized P&L by difference in net equity change vs realized P&L change
-        const last = analytics.equityCurve[analytics.equityCurve.length - 1];
-        const prev = analytics.equityCurve[analytics.equityCurve.length - 2];
-        const realizedChange = (analytics.totalRealizedNetPnl ?? 0) - (analytics.prevTotalRealizedNetPnl ?? 0);
-        unrealizedChange = (analytics.totalUnrealizedPnl ?? 0) - (analytics.prevTotalUnrealizedPnl ?? 0);
-        // Fallback: estimate unrealizedChange as equity change - realizedChange
-        if (isNaN(unrealizedChange)) {
-          unrealizedChange = (last.equity - prev.equity) - realizedChange;
-        }
-        unrealizedChangePercent = prev.equity !== 0 ? (unrealizedChange / Math.abs(prev.equity)) * 100 : 0;
-      }
-      const showValue = !isNaN(unrealizedChange) && !isNaN(unrealizedChangePercent);
-      return showValue
-        ? `${unrealizedChange >= 0 ? '+' : ''}${formatPercentage(unrealizedChangePercent)}`
-        : 'N/A';
-    })()}
-    changeColor={(() => {
-      let unrealizedChange = 0;
-      if (
-        analytics.equityCurve &&
-        analytics.equityCurve.length > 1 &&
-        typeof analytics.totalUnrealizedPnl === 'number'
-      ) {
-        unrealizedChange = (analytics.totalUnrealizedPnl ?? 0) - (analytics.prevTotalUnrealizedPnl ?? 0);
-      }
-      return unrealizedChange >= 0 ? 'success' : 'error';
-    })()}
-    descriptionText="Auto-refresh: 60s"
-    minHeight="160px"
-  />
-</Grid>
-        <Grid item xs={12} md={12} lg={4}>
-  <EnhancedMetricCard
-    title="Available Buying Power"
-    value={formatCurrency(totalBuyingPower)}
-    descriptionText={totalBuyingPower === 0 ? 'No funds available' : ''}
-    progressValue={0}
-    progressBarMinLabel=""
-    progressBarMaxLabel=""
-    progressColor="primary"
-    minHeight="160px"
-  />
-</Grid>
-
-        {/* Row 2: Risk & Return Quality */}
+        </div>
         
-        <Grid item xs={12} sm={6} md={3} lg={3}>
+        <div className="col-span-1">
+          <EnhancedMetricCard
+            title="Unrealized P&L"
+            value={formatCurrency(analytics.totalUnrealizedPnl)}
+            changeText={(() => {
+              // Calculate unrealized P&L change
+              let unrealizedChange = 0;
+              let unrealizedChangePercent = 0;
+              if (
+                analytics.equityCurve &&
+                analytics.equityCurve.length > 1 &&
+                typeof analytics.totalUnrealizedPnl === 'number'
+              ) {
+                // Estimate previous unrealized P&L by difference in net equity change vs realized P&L change
+                const last = analytics.equityCurve[analytics.equityCurve.length - 1];
+                const prev = analytics.equityCurve[analytics.equityCurve.length - 2];
+                const realizedChange = analytics.totalRealizedNetPnl ?? 0;
+                unrealizedChange = analytics.totalUnrealizedPnl ?? 0;
+                // Fallback: estimate unrealizedChange as equity change - realizedChange
+                if (isNaN(unrealizedChange)) {
+                  unrealizedChange = (last.equity - prev.equity) - realizedChange;
+                }
+                unrealizedChangePercent = prev.equity !== 0 ? (unrealizedChange / Math.abs(prev.equity)) * 100 : 0;
+              }
+              const showValue = !isNaN(unrealizedChange) && !isNaN(unrealizedChangePercent);
+              return showValue
+                ? `${unrealizedChange >= 0 ? '+' : ''}${formatPercentage(unrealizedChangePercent)}`
+                : 'N/A';
+            })()}
+            changeColor={analytics.totalUnrealizedPnl !== null && analytics.totalUnrealizedPnl >= 0 ? 'success' : 'error'}
+            minHeight="160px"
+          />
+        </div>
+        
+        <div className="col-span-1 md:col-span-2 lg:col-span-1">
+          <EnhancedMetricCard
+            title="Total Buying Power"
+            value={formatCurrency(totalBuyingPower)}
+            changeText="Account Balance"
+            changeColor="neutral"
+            minHeight="160px"
+          />
+        </div>
+      </div>
+
+      {/* Row 2: Performance Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="col-span-1">
+          <EnhancedMetricCard
+            title="Total Realized P&L"
+            value={formatCurrency(analytics.totalRealizedNetPnl)}
+            changeText={`${analytics.totalFullyClosedTrades} closed trades`}
+            changeColor={analytics.totalRealizedNetPnl !== null && analytics.totalRealizedNetPnl >= 0 ? 'success' : 'error'}
+            minHeight="140px"
+          />
+        </div>
+        
+        <div className="col-span-1">
+          <EnhancedMetricCard
+            title="Win Rate"
+            value={formatPercentage(analytics.winRateOverall)}
+            changeText={`${analytics.numberOfWinningTrades}W / ${analytics.numberOfLosingTrades}L`}
+            changeColor={analytics.winRateOverall !== null && analytics.winRateOverall >= 50 ? 'success' : 'error'}
+            minHeight="140px"
+          />
+        </div>
+        
+        <div className="col-span-1">
+          <EnhancedMetricCard
+            title="Avg Win"
+            value={formatCurrency(analytics.avgWinPnlOverall)}
+            changeText="Per winning trade"
+            changeColor="success"
+            minHeight="140px"
+          />
+        </div>
+        
+        <div className="col-span-1">
+          <EnhancedMetricCard
+            title="Avg Loss"
+            value={formatCurrency(analytics.avgLossPnlOverall)}
+            changeText="Per losing trade"
+            changeColor="error"
+            minHeight="140px"
+          />
+        </div>
+      </div>
+
+      {/* Row 3: Risk Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="col-span-1">
           <EnhancedMetricCard
             title="Sharpe Ratio"
-            value={formatNumber(sharpeRatio)}
-            descriptionText={
-              sharpeRatio > 3 ? 'Excellent' : sharpeRatio > 2 ? 'Very Good' : sharpeRatio > 1 ? 'Good' : 'Suboptimal'
-            }
-            progressValue={Math.max(0, Math.min(100, Math.round((sharpeRatio / 3) * 100)))}
-            progressBarMinLabel="Poor"
-            progressBarMaxLabel="Excellent"
-            progressColor="success"
+            value={formatNumber(analytics.sharpeRatio)}
+            changeText="Risk-adjusted return"
+            changeColor={analytics.sharpeRatio !== null && analytics.sharpeRatio > 1 ? 'success' : analytics.sharpeRatio !== null && analytics.sharpeRatio > 0 ? 'neutral' : 'error'}
+            minHeight="140px"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3} lg={3}>
+        </div>
+        
+        <div className="col-span-1">
           <EnhancedMetricCard
             title="Sortino Ratio"
-            value={formatNumber(sortinoRatio)}
-            descriptionText={
-              sortinoRatio > 3 ? 'Excellent' : sortinoRatio > 2 ? 'Very Good' : sortinoRatio > 1 ? 'Good' : sortinoRatio > 0 ? 'Suboptimal' : 'Negative'
-            }
-            progressValue={Math.max(0, Math.min(100, Math.round((sortinoRatio / 3) * 100)))}
-            progressBarMinLabel="Poor"
-            progressBarMaxLabel="Excellent"
-            progressColor={sortinoRatio > 1 ? 'success' : sortinoRatio > 0 ? 'warning' : 'error'}
+            value={formatNumber(analytics.sortinoRatio)}
+            changeText="Downside risk"
+            changeColor={analytics.sortinoRatio !== null && analytics.sortinoRatio > 1 ? 'success' : analytics.sortinoRatio !== null && analytics.sortinoRatio > 0 ? 'neutral' : 'error'}
+            minHeight="140px"
           />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3} lg={3}>
-          <EnhancedMetricCard
-            title="Profit Factor"
-            value={(() => {
-              const grossProfit = analytics.totalRealizedGrossPnl && analytics.totalRealizedGrossPnl > 0 ? analytics.totalRealizedGrossPnl : 0;
-              const grossLoss = analytics.numberOfLosingTrades > 0 && analytics.avgLossPnlOverall !== null ? Math.abs(analytics.numberOfLosingTrades * analytics.avgLossPnlOverall) : 0;
-              if (grossProfit > 0 && grossLoss > 0) {
-                return formatNumber(grossProfit / grossLoss);
-              } else {
-                return "N/A";
-              }
-            })()}
-            descriptionText={(() => {
-              const grossProfit = analytics.totalRealizedGrossPnl && analytics.totalRealizedGrossPnl > 0 ? analytics.totalRealizedGrossPnl : 0;
-              const grossLoss = analytics.numberOfLosingTrades > 0 && analytics.avgLossPnlOverall !== null ? Math.abs(analytics.numberOfLosingTrades * analytics.avgLossPnlOverall) : 0;
-              if (grossProfit > 0 && grossLoss > 0) {
-                const pf = grossProfit / grossLoss;
-                if (pf > 1.5) return "Very Profitable";
-                if (pf > 1) return "Profitable";
-                if (pf === 1) return "Breakeven";
-                return "Losing";
-              } else {
-                return "N/A";
-              }
-            })()}
-            progressValue={(() => {
-              const grossProfit = analytics.totalRealizedGrossPnl && analytics.totalRealizedGrossPnl > 0 ? analytics.totalRealizedGrossPnl : 0;
-              const grossLoss = analytics.numberOfLosingTrades > 0 && analytics.avgLossPnlOverall !== null ? Math.abs(analytics.numberOfLosingTrades * analytics.avgLossPnlOverall) : 0;
-              if (grossProfit > 0 && grossLoss > 0) {
-                const pf = grossProfit / grossLoss;
-                return Math.max(0, Math.min(100, Math.round((pf / 2) * 100)));
-              } else {
-                return 0;
-              }
-            })()}
-            progressBarMinLabel="Losing"
-            progressBarMaxLabel="Excellent"
-            progressColor={(() => {
-              const grossProfit = analytics.totalRealizedGrossPnl && analytics.totalRealizedGrossPnl > 0 ? analytics.totalRealizedGrossPnl : 0;
-              const grossLoss = analytics.numberOfLosingTrades > 0 && analytics.avgLossPnlOverall !== null ? Math.abs(analytics.numberOfLosingTrades * analytics.avgLossPnlOverall) : 0;
-              if (grossProfit > 0 && grossLoss > 0) {
-                const pf = grossProfit / grossLoss;
-                if (pf > 1.5) return "success";
-                if (pf > 1) return "warning";
-                return "error";
-              } else {
-                return "warning";
-              }
-            })()}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6} md={3} lg={3}>
-          <EnhancedMetricCard
-            title="Hit Rate (%)"
-            value={formatPercentage(analytics.winRateOverall ? analytics.winRateOverall * 100 : 0)}
-            descriptionText={analytics.winRateOverall && analytics.winRateOverall * 100 >= 60 ? "Good" : "Moderate"}
-            progressValue={analytics.winRateOverall ? analytics.winRateOverall * 100 : 0}
-            progressBarMinLabel="Low"
-            progressBarMaxLabel="High"
-            progressColor={analytics.winRateOverall && analytics.winRateOverall * 100 >= 60 ? "success" : "warning"}
-          />
-        </Grid>
-
-        {/* Row 3: Expectancy & Other Risk Metrics */}
-        <Grid item xs={12} sm={6} md={4} lg={3}>
-          <EnhancedMetricCard title="Expectancy $/Trade" value={analytics.avgWinPnlOverall && analytics.winRateOverall && analytics.avgLossPnlOverall ? formatCurrency((analytics.avgWinPnlOverall * analytics.winRateOverall) - (Math.abs(analytics.avgLossPnlOverall) * (1 - analytics.winRateOverall))) : "N/A"} descriptionText="Strong" />
-        </Grid>
-                <Grid item xs={12} sm={6} md={6} lg={3}>
-          <EnhancedMetricCard title="Max Historical Drawdown" value={formatPercentage(analytics.maxDrawdownPercentage ? -analytics.maxDrawdownPercentage : 0)} descriptionText={formatCurrency(analytics.maxDrawdownPercentage && analytics.totalRealizedNetPnl ? -(analytics.totalRealizedNetPnl * (analytics.maxDrawdownPercentage/100)) : 0)} changeColor="error" />
-        </Grid>
+        </div>
         
-        {/* Row 4: Charts Title */}
+        <div className="col-span-1">
+          <EnhancedMetricCard
+            title="Max Drawdown"
+            value={formatPercentage(analytics.maxDrawdownPercentage)}
+            changeText="Peak to trough"
+            changeColor="error"
+            minHeight="140px"
+          />
+        </div>
         
+        <div className="col-span-1">
+          <EnhancedMetricCard
+            title="Calmar Ratio"
+            value={formatNumber(analytics.calmarRatio)}
+            changeText="Return/max drawdown"
+            changeColor={analytics.calmarRatio !== null && analytics.calmarRatio > 0.5 ? 'success' : analytics.calmarRatio !== null && analytics.calmarRatio > 0 ? 'neutral' : 'error'}
+            minHeight="140px"
+          />
+        </div>
+      </div>
 
-        {/* Row 5: Main Charts */}
-        <Grid item xs={12} lg={12}>
-            <Grid container spacing={2.5}>
-                <Grid item xs={12} sx={{height: {xs: 220, lg: 'calc(50% - 20px)'}}}>
-                     {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
-  <>
-    <Grid container spacing={2.5}>
-  <Grid item xs={12} md={4} sx={{ minWidth: 400 }}>
-    <EnhancedMetricCard title="EQUITY CURVE" value="" minHeight="100%">
-      <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
-        <CumulativeEquityChart data={analytics.equityCurve ? analytics.equityCurve.map(pt => ({ date: new Date(pt.date).toISOString(), value: pt.equity })) : []} />
-      </Box>
-    </EnhancedMetricCard>
-  </Grid>
-  <Grid item xs={12} md={4} sx={{ minWidth: 400 }}>
-    <EnhancedMetricCard title="Drawdown Curve" value="" minHeight="100%">
-      <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
-        <DrawdownChart data={(() => {
-          if (!analytics.equityCurve || analytics.equityCurve.length === 0) return [];
-          let peak = -Infinity;
-          return analytics.equityCurve.map(pt => {
-            if (pt.equity > peak) peak = pt.equity;
-            const drawdown = peak > 0 ? ((pt.equity - peak) / peak) * 100 : 0;
-            return { date: new Date(pt.date).toISOString(), value: drawdown };
-          });
-        })()} />
-      </Box>
-    </EnhancedMetricCard>
-  </Grid>
-  <Grid item xs={12} md={4} sx={{ minWidth: 400 }}>
-    <EnhancedMetricCard title="CUMULATIVE EQUITY CURVE" value="" minHeight="100%">
-      <Box sx={{flexGrow: 1, height: 'calc(100% - 30px)'}}>
-        <EquityCurveChart equityCurve={analytics.equityCurve} />
-      </Box>
-    </EnhancedMetricCard>
-  </Grid>
-</Grid>
-  </>
+      {/* Row 4: Advanced Risk Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="col-span-1">
+          <EnhancedMetricCard
+            title="Value at Risk (95%)"
+            value={analytics.valueAtRisk95 ? `${(analytics.valueAtRisk95 * 100).toFixed(2)}%` : 'N/A'}
+            changeText="Daily loss threshold"
+            changeColor="error"
+            minHeight="140px"
+          />
+        </div>
+        
+        <div className="col-span-1">
+          <EnhancedMetricCard
+            title="Omega Ratio"
+            value={formatNumber(analytics.omega)}
+            changeText="Gains vs losses"
+            changeColor={analytics.omega !== null && analytics.omega > 1.5 ? 'success' : analytics.omega !== null && analytics.omega > 1 ? 'neutral' : 'error'}
+            minHeight="140px"
+          />
+        </div>
+        
+        <div className="col-span-1">
+          <EnhancedMetricCard
+            title="Annualized Return"
+            value={analytics.annualizedReturn ? `${(analytics.annualizedReturn * 100).toFixed(1)}%` : 'N/A'}
+            changeText="Yearly performance"
+            changeColor={analytics.annualizedReturn !== null && analytics.annualizedReturn > 0.15 ? 'success' : analytics.annualizedReturn !== null && analytics.annualizedReturn > 0 ? 'neutral' : 'error'}
+            minHeight="140px"
+          />
+        </div>
+        
+        <div className="col-span-1">
+          <EnhancedMetricCard
+            title="Volatility"
+            value={analytics.annualizedVolatility ? `${(analytics.annualizedVolatility * 100).toFixed(1)}%` : 'N/A'}
+            changeText="Annual volatility"
+            changeColor={analytics.annualizedVolatility !== null && analytics.annualizedVolatility < 0.15 ? 'success' : analytics.annualizedVolatility !== null && analytics.annualizedVolatility < 0.25 ? 'neutral' : 'error'}
+            minHeight="140px"
+          />
+        </div>
+      </div>
 
-                    ) : <Paper sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center', backgroundColor: colors.surface, border: `1px solid ${colors.border}`}}><Typography sx={{color: colors.textSecondary}}>No Drawdown Data</Typography></Paper>}
-                </Grid>
+      {/* Row 5: Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="col-span-1">
+          <Paper elevation={1} sx={{ p: 2, height: 350, display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h6" gutterBottom>Equity Curve</Typography>
+            <Box sx={{ flexGrow: 1 }}>
+              {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
+                <EquityCurveChart equityCurve={analytics.equityCurve} />
+              ) : (
+                <Typography variant="body2" sx={{ textAlign: 'center', color: 'text.secondary', mt: 2 }}>
+                  No equity data available
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        </div>
+        
+        <div className="col-span-1">
+          <Paper elevation={1} sx={{ p: 2, height: 350, display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h6" gutterBottom>Drawdown</Typography>
+            <Box sx={{ flexGrow: 1 }}>
+              {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
+                <DrawdownChart data={analytics.equityCurve.map(point => ({
+                  date: new Date(point.date).toISOString().split('T')[0],
+                  value: point.equity
+                }))} />
+              ) : (
+                <Typography variant="body2" sx={{ textAlign: 'center', color: 'text.secondary', mt: 2 }}>
+                  No drawdown data available
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        </div>
+      </div>
 
-                
-                
-            </Grid>
-        </Grid>
-
-        {/* Row 6: Bottom Charts */}
-        <Grid item xs={12} md={5} sx={{height: 350}}>
-             <EnhancedMetricCard title="Heatmap Calendar" value="" minHeight="100%">
-  {analytics.dailyPnlForHeatmap && analytics.dailyPnlForHeatmap.length > 0 ? (
-    <PnlHeatmapCalendar data={analytics.dailyPnlForHeatmap} />
-  ) : (
-    <Box sx={{height: '100%', display:'flex', alignItems:'center', justifyContent:'center'}}>
-      <Typography sx={{color: colors.textSecondary}}>No 30-Day P&L Data</Typography>
-    </Box>
-  )}
-</EnhancedMetricCard>
-        </Grid>
-
-      </Grid>
-    </Box>
+      {/* Row 6: Additional Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="col-span-1">
+          <Paper elevation={1} sx={{ p: 2, height: 350, display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h6" gutterBottom>Cumulative Equity</Typography>
+            <Box sx={{ flexGrow: 1 }}>
+              {analytics.equityCurve && analytics.equityCurve.length > 0 ? (
+                <CumulativeEquityChart data={analytics.equityCurve.map(point => ({
+                  date: new Date(point.date).toISOString().split('T')[0],
+                  value: point.equity
+                }))} />
+              ) : (
+                <Typography variant="body2" sx={{ textAlign: 'center', color: 'text.secondary', mt: 2 }}>
+                  No cumulative equity data available
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        </div>
+        
+        <div className="col-span-1">
+          <Paper elevation={1} sx={{ p: 2, height: 350, display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h6" gutterBottom>P&L Heatmap</Typography>
+            <Box sx={{ flexGrow: 1 }}>
+              {analytics.dailyPnlForHeatmap && analytics.dailyPnlForHeatmap.length > 0 ? (
+                <PnlHeatmapCalendar data={analytics.dailyPnlForHeatmap} />
+              ) : (
+                <Typography variant="body2" sx={{ textAlign: 'center', color: 'text.secondary', mt: 2 }}>
+                  No P&L heatmap data available
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        </div>
+        
+        <div className="col-span-1">
+          <Paper elevation={1} sx={{ p: 2, height: 350, display: 'flex', flexDirection: 'column' }}>
+            <Typography variant="h6" gutterBottom>Win/Loss Distribution</Typography>
+            <Box sx={{ flexGrow: 1 }}>
+              {analytics.winLossBreakEvenCounts && analytics.winLossBreakEvenCounts.length > 0 ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-green-500 mb-2">
+                      {analytics.numberOfWinningTrades}
+                    </div>
+                    <div className="text-sm text-gray-500 mb-4">Wins</div>
+                    <div className="text-2xl font-bold text-red-500 mb-2">
+                      {analytics.numberOfLosingTrades}
+                    </div>
+                    <div className="text-sm text-gray-500 mb-4">Losses</div>
+                    <div className="text-2xl font-bold text-gray-500 mb-2">
+                      {analytics.numberOfBreakEvenTrades}
+                    </div>
+                    <div className="text-sm text-gray-500">Break Even</div>
+                  </div>
+                </div>
+              ) : (
+                <Typography variant="body2" sx={{ textAlign: 'center', color: 'text.secondary', mt: 2 }}>
+                  No distribution data available
+                </Typography>
+              )}
+            </Box>
+          </Paper>
+        </div>
+      </div>
+    </div>
   );
 };
-
 
 export default DashboardMetrics;

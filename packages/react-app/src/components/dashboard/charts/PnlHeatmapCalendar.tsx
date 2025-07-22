@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Paper, Tooltip, Typography, IconButton, Box } from '@mui/material';
-import { colors } from '/src/styles/design-tokens';
-import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isSameDay, getMonth, getYear } from 'date-fns';
+import { Tooltip, Typography, IconButton } from '@mui/material';
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameDay, getMonth } from 'date-fns';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
@@ -13,13 +12,6 @@ export interface HeatmapDataPoint {
 interface PnlHeatmapCalendarProps {
   data: HeatmapDataPoint[];
 }
-
-const getColor = (pnl: number) => {
-  // Define color scale: red for losses, green for gains, gray for zero
-  if (pnl > 0) return '#4caf50'; // green
-  if (pnl < 0) return '#e57373'; // red
-  return '#bdbdbd'; // neutral gray
-};
 
 const PnlHeatmapCalendar: React.FC<PnlHeatmapCalendarProps> = ({ data }) => {
   // Month/year state
@@ -90,7 +82,7 @@ const PnlHeatmapCalendar: React.FC<PnlHeatmapCalendarProps> = ({ data }) => {
       <div className="flex flex-col gap-1" style={{ background: 'none', boxShadow: 'none' }}>
         {[0,1,2,3,4,5].map(weekIdx => (
           <div key={weekIdx} className="flex flex-row gap-1">
-            {calendarDays.slice(weekIdx*7, weekIdx*7+7).map((dateObj, di) => {
+            {calendarDays.slice(weekIdx*7, weekIdx*7+7).map((dateObj) => {
               const dateStr = format(dateObj, 'yyyy-MM-dd');
               const pnl = dataMap.get(dateStr);
               const isCurrentMonth = getMonth(dateObj) === currentMonth;

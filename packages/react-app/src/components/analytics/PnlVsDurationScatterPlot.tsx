@@ -1,11 +1,10 @@
-// File: zekenewsom-trade_journal/packages/react-app/src/components/analytics/PnlVsDurationScatterPlot.tsx
-// New File for Stage 6
-
 import React from 'react';
-import { colors } from '/src/styles/design-tokens';
+import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useTheme } from '@mui/material/styles';
+import type { TooltipProps } from 'recharts';
+import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 
 import type { DurationPerformanceData } from '../../types';
-import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 function useIsMobile() {
   if (typeof window === 'undefined') return false;
@@ -17,17 +16,22 @@ interface PnlVsDurationScatterPlotProps {
 }
 
 const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props: PnlVsDurationScatterPlotProps) => {
+  const theme = useTheme();
+  const isMobile = useIsMobile();
+  
   // DEBUG: Log the incoming data
   React.useEffect(() => {
-     
     console.log('[PnLvsDuration] formattedData:', props.data);
   }, [props.data]);
-  const isMobile = useIsMobile();
 
   // Validate input data
   const { data } = props;
   if (!data || !Array.isArray(data) || data.length === 0) {
-    return <p>No data for P&L vs. Duration scatter plot.</p>;
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <p className="text-muted-foreground">No data for P&L vs. Duration scatter plot.</p>
+      </div>
+    );
   }
 
   // Filter out invalid data points and format the data
@@ -58,62 +62,98 @@ const PnlVsDurationScatterPlot: React.FC<PnlVsDurationScatterPlotProps> = (props
 
   // If no valid data points after filtering, show message
   if (formattedData.length === 0) {
-    return <p>No valid data points for P&L vs. Duration scatter plot.</p>;
+    return (
+      <div className="h-full w-full flex items-center justify-center">
+        <p className="text-muted-foreground">No valid data points for P&L vs. Duration scatter plot.</p>
+      </div>
+    );
   }
 
+  // Split data into profitable and losing trades
+  const profitableData = formattedData.filter(item => item.netPnl > 0);
+  const losingData = formattedData.filter(item => item.netPnl <= 0);
+
+  const renderTooltip = ({ active, payload }: TooltipProps<ValueType, NameType>) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="p-2 rounded shadow-lg bg-white border border-gray-200">
+          <p className="text-xs text-secondary">{data.tooltipPayload}</p>
+          <p className="text-sm font-medium">
+            Duration: {data.durationHours.toFixed(1)} hrs
+          </p>
+          <p className="text-sm font-medium" style={{ color: data.netPnl > 0 ? theme.palette.success.main : theme.palette.error.main }}>
+            P&L: ${data.netPnl.toFixed(2)}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
-    <div>
-      
-      <ResponsiveContainer width="100%" height={isMobile ? 240 : 400}>
-        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-          <CartesianGrid stroke="var(--color-card-stroke)" />
-          <XAxis 
-            type="number" 
-            dataKey="durationHours" 
-            name="Duration (Hours)" 
-            unit="h" 
-            domain={[0, Math.max(...formattedData.map(d => d.durationHours), 1)]}
-            tick={{ fontSize: 10, fill: 'var(--color-on-surface-variant)' }}
-            label={{ value: "Duration (Hours)", position: "insideBottom", offset: -15, fill: 'var(--color-on-surface-variant)', fontSize: 10 }}
+    <ResponsiveContainer width="100%" height="100%" minHeight={200}>
+      <ScatterChart
+        data={formattedData}
+        margin={{ top: 20, right: 30, left: 80, bottom: 80 }}
+      >
+        <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+        <XAxis 
+          type="number" 
+          dataKey="durationHours" 
+          name="Duration (Hours)" 
+          unit="h" 
+          domain={[0, Math.max(...formattedData.map(d => d.durationHours), 1)]}
+          label={{ 
+            value: "Duration (Hours)", 
+            position: "insideBottom", 
+            offset: -5,
+            style: { textAnchor: 'middle', fontSize: '12px', fill: theme.palette.text.primary }
+          }}
+          tick={{ fontSize: 12, fill: theme.palette.text.primary }}
+          axisLine={{ stroke: theme.palette.divider }}
+          tickLine={{ stroke: theme.palette.divider }}
+        />
+        <YAxis 
+          type="number" 
+          dataKey="netPnl" 
+          name="Net P&L" 
+          unit="$" 
+          tickFormatter={(value) => `$${Math.round(value)}`}
+          label={{ 
+            value: "Net P&L ($)", 
+            angle: -90, 
+            position: "insideLeft",
+            style: { textAnchor: 'middle', fontSize: '12px', fill: theme.palette.text.primary }
+          }}
+          tick={{ fontSize: 12, fill: theme.palette.text.primary }}
+          axisLine={{ stroke: theme.palette.divider }}
+          tickLine={{ stroke: theme.palette.divider }}
+          width={70}
+        />
+        <Tooltip content={renderTooltip} />
+        {!isMobile && (
+          <Legend 
+            wrapperStyle={{ paddingTop: '20px' }}
+            iconType="circle"
           />
-          <YAxis 
-            type="number" 
-            dataKey="netPnl" 
-            name="Net P&L" 
-            unit="$" 
-            tickFormatter={(value) => `$${value.toFixed(0)}`}
-            tick={{ fontSize: 10, fill: 'var(--color-on-surface-variant)' }}
-            label={{ value: "Net P&L ($)", angle: -90, position: "insideLeft", fill: 'var(--color-on-surface-variant)', fontSize: 10 }}
-          />
-          {/* ZAxis can be used for bubble size if we have another metric like volume */}
-          {/* <ZAxis dataKey="rMultiple" range={[10, 500]} name="R-Multiple" unit="R"/> */}
-          <Tooltip 
-            cursor={{ strokeDasharray: '3 3' }} 
-            formatter={(value: number, name: string) => {
-              if (name === 'Net P&L') return `$${value.toFixed(2)}`;
-              if (name === 'Duration (Hours)') return `${value.toFixed(1)} hrs`;
-              return value;
-            }}
-          />
-          {!isMobile && <Legend />}
+        )}
+        {profitableData.length > 0 && (
           <Scatter
-            name="Trades"
-            data={formattedData}
-            fillOpacity={0.7}
-            shape={(point: { cx?: number; cy?: number; payload?: { [key: string]: unknown } }) => {
-              const { cx, cy, payload } = point as { cx?: number; cy?: number; payload?: any };
-              if (typeof cx !== 'number' || typeof cy !== 'number' || isNaN(cx) || isNaN(cy)) {
-                // Return an invisible circle to satisfy type
-                return <circle cx={0} cy={0} r={0} fill="none" />;
-              }
-              // Use theme color constants for fill
-              const color = payload.netPnl >= 0 ? colors.success : colors.error;
-              return <circle cx={cx} cy={cy} r={6} fill={color} />;
-            }}
+            name="Profitable Trades"
+            data={profitableData}
+            fill={theme.palette.success.main}
           />
-        </ScatterChart>
-      </ResponsiveContainer>
-    </div>
+        )}
+        {losingData.length > 0 && (
+          <Scatter
+            name="Losing Trades"
+            data={losingData}
+            fill={theme.palette.error.main}
+          />
+        )}
+      </ScatterChart>
+    </ResponsiveContainer>
   );
 };
 

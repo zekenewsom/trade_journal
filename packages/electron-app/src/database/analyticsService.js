@@ -2,6 +2,9 @@
 const { getDb } = require('./connection');
 const tradeService = require('./tradeService'); // To use calculateTradePnlFifoEnhanced
 const { format } = require('date-fns'); // For date formatting
+const { enhanceAnalyticsWithInstitutional } = require('./institutionalAnalyticsService');
+
+const DEFAULT_RISK_FREE_RATE = 4.5;
 
 async function calculateAnalyticsData(filters = {}) {
   console.log('[ANALYTICS_SERVICE] calculateAnalyticsData CALLED with filters:', filters);
@@ -28,13 +31,82 @@ async function calculateAnalyticsData(filters = {}) {
     }
     // Add similar blocks for assetClasses, exchanges, tickers if needed for the main tradesFromDb query
 
-    const tradesFromDb = db.prepare(`
-      SELECT t.*, s.strategy_name
+    // Optimized query: Fetch all trades and their transactions in one go
+    const tradesAndTransactionsResult = db.prepare(`
+      SELECT 
+        t.*, s.strategy_name,
+        tr.transaction_id, tr.action, tr.quantity, tr.price, tr.datetime, 
+        tr.fees, tr.notes, tr.strategy_id as tx_strategy_id, tr.market_conditions,
+        tr.setup_description, tr.reasoning, tr.lessons_learned, tr.r_multiple_initial_risk,
+        tr.created_at as tx_created_at
       FROM trades t
       LEFT JOIN strategies s ON t.strategy_id = s.strategy_id
+      LEFT JOIN transactions tr ON t.trade_id = tr.trade_id
       ${whereClause}
-      ORDER BY COALESCE(t.close_datetime, t.open_datetime, t.created_at) ASC
-    `).all(queryParams); //
+      ORDER BY t.trade_id, tr.datetime ASC, tr.transaction_id ASC
+    `).all(queryParams);
+    
+    console.log(`[ANALYTICS_SERVICE] Fetched ${tradesAndTransactionsResult.length} trade-transaction rows in single query`);
+    
+    // Group transactions by trade_id
+    const tradesMap = new Map();
+    for (const row of tradesAndTransactionsResult) {
+      const tradeId = row.trade_id;
+      
+      if (!tradesMap.has(tradeId)) {
+        // Extract trade data (remove transaction fields)
+        const trade = {
+          trade_id: row.trade_id,
+          instrument_ticker: row.instrument_ticker,
+          asset_class: row.asset_class,
+          exchange: row.exchange,
+          trade_direction: row.trade_direction,
+          status: row.status,
+          open_datetime: row.open_datetime,
+          close_datetime: row.close_datetime,
+          strategy_id: row.strategy_id,
+          strategy_name: row.strategy_name,
+          initial_stop_loss_price: row.initial_stop_loss_price,
+          initial_take_profit_price: row.initial_take_profit_price,
+          r_multiple_initial_risk: row.r_multiple_initial_risk,
+          conviction_score: row.conviction_score,
+          thesis_validation: row.thesis_validation,
+          adherence_to_plan: row.adherence_to_plan,
+          unforeseen_events: row.unforeseen_events,
+          overall_trade_rating: row.overall_trade_rating,
+          current_market_price: row.current_market_price,
+          fees_total: row.fees_total,
+          latest_trade: row.latest_trade,
+          created_at: row.created_at,
+          updated_at: row.updated_at
+        };
+        tradesMap.set(tradeId, { trade, transactions: [] });
+      }
+      
+      // Add transaction if it exists (LEFT JOIN might have null transaction_id)
+      if (row.transaction_id) {
+        const transaction = {
+          transaction_id: row.transaction_id,
+          trade_id: row.trade_id,
+          action: row.action,
+          quantity: row.quantity,
+          price: row.price,
+          datetime: row.datetime,
+          fees: row.fees,
+          notes: row.notes,
+          strategy_id: row.tx_strategy_id,
+          market_conditions: row.market_conditions,
+          setup_description: row.setup_description,
+          reasoning: row.reasoning,
+          lessons_learned: row.lessons_learned,
+          r_multiple_initial_risk: row.r_multiple_initial_risk,
+          created_at: row.tx_created_at
+        };
+        tradesMap.get(tradeId).transactions.push(transaction);
+      }
+    }
+    
+    const tradesFromDb = Array.from(tradesMap.values());
     console.log(`[ANALYTICS_SERVICE] Found ${tradesFromDb.length} trades matching filters`);
 
     const analyticsData = {
@@ -92,8 +164,9 @@ async function calculateAnalyticsData(filters = {}) {
     
     const dailyPnlMap = new Map();
 
-    for (const trade of tradesFromDb) { //
-      const transactions = db.prepare('SELECT * FROM transactions WHERE trade_id = ? ORDER BY datetime ASC, transaction_id ASC').all(trade.trade_id);
+    for (const tradeData of tradesFromDb) { //
+      const trade = tradeData.trade;
+      const transactions = tradeData.transactions;
       const pnlDetails = tradeService.calculateTradePnlFifoEnhanced(trade, transactions); //
 
       if (pnlDetails.openQuantity > 0 && pnlDetails.unrealizedGrossPnlOnOpenPortion !== null) { //
@@ -296,13 +369,79 @@ async function calculateAnalyticsData(filters = {}) {
 
     analyticsData.rMultipleDistribution = Object.entries(rMultipleBuckets).map(([range, count]) => ({ range, count })).filter(item => item.count > 0 || item.range === "N/A"); //
     
-    let cumulativePnlForEquity = 0;
-    analyticsData.equityCurve = analyticsData.pnlPerTradeSeries
-        .sort((a, b) => a.date - b.date)
-        .map(point => {
+    // Calculate initial portfolio value
+    // For leverage trading, this should be the starting portfolio value, not necessarily account cash balance
+    let initialPortfolioValue = 0;
+    
+    try {
+        const accountService = require('./accountService');
+        
+        // Check if we have any leveraged trades to determine the right starting point
+        const leveragedTradesCount = db.prepare('SELECT COUNT(*) as count FROM trades WHERE is_leveraged = 1').get();
+        const hasLeveragedTrades = leveragedTradesCount && leveragedTradesCount.count > 0;
+        
+        if (hasLeveragedTrades) {
+            // For leveraged trading, use account balance as starting portfolio value
+            // This represents the initial collateral/margin used
+            const accounts = db.prepare('SELECT id FROM accounts WHERE archived = 0 AND deleted = 0').all();
+            if (accounts.length > 0) {
+                for (const account of accounts) {
+                    const accountBalance = accountService.getAccountBalance(account.id);
+                    initialPortfolioValue += accountBalance || 0;
+                }
+            }
+            
+            // If no account balance but we have trades, estimate from first trade size
+            if (initialPortfolioValue === 0 && analyticsData.pnlPerTradeSeries.length > 0) {
+                console.log('[ANALYTICS_SERVICE] No account balance found, estimating portfolio value from trade data');
+                // Use a reasonable default based on trade sizes - this is an approximation
+                initialPortfolioValue = Math.abs(analyticsData.totalRealizedNetPnl) * 2 || 10000;
+            }
+        } else {
+            // For spot trading, account balance represents actual portfolio value
+            const accounts = db.prepare('SELECT id FROM accounts WHERE archived = 0 AND deleted = 0').all();
+            if (accounts.length > 0) {
+                for (const account of accounts) {
+                    const accountBalance = accountService.getAccountBalance(account.id);
+                    initialPortfolioValue += accountBalance || 0;
+                }
+            }
+        }
+        
+        console.log('[ANALYTICS_SERVICE] Initial portfolio value:', initialPortfolioValue, '(leveraged trades:', hasLeveragedTrades, ')');
+    } catch (accountError) {
+        console.log('[ANALYTICS_SERVICE] Error calculating portfolio value, using fallback:', accountError.message);
+        // Fallback: estimate from trade P&L patterns
+        initialPortfolioValue = Math.max(Math.abs(analyticsData.totalRealizedNetPnl) * 2, 10000);
+    }
+    
+    // Generate equity curve representing portfolio value progression
+    if (analyticsData.pnlPerTradeSeries.length === 0) {
+        // No trades, use current portfolio value as equity
+        analyticsData.equityCurve = [{
+            date: new Date().getTime(),
+            equity: initialPortfolioValue
+        }];
+    } else {
+        // Generate equity curve starting from initial portfolio value
+        let cumulativePnlForEquity = 0;
+        const sortedTrades = analyticsData.pnlPerTradeSeries.sort((a, b) => a.date - b.date);
+        
+        analyticsData.equityCurve = sortedTrades.map(point => {
             cumulativePnlForEquity += point.pnl;
-            return { date: point.date, equity: cumulativePnlForEquity };
-        }); //
+            return { date: point.date, equity: initialPortfolioValue + cumulativePnlForEquity };
+        });
+        
+        // Add starting point before first trade
+        if (analyticsData.equityCurve.length > 0) {
+            analyticsData.equityCurve.unshift({
+                date: analyticsData.equityCurve[0].date - 86400000, // 1 day before first trade
+                equity: initialPortfolioValue
+            });
+        }
+        
+        console.log('[ANALYTICS_SERVICE] Generated equity curve with', analyticsData.equityCurve.length, 'points');
+    }
 
     if (analyticsData.totalFullyClosedTrades > 0) { //
       analyticsData.winRateOverall = analyticsData.numberOfWinningTrades / analyticsData.totalFullyClosedTrades;
@@ -325,9 +464,10 @@ async function calculateAnalyticsData(filters = {}) {
     analyticsData.pnlByMonth.sort((a,b) => a.period.localeCompare(b.period)); //
     analyticsData.pnlByAsset.sort((a, b) => b.totalNetPnl - a.totalNetPnl); // Sort descending by P&L
 
-    let peakEquity = 0; let maxDrawdownRatio = 0; //
+    let peakEquity = initialPortfolioValue; let maxDrawdownRatio = 0; //
     if (analyticsData.equityCurve.length > 0) {
-        peakEquity = Math.max(0, analyticsData.equityCurve[0].equity); //
+        // Start with the same initial portfolio value used for equity curve
+        peakEquity = initialPortfolioValue;
         for (const point of analyticsData.equityCurve) { //
             if (point.equity > peakEquity) peakEquity = point.equity;
             const currentDrawdown = (peakEquity > 0) ? (point.equity - peakEquity) / peakEquity : 0; //
@@ -350,8 +490,19 @@ async function calculateAnalyticsData(filters = {}) {
     analyticsData.ulcerIndex = null; // Requires more detailed daily % ROR and peak tracking
     analyticsData.valueAtRisk95 = { amount: null, percentage: null }; // Requires historical daily portfolio returns and statistical modeling
 
-    console.log('[ANALYTICS_SERVICE] Analytics data calculated successfully.'); //
-    return analyticsData;
+    console.log('[ANALYTICS_SERVICE] Analytics data calculated successfully.');
+    
+    // Enhance with institutional-level metrics
+    const riskFreeRate = (filters && typeof filters.riskFreeRate === 'number') ? filters.riskFreeRate : DEFAULT_RISK_FREE_RATE;
+    let institutionalAnalytics;
+    try {
+      institutionalAnalytics = enhanceAnalyticsWithInstitutional(analyticsData, riskFreeRate);
+      console.log('[ANALYTICS_SERVICE] Institutional analytics enhancement completed.');
+      return institutionalAnalytics;
+    } catch (enhanceError) {
+      console.error('[ANALYTICS_SERVICE] Error enhancing analytics with institutional metrics:', enhanceError);
+      return analyticsData;
+    }
   } catch (error) {
     console.error('[ANALYTICS_SERVICE] Error calculating analytics data:', error);
     return { error: (error instanceof Error ? error.message : String(error)) || 'Failed to calculate analytics data' }; //

@@ -21,6 +21,9 @@ release/
 build/
 app-builds/
 
+# Ignore backup JS files
+*backup.js
+
 # SQLite
 *.sqlite
 *.sqlite3

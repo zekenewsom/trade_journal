@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type {
-  TradeListView,
+  Trade,
   EmotionRecord,
   ElectronAPIDefinition,
 } from '../types';
@@ -69,12 +69,12 @@ interface AppState {
   unarchiveAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
   deleteAccount: (opts: { accountId: number }) => Promise<{ success: boolean; message?: string }>;
   addAccountTransaction: (opts: { accountId: number; type: string; amount: number; relatedTradeId?: number | null; memo?: string | null }) => Promise<{ success: boolean; id?: number; message?: string }>;
-  getAccountBalance: (accountId: number) => Promise<any>;
-  getAccountTimeSeries: (accountId: number) => Promise<any>;
+  getAccountBalance: (accountId: number) => Promise<unknown>;
+  getAccountTimeSeries: (accountId: number) => Promise<unknown>;
 
   currentView: View;
   editingTradeId: number | null;
-  trades: TradeListView[];
+  trades: Trade[];
   availableEmotions: EmotionRecord[];
   appVersion: string | null;
   dbStatus: string | null;
@@ -135,7 +135,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ isLoadingAccounts: true, errorLoadingAccounts: null });
     try {
       const result = await window.electronAPI.getAccounts();
-      let accounts: AccountRecord[] = Array.isArray(result) ? result : (result || []);
+      const accounts: AccountRecord[] = Array.isArray(result) ? result : [];
       // Fetch balances for each account in parallel
       const accountsWithBalances = await Promise.all(
         accounts.map(async (acc) => {
@@ -166,10 +166,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       const result = await window.electronAPI.getAccountTransactions({ accountId });
       if (Array.isArray(result)) {
         set({ accountTransactions: result });
-      } else if (result && result.success === false) {
-        throw new Error(result.message || 'Failed to fetch account transactions');
       } else {
-        set({ accountTransactions: result || [] });
+        set({ accountTransactions: [] });
       }
     } catch (error) {
       set({ errorLoadingAccountTransactions: (error as Error).message, accountTransactions: [] });

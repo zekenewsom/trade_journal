@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
   testDbConnection: () => ipcRenderer.invoke('test-db'),
   logTransaction: (data) => ipcRenderer.invoke('log-transaction', data),
+  logCSVTransaction: (data) => ipcRenderer.invoke('log-csv-transaction', data),
   getTrades: () => ipcRenderer.invoke('get-trades'),
   getTradeWithTransactions: (tradeId) => ipcRenderer.invoke('get-trade-with-transactions', tradeId),
   updateTradeDetails: (data) => ipcRenderer.invoke('update-trade-details', data),
@@ -32,5 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getAccountTransactions: (opts) => ipcRenderer.invoke('get-account-transactions', opts),
   getAccountBalance: (accountId) => ipcRenderer.invoke('get-account-balance', accountId),
   getAccountTimeSeries: (accountId) => ipcRenderer.invoke('get-account-time-series', accountId),
+  getMaintenanceStatus: () => ipcRenderer.invoke('get-maintenance-status'),
+  getAutocompleteData: (field) => ipcRenderer.invoke('get-autocomplete-data', field),
   // Add any new IPC calls here if you add new handlers in main.js
 });
