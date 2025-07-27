@@ -36,9 +36,12 @@ const EquityCurveChart: React.FC<Props> = ({ equityCurve }: Props) => {
     if (active && payload && payload.length) {
       return (
         <div className="p-2 rounded shadow-lg bg-white border border-gray-200">
-          <p className="text-xs text-secondary">{new Date(label).toLocaleDateString()}</p>
+          <p className="text-xs text-gray-500">{new Date(label).toLocaleDateString()}</p>
           {payload.map((entry, index) => (
-            <p key={index} className="text-sm font-medium" style={{ color: entry.color }}>
+            <p
+              key={index}
+              className={`text-sm font-medium ${entry.dataKey === 'equity' ? 'text-green-600' : 'text-red-600'}`}
+            >
               {entry.dataKey === 'equity' ? `$${Number(entry.value).toFixed(2)}` : `${Number(entry.value).toFixed(2)}%`}
               {' '}
               {entry.dataKey === 'equity' ? 'Equity' : 'Drawdown'}

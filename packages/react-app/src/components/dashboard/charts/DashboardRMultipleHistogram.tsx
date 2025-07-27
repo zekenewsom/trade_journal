@@ -2,7 +2,7 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import type { AnalyticsData } from '../../../types';
 import { Typography } from '@mui/material';
-import { colors } from '/src/styles/design-tokens';
+import { colors } from '../../../styles/design-tokens';
 
 interface Props {
   data: AnalyticsData['rMultipleDistribution'];

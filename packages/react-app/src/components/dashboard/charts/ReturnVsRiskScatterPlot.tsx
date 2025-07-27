@@ -1,6 +1,6 @@
 import React from 'react';
 import { Paper, Typography } from '@mui/material';
-import { colors } from '/src/styles/design-tokens';
+import { colors } from '../../../styles/design-tokens';
 
 const ReturnVsRiskScatterPlot: React.FC = () => (
   <Paper sx={{ p: 2, backgroundColor: colors.surface, color: colors.onSurface, height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

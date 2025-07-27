@@ -103,34 +103,38 @@ const VaRStressTestingAnalysis: React.FC<VaRStressTestingAnalysisProps> = ({ ana
 
   // Generate stress test scenarios
   const stressTestScenarios = useMemo(() => {
+    const latestEquity = analytics.equityCurve && analytics.equityCurve.length > 0
+      ? analytics.equityCurve[analytics.equityCurve.length - 1].equity
+      : 0;
+    const portfolioValue = Math.abs(latestEquity) || 0;
     const scenarios = [
       {
         name: 'Market Crash (-20%)',
-        impact: (analytics.totalRealizedNetPnl || 0) * -0.20,
+        impact: portfolioValue * -0.20,
         probability: 0.05,
         description: 'Severe market downturn scenario'
       },
       {
         name: 'Moderate Correction (-10%)',
-        impact: (analytics.totalRealizedNetPnl || 0) * -0.10,
+        impact: portfolioValue * -0.10,
         probability: 0.15,
         description: 'Typical market correction'
       },
       {
         name: 'Volatility Spike',
-        impact: (analytics.totalRealizedNetPnl || 0) * -0.05,
+        impact: portfolioValue * -0.05,
         probability: 0.25,
         description: 'Increased market volatility'
       },
       {
         name: 'Black Swan Event',
-        impact: (analytics.totalRealizedNetPnl || 0) * -0.35,
+        impact: portfolioValue * -0.35,
         probability: 0.01,
         description: 'Extremely rare but severe event'
       },
       {
         name: 'Sector Rotation',
-        impact: (analytics.totalRealizedNetPnl || 0) * -0.08,
+        impact: portfolioValue * -0.08,
         probability: 0.30,
         description: 'Unfavorable sector rotation'
       }
@@ -140,7 +144,7 @@ const VaRStressTestingAnalysis: React.FC<VaRStressTestingAnalysisProps> = ({ ana
       ...scenario,
       riskAdjustedImpact: scenario.impact * scenario.probability
     }));
-  }, [analytics.totalRealizedNetPnl]);
+  }, [analytics.equityCurve]);
 
   // Calculate drawdown distribution
   const drawdownDistribution = useMemo(() => {

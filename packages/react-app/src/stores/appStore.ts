@@ -31,7 +31,7 @@ interface AppViewParams {
   navTimestamp?: number;
 }
 
-import type { AnalyticsData } from '../types';
+import type { AnalyticsData, AnalyticsFilters } from '../types';
 
 import type { AccountRecord } from '../types';
 
@@ -86,7 +86,7 @@ interface AppState {
   analytics: AnalyticsData | null;
   isLoadingAnalytics: boolean;
   analyticsError: string | null;
-  fetchAnalyticsData: (filters?: Record<string, unknown>) => Promise<void>;
+  fetchAnalyticsData: (filters?: AnalyticsFilters) => Promise<void>;
 
   // Trades loading/error state
   isLoadingTrades: boolean;

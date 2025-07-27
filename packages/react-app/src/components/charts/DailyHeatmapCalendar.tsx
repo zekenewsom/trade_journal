@@ -4,7 +4,7 @@ import { Box, Typography } from '@mui/material';
 import { colors, typography, borderRadius as br, spacing } from '../../styles/design-tokens';
 import { alpha } from '@mui/material/styles';
 import Tooltip from '@mui/material/Tooltip';
-import { formatCurrency } from '../dashboard/DashboardMetrics';
+import { formatCurrency } from '../../utils/formatters';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addDays, subDays } from 'date-fns';
 
 // Helper to generate days for a specific month, including padding for weeks

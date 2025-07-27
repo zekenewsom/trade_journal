@@ -38,6 +38,8 @@ import { MonthlyReturnsChart } from '../components/charts/MonthlyReturnsChart'; 
 
 
 import { colors, typography, borderRadius as br } from '../styles/design-tokens'; // Your design tokens
+import { Grid } from '@mui/material';
+import { formatCurrency, formatPercentage, formatNumber } from '../utils/formatters';
 
 // Local type for filters, can extend or align with store's AnalyticsFilters
 interface PageAnalyticsFilters extends StoreAnalyticsFilters {
@@ -110,22 +112,6 @@ const AnalyticsPage: React.FC = (): React.ReactElement => {
     fetchAnalyticsData({} as Record<string, unknown>); // Fetch with no filters
   };
   
-  const formatCurrency = (value: number | null | undefined, showSign = false): string => {
-    if (value === null || value === undefined || isNaN(value)) return 'N/A';
-    const sign = value > 0 && showSign ? '+' : '';
-    return `${sign}${value.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`;
-  };
-
-  const formatPercentage = (value: number | null | undefined, decimals = 1): string => {
-    if (value === null || value === undefined || isNaN(value)) return 'N/A';
-    return `${value.toFixed(decimals)}%`;
-  };
-
-  const formatNumber = (value: number | null | undefined, decimals = 2): string => {
-    if (value === null || value === undefined || isNaN(value)) return 'N/A';
-    return value.toFixed(decimals);
-  };
-
 
   const renderAnalyticsContent = () => {
     if (isLoadingAnalytics) {

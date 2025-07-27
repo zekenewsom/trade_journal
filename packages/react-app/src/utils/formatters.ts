@@ -1,4 +1,6 @@
 // Shared formatters for currency, percentage, and numbers
+// formatPercentage: Converts a decimal (e.g., 0.1234) to a percentage string (e.g., '12.3%')
+// formatPercentageValue: Formats a pre-multiplied percentage value (e.g., 15.5 for 15.5%)
 
 export const formatCurrency = (value: number | null | undefined, showSign = false): string => {
   if (value === null || value === undefined || isNaN(value)) return 'N/A';
@@ -7,6 +9,11 @@ export const formatCurrency = (value: number | null | undefined, showSign = fals
 };
 
 export const formatPercentage = (value: number | null | undefined, decimals = 1): string => {
+  if (value === null || value === undefined || isNaN(value)) return 'N/A';
+  return `${(value * 100).toFixed(decimals)}%`;
+};
+
+export const formatPercentageValue = (value: number | null | undefined, decimals = 1): string => {
   if (value === null || value === undefined || isNaN(value)) return 'N/A';
   return `${value.toFixed(decimals)}%`;
 };

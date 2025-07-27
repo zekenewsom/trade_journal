@@ -15,7 +15,7 @@ import { CumulativeEquityChart } from './CumulativeEquityChart';
 import PnlHeatmapCalendar from './charts/PnlHeatmapCalendar';
 
 import { colors } from '../../styles/design-tokens';
-import { formatCurrency, formatPercentage, formatNumber } from '../../utils/formatters';
+import { formatCurrency, formatPercentage, formatPercentageValue, formatNumber } from '../../utils/formatters';
 
 const DashboardMetrics: React.FC = () => {
   const totalBuyingPower = useAppStore(s => s.getTotalBuyingPower());
@@ -45,7 +45,7 @@ const DashboardMetrics: React.FC = () => {
     const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - avgDailyReturn, 2), 0) / returns.length;
     const volatility = Math.sqrt(variance);
     
-    return volatility !== 0 ? (avgReturn - riskFreeReturn) / volatility : null;
+    return volatility !== 0 ? ((avgReturn - riskFreeReturn) / volatility) * Math.sqrt(252) : null;
   }, [analytics, riskFreeRate]);
 
   // Calculate Sortino Ratio
@@ -141,7 +141,7 @@ const DashboardMetrics: React.FC = () => {
           <EnhancedMetricCard
             title="Net Account Balance"
             value={formatCurrency(analytics.equityCurve.length > 0 ? analytics.equityCurve[analytics.equityCurve.length - 1].equity : analytics.totalRealizedNetPnl)}
-            changeText={`${pnlChangeValue >= 0 ? '+' : ''}${formatCurrency(pnlChangeValue)} (${formatPercentage(pnlChangePercent)})`}
+            changeText={`${pnlChangeValue >= 0 ? '+' : ''}${formatCurrency(pnlChangeValue)} (${formatPercentageValue(pnlChangePercent)})`}
             changeColor={pnlChangeValue >= 0 ? 'success' : 'error'}
             trendData={getMiniTrendData(analytics.equityCurve)}
             trendColor={pnlChangeValue >= 0 ? colors.success : colors.error}
@@ -175,7 +175,7 @@ const DashboardMetrics: React.FC = () => {
               }
               const showValue = !isNaN(unrealizedChange) && !isNaN(unrealizedChangePercent);
               return showValue
-                ? `${unrealizedChange >= 0 ? '+' : ''}${formatPercentage(unrealizedChangePercent)}`
+                ? `${unrealizedChange >= 0 ? '+' : ''}${formatPercentageValue(unrealizedChangePercent)}`
                 : 'N/A';
             })()}
             changeColor={analytics.totalUnrealizedPnl !== null && analytics.totalUnrealizedPnl >= 0 ? 'success' : 'error'}
@@ -262,7 +262,7 @@ const DashboardMetrics: React.FC = () => {
         <div className="col-span-1">
           <EnhancedMetricCard
             title="Max Drawdown"
-            value={formatPercentage(analytics.maxDrawdownPercentage)}
+            value={formatPercentageValue(analytics.maxDrawdownPercentage)}
             changeText="Peak to trough"
             changeColor="error"
             minHeight="140px"

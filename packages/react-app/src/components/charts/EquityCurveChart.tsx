@@ -1,5 +1,5 @@
 import React from 'react';
-import { colors } from '/src/styles/design-tokens';
+import { colors } from '../../styles/design-tokens';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface EquityCurveChartProps {

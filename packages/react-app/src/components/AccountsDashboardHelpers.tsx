@@ -12,7 +12,7 @@ export const AccountBalance: React.FC<{ accountId: number }> = ({ accountId }) =
     let mounted = true;
     setLoading(true);
     getAccountBalance(accountId).then(result => {
-      if (mounted) setBalance(typeof result === 'number' ? result : (result?.balance ?? 0));
+      if (mounted) setBalance(typeof result === 'number' ? result : ((result as any)?.balance ?? 0));
     }).finally(() => setLoading(false));
     return () => { mounted = false; };
   }, [accountId, getAccountBalance]);
