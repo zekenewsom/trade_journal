@@ -3,17 +3,26 @@
 -- This migration removes account transactions that should not have been recorded
 -- for leveraged positions without actual realized P&L
 
--- Step 0: Verify foreign key constraints exist between tables
--- Check account_transactions.related_trade_id -> trades.trade_id
--- Check trades.trade_id -> transactions.trade_id
--- Note: We'll proceed with the migration even if constraints are missing
--- as this is a data cleanup operation
+-- Step 0: Re-enable foreign key enforcement and check for violations
+PRAGMA foreign_keys = ON;
 
--- Log foreign key check results (informational only)
--- CREATE TEMPORARY TABLE IF NOT EXISTS fk_check_results AS
--- SELECT 'account_transactions' as table_name, COUNT(*) as fk_count
--- FROM pragma_foreign_key_list('account_transactions')
--- WHERE "table" = 'trades' AND "from" = 'related_trade_id' AND "to" = 'trade_id';
+-- Create temporary table to store foreign key check results
+CREATE TEMPORARY TABLE IF NOT EXISTS fk_check_results AS
+SELECT 'account_transactions' as table_name, COUNT(*) as fk_count
+FROM pragma_foreign_key_list('account_transactions')
+WHERE "table" = 'trades' AND "from" = 'related_trade_id' AND "to" = 'trade_id';
+
+-- Check for foreign key violations before proceeding with data cleanup
+CREATE TEMPORARY TABLE IF NOT EXISTS fk_violations AS
+SELECT * FROM pragma_foreign_key_check('account_transactions');
+
+-- Log foreign key violations if any exist
+-- This helps maintain data integrity by identifying orphaned records
+INSERT INTO fk_check_results (table_name, fk_count)
+SELECT 'fk_violations', COUNT(*) FROM fk_violations;
+
+-- If foreign key violations exist, log them but continue with migration
+-- as this is a data cleanup operation that may resolve some violations
 
 -- Step 1: Identify and remove account transactions for leveraged trading
 -- that don't have a corresponding closedPnl value
@@ -55,7 +64,6 @@ WHERE id IN (
         SELECT MAX(id)
         FROM account_transactions
         WHERE type = 'trade_transaction'
-          AND id IN (SELECT account_transaction_id FROM transactions_to_remove)
         GROUP BY related_trade_id, amount, memo
       )
 );
@@ -66,8 +74,28 @@ INSERT INTO account_transactions (account_id, type, amount, related_trade_id, me
 SELECT account_id, 'adjustment', 0, NULL,
        'Cash balance cleanup: Removed incorrect leveraged trading transactions (Migration 012)',
        datetime('now')
-FROM (SELECT MIN(id) as account_id FROM accounts)
-WHERE (SELECT COUNT(*) FROM account_transactions_backup_012) > 0;
+FROM (SELECT MIN(id) as account_id FROM accounts WHERE id IS NOT NULL)
+WHERE (SELECT COUNT(*) FROM account_transactions_backup_012) > 0
+  AND (SELECT COUNT(*) FROM accounts) > 0;
 
--- Drop the temporary table
+-- Step 5: Log migration results and cleanup temporary tables
+
+-- Log the results of foreign key checks and violations
+INSERT INTO account_transactions (account_id, type, amount, related_trade_id, memo, timestamp)
+SELECT 
+    (SELECT MIN(id) FROM accounts WHERE id IS NOT NULL) as account_id,
+    'adjustment' as type,
+    0 as amount,
+    NULL as related_trade_id,
+    'Migration 012: Foreign key constraints found: ' || 
+    (SELECT fk_count FROM fk_check_results WHERE table_name = 'account_transactions') || 
+    ', Violations: ' || 
+    (SELECT fk_count FROM fk_check_results WHERE table_name = 'fk_violations') as memo,
+    datetime('now') as timestamp
+WHERE (SELECT COUNT(*) FROM fk_check_results) > 0
+  AND (SELECT COUNT(*) FROM accounts) > 0;
+
+-- Clean up temporary tables
 DROP TABLE IF EXISTS transactions_to_remove;
+DROP TABLE IF EXISTS fk_check_results;
+DROP TABLE IF EXISTS fk_violations;

@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@/utils": path.resolve(__dirname, "./src/utils"),
     },
   },
   // Ensure the server runs on a known port for Electron to connect to

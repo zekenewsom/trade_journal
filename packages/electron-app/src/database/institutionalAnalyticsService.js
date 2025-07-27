@@ -374,7 +374,7 @@ function calculateRollingMetrics(equityCurve, windowSize = 30) {
       const prev = windowData[j - 1];
       const curr = windowData[j];
       if (prev.equity !== 0) {
-        returns.push((curr.equity - prev.equity) / prev.equity);
+        returns.push((curr.equity - prev.equity) / Math.abs(prev.equity));
       }
     }
     

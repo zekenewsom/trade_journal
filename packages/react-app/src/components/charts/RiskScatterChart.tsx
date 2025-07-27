@@ -2,7 +2,7 @@
 import React from 'react';
 import Box from '@mui/material/Box';
 import { Cell } from 'recharts';
-import { formatCurrency } from '../dashboard/DashboardMetrics';
+import { formatCurrency } from '../../utils/formatters';
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, ZAxis } from 'recharts';
 import { Typography } from '@mui/material';
 import { colors, typography, borderRadius as br } from '../../styles/design-tokens';

@@ -59,7 +59,7 @@ export function MonthlyReturnsChart({ data, height = '100%' }: MonthlyReturnsCha
         />
         <Bar dataKey="totalNetPnl" name="Net P&L" barSize={20}>
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={getColor(entry.totalNetPnl)} radius={[parseInt(br.sm), parseInt(br.sm), 0, 0]} />
+            <Cell key={`cell-${index}`} fill={getColor(entry.totalNetPnl)} />
           ))}
         </Bar>
       </BarChart>

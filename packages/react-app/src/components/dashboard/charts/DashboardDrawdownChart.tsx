@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import type { EquityCurvePoint } from '../../../types';
 import { Typography } from '@mui/material';
-import { colors } from '/src/styles/design-tokens';
+import { colors } from '../../../styles/design-tokens';
 
 interface Props {
   equityCurveData: EquityCurvePoint[];

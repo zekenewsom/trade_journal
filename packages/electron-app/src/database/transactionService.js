@@ -64,28 +64,36 @@ function _addTransactionInternal(transactionData, isCSV = false) {
       }
     }
 
-    // Only validate position for non-CSV
-    if (!isCSV) {
-      const transactionsForThisTrade = db.prepare('SELECT action, quantity FROM transactions WHERE trade_id = ?').all(current_trade_id);
-      let currentOpenPositionDecimal = decimal(0);
-      transactionsForThisTrade.forEach(tx => {
-        const txQuantity = decimal(tx.quantity);
-        if (position_trade_direction === 'Long') {
-          currentOpenPositionDecimal = tx.action === 'Buy' 
-            ? currentOpenPositionDecimal.plus(txQuantity) 
-            : currentOpenPositionDecimal.minus(txQuantity);
-        } else {
-          currentOpenPositionDecimal = tx.action === 'Sell' 
-            ? currentOpenPositionDecimal.plus(txQuantity) 
-            : currentOpenPositionDecimal.minus(txQuantity);
-        }
-      });
-      const currentOpenPositionSize = toNumber(currentOpenPositionDecimal);
-      const isExitingAction = (position_trade_direction === 'Long' && finalAction === 'Sell') ||
-                             (position_trade_direction === 'Short' && finalAction === 'Buy');
-      const quantityDecimal = decimal(quantity);
-      const tolerance = decimal(0.00000001);
-      if (isExitingAction && quantityDecimal.gt(currentOpenPositionDecimal.plus(tolerance))) {
+    // Position validation with special handling for CSV imports
+    const transactionsForThisTrade = db.prepare('SELECT action, quantity FROM transactions WHERE trade_id = ?').all(current_trade_id);
+    let currentOpenPositionDecimal = decimal(0);
+    transactionsForThisTrade.forEach(tx => {
+      const txQuantity = decimal(tx.quantity);
+      if (position_trade_direction === 'Long') {
+        currentOpenPositionDecimal = tx.action === 'Buy' 
+          ? currentOpenPositionDecimal.plus(txQuantity) 
+          : currentOpenPositionDecimal.minus(txQuantity);
+      } else {
+        currentOpenPositionDecimal = tx.action === 'Sell' 
+          ? currentOpenPositionDecimal.plus(txQuantity) 
+          : currentOpenPositionDecimal.minus(txQuantity);
+      }
+    });
+    const currentOpenPositionSize = toNumber(currentOpenPositionDecimal);
+    const isExitingAction = (position_trade_direction === 'Long' && finalAction === 'Sell') ||
+                           (position_trade_direction === 'Short' && finalAction === 'Buy');
+    const quantityDecimal = decimal(quantity);
+    const tolerance = decimal(0.00000001);
+    
+    if (isExitingAction && quantityDecimal.gt(currentOpenPositionDecimal.plus(tolerance))) {
+      if (isCSV) {
+        // For CSV imports, log warning and flag for review instead of blocking
+        console.warn(`[TRANSACTION_SERVICE] CSV IMPORT WARNING: Position validation failed for trade ID ${current_trade_id}. Attempting to ${finalAction.toLowerCase()} ${quantity} but only ${currentOpenPositionSize} effectively open. Transaction will be flagged for review.`);
+        // Flag this transaction for later review by adding a note
+        const reviewNote = `[REVIEW NEEDED] Position validation failed: Attempting to ${finalAction.toLowerCase()} ${quantity} but only ${currentOpenPositionSize} effectively open. CSV import may contain inconsistent data.`;
+        notes_for_transaction = notes_for_transaction ? `${notes_for_transaction} ${reviewNote}` : reviewNote;
+      } else {
+        // For non-CSV transactions, maintain strict validation
         throw new Error(`[TRANSACTION_SERVICE] Cannot ${finalAction.toLowerCase()} ${quantity}. Only ${currentOpenPositionSize} effectively open for trade ID ${current_trade_id}.`);
       }
     }

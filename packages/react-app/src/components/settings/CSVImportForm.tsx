@@ -233,7 +233,9 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
             emotion_ids: []
           };
 
-          Object.entries(fieldMapping).forEach(([csvField, targetField]) => {
+          let skipRow = false;
+
+          for (const [csvField, targetField] of Object.entries(fieldMapping)) {
             if (targetField && row[csvField]) {
               const value = row[csvField];
 
@@ -245,7 +247,8 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
                     const date = parseHyperLiquidDate(value);
                     if (!date) {
                       results.errors.push(`Row ${sortedCsvData.indexOf(row) + 1}: Could not parse HyperLiquid datetime: ${value}`);
-                      return; // Skip this row in forEach
+                      skipRow = true;
+                      break;
                     }
                     transformedData.datetime = date.toISOString().slice(0, 16);
                   } else {
@@ -273,7 +276,13 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
                   transformedData[targetField] = value;
               }
             }
-          });
+          }
+
+          // Skip this row if datetime parsing failed
+          if (skipRow) {
+            results.failed++;
+            continue;
+          }
 
           // Set default values
           transformedData.asset_class = 'Cryptocurrency'; // Default for most exchanges
@@ -281,7 +290,7 @@ const CSVImportForm: React.FC<CSVImportFormProps> = ({ onImportComplete }) => {
           transformedData.notes_for_transaction = `Imported from ${selectedExchange} CSV`;
 
           // Call the electron API to log the CSV transaction (uses CSV-specific processing)
-          const result = await window.electronAPI.logCSVTransaction(transformedData);
+          const result = await window.electronAPI.logCSVTransaction(transformedData as any);
           
           if (result.success) {
             results.successful++;

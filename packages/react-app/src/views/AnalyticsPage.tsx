@@ -69,7 +69,7 @@ const AnalyticsPage: React.FC = (): React.ReactElement => {
 
   // Fetch analytics data
   useEffect(() => {
-    fetchAnalyticsData(filters as any);
+    fetchAnalyticsData(filters);
   }, [fetchAnalyticsData, filters]);
 
   // Handle filter changes
